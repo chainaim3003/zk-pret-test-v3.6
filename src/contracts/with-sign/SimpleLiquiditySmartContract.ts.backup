@@ -1,0 +1,159 @@
+/**
+ * ====================================================================
+ * Simple Liquidity Smart Contract - ULTRA SIMPLIFIED
+ * ====================================================================
+ * Smart contract for basic liquidity verification
+ * NO Basel3, NO complex risk logic - just simple period-by-period checks
+ * ====================================================================
+ */
+
+import {
+    SmartContract,
+    state,
+    State,
+    method,
+    DeployArgs,
+    Permissions,
+    UInt64,
+    Bool,
+    CircuitString,
+    Field,
+} from 'o1js';
+
+import {
+    SimpleLiquidityZKProgramWithSign,
+    SimpleLiquidityProof,
+    SimpleLiquidityPublicOutput,
+} from '../zk-programs/with-sign/SimpleLiquidityZKProgramWithSign.js';
+
+export class SimpleLiquiditySmartContract extends SmartContract {
+    // =================================== State Variables ===================================
+    
+    @state(CircuitString) lastVerifiedCompany = State<CircuitString>();
+    @state(Bool) lastLiquidityCompliant = State<Bool>();
+    @state(Field) lastLiquidityThreshold = State<Field>();
+    @state(Field) lastPassedPeriods = State<Field>();
+    @state(Field) lastTotalPeriods = State<Field>();
+    @state(UInt64) lastVerificationTimestamp = State<UInt64>();
+    @state(Field) lastMerkleRoot = State<Field>();
+
+    // =================================== Contract Initialization ===================================
+    
+    async deploy(args: DeployArgs) {
+        await super.deploy(args);
+        
+        // Set initial permissions
+        this.account.permissions.set({
+            ...Permissions.default(),
+            setDelegate: Permissions.proof(),
+            setPermissions: Permissions.proof(),
+            setVerificationKey: Permissions.signature(),
+            setZkappUri: Permissions.proof(),
+            setTokenSymbol: Permissions.proof(),
+            incrementNonce: Permissions.proof(),
+            setVotingFor: Permissions.proof(),
+            setTiming: Permissions.proof(),
+        });
+        
+        // Initialize state
+        this.lastVerifiedCompany.set(CircuitString.fromString(''));
+        this.lastLiquidityCompliant.set(Bool(false));
+        this.lastLiquidityThreshold.set(Field(0));
+        this.lastPassedPeriods.set(Field(0));
+        this.lastTotalPeriods.set(Field(0));
+        this.lastVerificationTimestamp.set(UInt64.from(0));
+        this.lastMerkleRoot.set(Field(0));
+    }
+
+    // =================================== Main Verification Method ===================================
+    
+    @method async verifySimpleLiquidityCompliance(
+        liquidityProof: SimpleLiquidityProof,
+        currentTimestamp: UInt64
+    ) {
+        // Verify the ZK proof
+        liquidityProof.verify();
+        
+        // Extract public output from proof
+        const publicOutput: SimpleLiquidityPublicOutput = liquidityProof.publicOutput;
+        
+        // Verify timestamp consistency
+        publicOutput.verificationTimestamp.assertEquals(currentTimestamp);
+        
+        // Basic validation
+        publicOutput.totalPeriods.assertGreaterThan(Field(0));
+        publicOutput.liquidityThreshold.assertGreaterThan(Field(0));
+        publicOutput.passedPeriods.assertLessThanOrEqual(publicOutput.totalPeriods);
+        
+        // Store verification results in contract state
+        this.lastVerifiedCompany.set(publicOutput.companyID);
+        this.lastLiquidityCompliant.set(publicOutput.liquidityCompliant);
+        this.lastLiquidityThreshold.set(publicOutput.liquidityThreshold);
+        this.lastPassedPeriods.set(publicOutput.passedPeriods);
+        this.lastTotalPeriods.set(publicOutput.totalPeriods);
+        this.lastVerificationTimestamp.set(publicOutput.verificationTimestamp);
+        this.lastMerkleRoot.set(publicOutput.merkleRoot);
+    }
+
+    // =================================== Query Methods ===================================
+    
+    @method async getLastVerificationSummary(): Promise<{
+        companyID: CircuitString;
+        isCompliant: Bool;
+        threshold: Field;
+        passedPeriods: Field;
+        totalPeriods: Field;
+        timestamp: UInt64;
+    }> {
+        return {
+            companyID: this.lastVerifiedCompany.getAndRequireEquals(),
+            isCompliant: this.lastLiquidityCompliant.getAndRequireEquals(),
+            threshold: this.lastLiquidityThreshold.getAndRequireEquals(),
+            passedPeriods: this.lastPassedPeriods.getAndRequireEquals(),
+            totalPeriods: this.lastTotalPeriods.getAndRequireEquals(),
+            timestamp: this.lastVerificationTimestamp.getAndRequireEquals(),
+        };
+    }
+
+    @method async isCurrentlyCompliant(): Promise<Bool> {
+        return this.lastLiquidityCompliant.getAndRequireEquals();
+    }
+
+    @method async getComplianceRate(): Promise<Field> {
+        const passed = this.lastPassedPeriods.getAndRequireEquals();
+        const total = this.lastTotalPeriods.getAndRequireEquals();
+        
+        // Return percentage: (passed / total) * 100
+        // Using multiplicative inverse for division safety
+        const percentage = passed.mul(Field(100)).div(total);
+        return percentage;
+    }
+
+    // =================================== Administrative Methods ===================================
+    
+    @method async resetVerificationState() {
+        // Reset all state to initial values (admin only in practice)
+        this.lastVerifiedCompany.set(CircuitString.fromString(''));
+        this.lastLiquidityCompliant.set(Bool(false));
+        this.lastLiquidityThreshold.set(Field(0));
+        this.lastPassedPeriods.set(Field(0));
+        this.lastTotalPeriods.set(Field(0));
+        this.lastVerificationTimestamp.set(UInt64.from(0));
+        this.lastMerkleRoot.set(Field(0));
+    }
+
+    // =================================== Validation Helpers ===================================
+    
+    @method async validateBasicInputs(
+        threshold: Field,
+        totalPeriods: Field,
+        passedPeriods: Field
+    ): Promise<Bool> {
+        // Basic validation logic
+        const thresholdValid = threshold.greaterThan(Field(0)).and(threshold.lessThanOrEqual(Field(1000)));
+        const periodsValid = totalPeriods.greaterThan(Field(0)).and(totalPeriods.lessThanOrEqual(Field(120)));
+        const passedValid = passedPeriods.lessThanOrEqual(totalPeriods);
+        
+        return thresholdValid.and(periodsValid).and(passedValid);
+    }
+}
