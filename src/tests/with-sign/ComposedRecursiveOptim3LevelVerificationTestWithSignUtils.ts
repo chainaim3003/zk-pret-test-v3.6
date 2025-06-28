@@ -8,7 +8,7 @@ import { ComposedOptimComplianceVerifierSC } from './ComposedRecursiveOptim3Leve
 // Import individual Optim service utilities
 import { getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils } from './CorporateRegistrationOptimSingleCompanyVerificationTestWithSignUtils.js';
 import { getEXIMOptimSingleCompanyVerificationWithSignUtils } from './EXIMOptimSingleCompanyVerificationTestWithSignUtils.js';
-import { getGLEIFOptimSingleCompanyVerificationWithSignUtils } from './GLEIFOptimSingleCompanyVerificationTestWithSignUtils.js';
+import { getGLEIFOptimMultiCompanyVerificationWithSignUtils } from './GLEIFOptimMultiCompanyVerificationTestWithSignUtils.js';
 
 import { MCAdeployerAccount, MCAsenderAccount, MCAdeployerKey, MCAsenderKey } from '../../core/OracleRegistry.js';
 
@@ -323,12 +323,12 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
         
         // GLEIF Proof - Use Company Name
         console.log(`🌍 Generating GLEIF proof with Company Name: ${companyName}...`);
-        const gleifResult = await getGLEIFOptimSingleCompanyVerificationWithSignUtils(
-          companyName // Use Company Name for GLEIF
+        const gleifResult = await getGLEIFOptimMultiCompanyVerificationWithSignUtils(
+          [companyName] // Use Company Name for GLEIF (wrapped in array for multi-company function)
         );
-        const gleifProof = gleifResult.proof;
+        const gleifProof = gleifResult.proofs[0]; // Get first proof from multi-company result
         // Extract compliance score from proof public output or use default
-        const gleifScore = 85;
+        const gleifScore = gleifResult.verificationResults[0]?.complianceScore || 85;
 
         console.log(`✅ All individual service proofs generated for ${companyName}`);
 

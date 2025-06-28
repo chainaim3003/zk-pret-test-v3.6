@@ -119,30 +119,6 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
 
   // ===== SMART CONTRACTS =====
   {
-    name: 'GLEIFOptimSmartContract',
-    category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/GLEIFOptimSmartContract.js'),
-    dependencies: ['GLEIFOptim'],
-    compilationOrder: 2,
-    enabled: true
-  },
-  {
-    name: 'GLEIFEnhancedVerifierSmartContract',
-    category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/GLEIFEnhancedVerifierSmartContractWithSign.js'),
-    dependencies: ['GLEIFEnhanced'],
-    compilationOrder: 2,
-    enabled: true
-  },
-  {
-    name: 'GLEIFEnhancedVerifierWithZKProofSmartContract',
-    category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/GLEIFEnhancedVerifierWithZKProofSmartContract.js'),
-    dependencies: ['GLEIFEnhanced'],
-    compilationOrder: 2,
-    enabled: true
-  },
-  {
     name: 'GLEIFOptimMultiCompanySmartContract',
     category: CompilationCategory.SMART_CONTRACT,
     loader: () => import('../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js'),
