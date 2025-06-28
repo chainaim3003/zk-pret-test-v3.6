@@ -51,7 +51,15 @@
     "build-ts-only": "npx tsc",
     "build-working": "cp -r build.working-copy/* build/",
     "verify-build": "echo \"Build files: $(find build/ -name \"*.js\" | wc -l)\"",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "test:infrastructure": "node test-infrastructure.mjs",
+    "test:gleif": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./build/tests/with-sign/GLEIFOptimVerificationTestWithSign.js",
+    "test:gleif-simple": "npm run build && node ./build/tests/with-sign/GLEIFSimpleTest.js",
+    "test:gleif-simple-infra": "npm run build && node ./build/tests/with-sign/GLEIFOptimSimpleInfrastructureTestWithSign.js",
+    "test:gleif-refactored-infra": "npm run build && node ./build/tests/with-sign/GLEIFOptimRefactoredInfrastructureTestWithSign.js",
+    "test:gleif-multi-refactored-infra": "npm run build && node ./build/tests/with-sign/GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSign.js",
+    "test:gleif-infrastructure": "npm run build && node ./build/tests/with-sign/GLEIFOptimInfrastructureTestWithSign.js",
+    "test:gleif-updated": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./build/tests/with-sign/GLEIFOptimVerificationTestWithSignUtilsUpdated.js"
   },
   "lint-staged": {
     "**/*": [
