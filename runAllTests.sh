@@ -51,7 +51,6 @@ node ./build/tests/with-sign/EXIMOptimSingleCompanyVerificationTestWithSign.js "
 node ./build/tests/with-sign/GLEIFOptimSingleCompanyVerificationTestWithSign.js "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"
 node ./build/tests/with-sign/GLEIFOptimSingleCompanyVerificationTestWithSign.js "INVALID GLEIF COMPANY TEST"
 
-
 # SOME SAMPLE MULTI COMPANY
 node ./build/tests/with-sign/GLEIFOptimMultiCompanyVerificationTestWithSign.js "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"
 node ./build/tests/with-sign/GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSign.js "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"
