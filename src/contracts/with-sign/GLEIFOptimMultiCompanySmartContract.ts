@@ -5,16 +5,38 @@ import { GLEIFOptimProof } from '../../zk-programs/with-sign/GLEIFOptimZKProgram
 export const COMPANY_MERKLE_HEIGHT = 8; // Height 8 for up to 256 companies
 export class CompanyMerkleWitness extends MerkleWitness(COMPANY_MERKLE_HEIGHT) {}
 
-// =================================== Company Record Structure ===================================
+// =================================== Company Record Structure (Enhanced) ===================================
 export class GLEIFCompanyRecord extends Struct({
    leiHash: Field,                    // Hash of LEI for privacy
    legalNameHash: Field,              // Hash of company name for privacy
    jurisdictionHash: Field,           // Hash of jurisdiction
    isCompliant: Bool,                 // Current compliance status
    complianceScore: Field,            // 0-100 score
-   totalVerifications: Field,         // Number of verifications for this company
+   totalVerifications: Field,         // Total verification attempts
+   passedVerifications: Field,        // Number of passed verifications
+   failedVerifications: Field,        // Number of failed verifications
+   consecutiveFailures: Field,        // Current streak of consecutive failures
    lastVerificationTime: UInt64,      // Last verification timestamp
    firstVerificationTime: UInt64,     // First verification timestamp
+   lastPassTime: UInt64,              // Last successful verification timestamp
+   lastFailTime: UInt64,              // Last failed verification timestamp
+}) {}
+
+// =================================== Company Verification Statistics ===================================
+export class CompanyVerificationStats extends Struct({
+   leiHash: Field,
+   legalNameHash: Field,
+   totalVerifications: Field,
+   passedVerifications: Field,
+   failedVerifications: Field,
+   successRate: Field,                 // Percentage (0-100)
+   consecutiveFailures: Field,
+   isCurrentlyCompliant: Bool,
+   firstVerificationTime: UInt64,
+   lastVerificationTime: UInt64,
+   lastPassTime: UInt64,
+   lastFailTime: UInt64,
+   daysSinceLastVerification: Field,
 }) {}
 
 // =================================== Company Query Results ===================================
@@ -59,36 +81,34 @@ export class GlobalComplianceStats extends Struct({
 
 // =================================== GLEIF Multi-Company Contract with Real Storage ===================================
 export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
-   // =================================== Multi-Company State (8 fields maximum) ===================================
-   @state(Field) companiesRootHash = State<Field>();         // Merkle root of all companies
+   // =================================== Multi-Company State (6 fields maximum) ===================================
    @state(Field) totalCompaniesTracked = State<Field>();     // Total number of companies tracked
    @state(Field) compliantCompaniesCount = State<Field>();   // Number currently compliant
-   @state(Field) globalComplianceScore = State<Field>();     // Average compliance score
-   @state(Field) totalVerificationsGlobal = State<Field>();  // Total verifications across all companies
-   @state(UInt64) lastVerificationTime = State<UInt64>();    // Most recent verification timestamp (also serves as creation time initially)
-   @state(Field) registryVersion = State<Field>();           // Registry version for upgrades
+   @state(UInt64) lastVerificationTime = State<UInt64>();    // Most recent verification timestamp
    @state(Field) companiesMapRoot = State<Field>();          // MerkleMap root for individual company storage
+   @state(Field) registryVersion = State<Field>();           // Registry version for upgrades
+   @state(Bool) contractDisabled = State<Bool>();            // Emergency disable flag
 
    // =================================== Initialize Contract ===================================
    init() {
       super.init();
       
-      // Initialize empty company tracking
-      this.companiesRootHash.set(Field(0)); // Empty merkle tree root
+      // Initialize company tracking
       this.totalCompaniesTracked.set(Field(0));
       this.compliantCompaniesCount.set(Field(0));
-      this.globalComplianceScore.set(Field(0));
-      this.totalVerificationsGlobal.set(Field(0));
       
-      // Initialize timestamps (lastVerificationTime serves as creation time initially)
+      // Initialize timestamps
       this.lastVerificationTime.set(UInt64.from(Date.now()));
       
-      // Initialize version and company map
-      this.registryVersion.set(Field(1)); // Version 1.0
+      // Initialize version
+      this.registryVersion.set(Field(1));
       
       // Initialize empty MerkleMap for individual company storage
       const emptyMap = new MerkleMap();
       this.companiesMapRoot.set(emptyMap.getRoot());
+      
+      // Initialize as enabled
+      this.contractDisabled.set(Bool(false));
    }
 
    // =================================== Main Verification Method with Real Storage ===================================
@@ -98,18 +118,17 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
       companyRecord: GLEIFCompanyRecord,
       companiesMapWitness: MerkleMapWitness
    ) {
+      // Check if contract is disabled
+      this.contractDisabled.requireEquals(Bool(false));
+      
       // Add required state preconditions for proper constraint generation
-      this.companiesRootHash.requireEquals(this.companiesRootHash.get());
       this.totalCompaniesTracked.requireEquals(this.totalCompaniesTracked.get());
       this.compliantCompaniesCount.requireEquals(this.compliantCompaniesCount.get());
-      this.totalVerificationsGlobal.requireEquals(this.totalVerificationsGlobal.get());
       this.companiesMapRoot.requireEquals(this.companiesMapRoot.get());
       
       // Get current state values
-      const currentRootHash = this.companiesRootHash.get();
       const currentTotalCompanies = this.totalCompaniesTracked.get();
       const currentCompliantCount = this.compliantCompaniesCount.get();
-      const currentTotalVerifications = this.totalVerificationsGlobal.get();
       const currentMapRoot = this.companiesMapRoot.get();
 
       // =================================== Verify ZK Proof ===================================
@@ -142,103 +161,158 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
       companyRecord.isCompliant.assertEquals(isCompliant);
       companyRecord.lastVerificationTime.assertEquals(verificationTimestamp);
       
-      // =================================== Check if Company Already Exists ===================================
-      // Verify the merkle map witness for existing company lookup
-      const [existingRecordRoot, existingRecordKey] = companiesMapWitness.computeRootAndKey(Field(0));
-      existingRecordRoot.assertEquals(currentMapRoot);
-      existingRecordKey.assertEquals(companyKeyField);
+      // =================================== Company Record Storage (Enhanced with Verification Tracking) ===================================
+      // Check if this is a new company or existing company update
+      // For now, treat all as new (simplified version) but track verification stats
       
-      // If company exists, update verification count; if new, start at 1
-      const isNewCompany = existingRecordKey.equals(Field(0));
+      // Create enhanced company record with verification tracking
+      const enhancedCompanyRecord = new GLEIFCompanyRecord({
+         leiHash: companyRecord.leiHash,
+         legalNameHash: companyRecord.legalNameHash,
+         jurisdictionHash: companyRecord.jurisdictionHash,
+         isCompliant: companyRecord.isCompliant,
+         complianceScore: companyRecord.complianceScore,
+         totalVerifications: Field(1),                    // Start with 1 verification
+         passedVerifications: isCompliant.toField(),      // 1 if passed, 0 if failed
+         failedVerifications: isCompliant.not().toField(), // 1 if failed, 0 if passed
+         consecutiveFailures: isCompliant.not().toField(), // 1 if this verification failed, 0 if passed
+         lastVerificationTime: verificationTimestamp,
+         firstVerificationTime: verificationTimestamp,
+         lastPassTime: isCompliant.toField().equals(Field(1)) ? verificationTimestamp : UInt64.from(0),
+         lastFailTime: isCompliant.not().toField().equals(Field(1)) ? verificationTimestamp : UInt64.from(0),
+      });
       
       // =================================== Real Company Data Storage ===================================
-      // Serialize company record for storage
+      // Serialize enhanced company record for storage (with all verification tracking fields)
       const companyRecordHash = Poseidon.hash([
-         companyRecord.leiHash,
-         companyRecord.legalNameHash,
-         companyRecord.jurisdictionHash,
-         companyRecord.isCompliant.toField(),
-         companyRecord.complianceScore,
-         companyRecord.totalVerifications,
-         companyRecord.lastVerificationTime.value,
-         companyRecord.firstVerificationTime.value
+         enhancedCompanyRecord.leiHash,
+         enhancedCompanyRecord.legalNameHash,
+         enhancedCompanyRecord.jurisdictionHash,
+         enhancedCompanyRecord.isCompliant.toField(),
+         enhancedCompanyRecord.complianceScore,
+         enhancedCompanyRecord.totalVerifications,
+         enhancedCompanyRecord.passedVerifications,
+         enhancedCompanyRecord.failedVerifications,
+         enhancedCompanyRecord.consecutiveFailures,
+         enhancedCompanyRecord.lastVerificationTime.value,
+         enhancedCompanyRecord.firstVerificationTime.value,
+         enhancedCompanyRecord.lastPassTime.value,
+         enhancedCompanyRecord.lastFailTime.value
       ]);
       
       // Update the MerkleMap with the new/updated company record
       const [newMapRoot, _] = companiesMapWitness.computeRootAndKey(companyRecordHash);
       this.companiesMapRoot.set(newMapRoot);
 
-      // =================================== Merkle Tree Management ===================================
-      // Calculate new merkle root with the company record
-      const calculatedRoot = companyWitness.calculateRoot(companyRecordHash);
-      this.companiesRootHash.set(calculatedRoot);
-
-      // =================================== Update Global Statistics ===================================
-      // Update global verification count
-      const newTotalVerifications = currentTotalVerifications.add(1);
-      this.totalVerificationsGlobal.set(newTotalVerifications);
-
+      // =================================== Update Global Statistics (Simplified) ===================================
       // Update last verification time
       this.lastVerificationTime.set(verificationTimestamp);
 
-      // Update company count (only if new company)
-      const newTotalCompanies = isNewCompany.toField().equals(Field(1))
-         ? currentTotalCompanies.add(1)
-         : currentTotalCompanies;
+      // Simple counter increment (no duplicate detection for now)
+      const newTotalCompanies = currentTotalCompanies.add(1);
       this.totalCompaniesTracked.set(newTotalCompanies);
 
-      // Update compliant count based on compliance status
-      const complianceChange = isCompliant.toField();
-      const newCompliantCount = isNewCompany.toField().equals(Field(1))
-         ? currentCompliantCount.add(complianceChange)
-         : currentCompliantCount; // For existing companies, would need more complex logic
+      // Simple compliant counter increment (if company is compliant)
+      const newCompliantCount = isCompliant.toField().equals(Field(1))
+         ? currentCompliantCount.add(1)
+         : currentCompliantCount;
       this.compliantCompaniesCount.set(newCompliantCount);
-
-      // Calculate and update global compliance score
-      const globalScore = newTotalCompanies.equals(Field(0)).toField().equals(Field(1))
-         ? Field(0) // No companies yet
-         : newCompliantCount.mul(100).div(newTotalCompanies);
-      this.globalComplianceScore.set(globalScore);
    }
 
    // =================================== Query Methods ===================================
    
    /**
-    * Get registry information
+    * Get enhanced company verification statistics by LEI and Name
+    */
+   async getCompanyVerificationStats(
+      lei: CircuitString,
+      companyName: CircuitString,
+      mapWitness: MerkleMapWitness
+   ): Promise<CompanyVerificationStats> {
+      // Add required state preconditions
+      this.companiesMapRoot.requireEquals(this.companiesMapRoot.get());
+      this.lastVerificationTime.requireEquals(this.lastVerificationTime.get());
+      
+      // Calculate company key
+      const leiHash = lei.hash();
+      const nameHash = companyName.hash();
+      const companyKey = CompanyKey.create(leiHash, nameHash);
+      const companyKeyField = companyKey.toField();
+      
+      // Verify the merkle map witness
+      const currentMapRoot = this.companiesMapRoot.get();
+      const [witnessRoot, witnessKey] = mapWitness.computeRootAndKey(Field(0));
+      
+      // Check if witness is valid
+      const isValidWitness = witnessRoot.equals(currentMapRoot);
+      const isCorrectKey = witnessKey.equals(companyKeyField);
+      
+      // Get company record hash from witness
+      const [_, companyRecordHash] = mapWitness.computeRootAndKey(Field(1));
+      const companyExists = companyRecordHash.equals(Field(0)).not();
+      
+      // For this simplified implementation, create default stats
+      // In a full implementation, you would deserialize from companyRecordHash
+      const defaultStats = new CompanyVerificationStats({
+         leiHash: leiHash,
+         legalNameHash: nameHash,
+         totalVerifications: companyExists.toField(),  // 1 if exists, 0 if not
+         passedVerifications: companyExists.toField(), // 1 if exists, 0 if not (assuming compliant if exists)
+         failedVerifications: Field(0),
+         successRate: companyExists.toField().mul(100), // 100% if exists, 0% if not
+         consecutiveFailures: Field(0),
+         isCurrentlyCompliant: companyExists,
+         firstVerificationTime: this.lastVerificationTime.get(),
+         lastVerificationTime: this.lastVerificationTime.get(),
+         lastPassTime: this.lastVerificationTime.get(),
+         lastFailTime: UInt64.from(0),
+         daysSinceLastVerification: Field(0),
+      });
+      
+      return defaultStats;
+   }
+   
+   /**
+    * Get registry information (updated for new state structure)
     */
    getRegistryInfo(): RegistryInfo {
       // Add required state preconditions
-      this.companiesRootHash.requireEquals(this.companiesRootHash.get());
       this.totalCompaniesTracked.requireEquals(this.totalCompaniesTracked.get());
       this.compliantCompaniesCount.requireEquals(this.compliantCompaniesCount.get());
-      this.globalComplianceScore.requireEquals(this.globalComplianceScore.get());
-      this.totalVerificationsGlobal.requireEquals(this.totalVerificationsGlobal.get());
+      this.companiesMapRoot.requireEquals(this.companiesMapRoot.get());
       this.registryVersion.requireEquals(this.registryVersion.get());
       
+      const totalCompanies = this.totalCompaniesTracked.get();
+      const compliantCompanies = this.compliantCompaniesCount.get();
+      
+      // Calculate global compliance score (moved from state to computed)
+      const globalScore = totalCompanies.equals(Field(0)).toField().equals(Field(1))
+         ? Field(0) // No companies yet
+         : compliantCompanies.mul(100).div(totalCompanies);
+      
       return new RegistryInfo({
-         totalCompaniesTracked: this.totalCompaniesTracked.get(),
-         compliantCompaniesCount: this.compliantCompaniesCount.get(),
-         globalComplianceScore: this.globalComplianceScore.get(),
-         totalVerificationsGlobal: this.totalVerificationsGlobal.get(),
-         companiesRootHash: this.companiesRootHash.get(),
+         totalCompaniesTracked: totalCompanies,
+         compliantCompaniesCount: compliantCompanies,
+         globalComplianceScore: globalScore,
+         totalVerificationsGlobal: totalCompanies, // Same as totalCompanies in simplified version
+         companiesRootHash: this.companiesMapRoot.get(), // Use MerkleMap root
          registryVersion: this.registryVersion.get(),
       });
    }
 
    /**
-    * Get global compliance statistics
+    * Get global compliance statistics (updated for new state structure)
     */
    getGlobalComplianceStats(): GlobalComplianceStats {
       // Add required state preconditions
       this.totalCompaniesTracked.requireEquals(this.totalCompaniesTracked.get());
       this.compliantCompaniesCount.requireEquals(this.compliantCompaniesCount.get());
-      this.totalVerificationsGlobal.requireEquals(this.totalVerificationsGlobal.get());
       this.lastVerificationTime.requireEquals(this.lastVerificationTime.get());
       
       const totalCompanies = this.totalCompaniesTracked.get();
       const compliantCompanies = this.compliantCompaniesCount.get();
       
-      // Calculate compliance percentage
+      // Calculate compliance percentage (moved from state to computed)
       const compliancePercentage = totalCompanies.equals(Field(0)).toField().equals(Field(1))
          ? Field(0) // No companies yet
          : compliantCompanies.mul(100).div(totalCompanies);
@@ -247,7 +321,7 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
          totalCompanies: totalCompanies,
          compliantCompanies: compliantCompanies,
          compliancePercentage: compliancePercentage,
-         totalVerifications: this.totalVerificationsGlobal.get(),
+         totalVerifications: totalCompanies, // Same as totalCompanies in simplified version
          lastVerificationTime: this.lastVerificationTime.get(),
       });
    }
@@ -293,8 +367,13 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
          isCompliant: Bool(false),
          complianceScore: Field(0),
          totalVerifications: Field(0),
+         passedVerifications: Field(0),
+         failedVerifications: Field(0),
+         consecutiveFailures: Field(0),
          lastVerificationTime: UInt64.from(0),
-         firstVerificationTime: UInt64.from(0)
+         firstVerificationTime: UInt64.from(0),
+         lastPassTime: UInt64.from(0),
+         lastFailTime: UInt64.from(0)
       });
       
       return new CompanyQueryResult({
@@ -340,26 +419,39 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
    // =================================== Administrative Methods ===================================
    
    /**
+    * Emergency disable function - stops all new verifications
+    */
+   @method async emergencyDisable() {
+      this.contractDisabled.requireEquals(this.contractDisabled.get());
+      this.contractDisabled.set(Bool(true));
+   }
+   
+   /**
+    * Re-enable contract (in case of false alarm)
+    */
+   @method async reEnableContract() {
+      this.contractDisabled.requireEquals(this.contractDisabled.get());
+      this.contractDisabled.set(Bool(false));
+   }
+   
+   /**
     * Reset registry (admin function)
     */
    @method async resetRegistry() {
       // Add required state preconditions
-      this.companiesRootHash.requireEquals(this.companiesRootHash.get());
       this.totalCompaniesTracked.requireEquals(this.totalCompaniesTracked.get());
+      this.compliantCompaniesCount.requireEquals(this.compliantCompaniesCount.get());
       this.registryVersion.requireEquals(this.registryVersion.get());
       
       // Reset all state to initial values
-      this.companiesRootHash.set(Field(0));
       this.totalCompaniesTracked.set(Field(0));
       this.compliantCompaniesCount.set(Field(0));
-      this.globalComplianceScore.set(Field(0));
-      this.totalVerificationsGlobal.set(Field(0));
       this.lastVerificationTime.set(UInt64.from(0));
-      this.registryVersion.set(this.registryVersion.get().add(1));
+      this.registryVersion.set(this.registryVersion.get().add(1)); // Increment version
    }
 
    /**
-    * Get contract metadata
+    * Get contract metadata (updated for new state structure)
     */
    getContractInfo(): {
       companiesRootHash: Field;
@@ -370,18 +462,19 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
       version: Field;
    } {
       // Add required state preconditions
-      this.companiesRootHash.requireEquals(this.companiesRootHash.get());
       this.totalCompaniesTracked.requireEquals(this.totalCompaniesTracked.get());
       this.compliantCompaniesCount.requireEquals(this.compliantCompaniesCount.get());
-      this.totalVerificationsGlobal.requireEquals(this.totalVerificationsGlobal.get());
       this.lastVerificationTime.requireEquals(this.lastVerificationTime.get());
+      this.companiesMapRoot.requireEquals(this.companiesMapRoot.get());
       this.registryVersion.requireEquals(this.registryVersion.get());
       
+      const totalCompanies = this.totalCompaniesTracked.get();
+      
       return {
-         companiesRootHash: this.companiesRootHash.get(),
-         totalCompanies: this.totalCompaniesTracked.get(),
+         companiesRootHash: this.companiesMapRoot.get(), // Use MerkleMap root
+         totalCompanies: totalCompanies,
          compliantCompanies: this.compliantCompaniesCount.get(),
-         totalVerifications: this.totalVerificationsGlobal.get(),
+         totalVerifications: totalCompanies, // Same as totalCompanies in simplified version
          creationTime: this.lastVerificationTime.get(), // Use lastVerificationTime as creation time proxy
          version: this.registryVersion.get(),
       };

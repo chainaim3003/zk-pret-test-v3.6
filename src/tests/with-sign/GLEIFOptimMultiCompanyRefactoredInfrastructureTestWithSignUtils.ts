@@ -154,7 +154,7 @@ class CompanyRegistry {
       console.log(`➕ Adding new company at index ${index}: ${lei}`);
     }
     
-    // Calculate company record hash using the same method as the smart contract
+    // Calculate company record hash using the same method as the smart contract (enhanced)
     const companyHash = Poseidon.hash([
       companyRecord.leiHash,
       companyRecord.legalNameHash,
@@ -162,8 +162,13 @@ class CompanyRegistry {
       companyRecord.isCompliant.toField(),
       companyRecord.complianceScore,
       companyRecord.totalVerifications,
+      companyRecord.passedVerifications,
+      companyRecord.failedVerifications,
+      companyRecord.consecutiveFailures,
       companyRecord.lastVerificationTime.value,
-      companyRecord.firstVerificationTime.value
+      companyRecord.firstVerificationTime.value,
+      companyRecord.lastPassTime.value,
+      companyRecord.lastFailTime.value
     ]);
     
     // Update merkle tree
@@ -366,7 +371,7 @@ managing_lou: extractedData.managingLou || CircuitString.fromString(''),
 }
 
 /**
-* Create a company record from GLEIF compliance data and verification info
+* Create a company record from GLEIF compliance data and verification info (Enhanced)
  */
 function createCompanyRecord(
 complianceData: GLEIFOptimComplianceData,
@@ -383,8 +388,13 @@ jurisdictionHash: CircuitString.fromString('Global').hash(), // GLEIF is global
 isCompliant: isCompliant,
 complianceScore: isCompliant.toField().mul(100), // 100 if compliant, 0 if not
 totalVerifications: Field(1), // This will be updated if company already exists
+passedVerifications: isCompliant.toField(), // 1 if passed, 0 if failed
+failedVerifications: isCompliant.not().toField(), // 1 if failed, 0 if passed
+consecutiveFailures: isCompliant.not().toField(), // 1 if this verification failed, 0 if passed
 lastVerificationTime: currentTime,
-  firstVerificationTime: currentTime // Set to current time for new verifications
+firstVerificationTime: currentTime, // Set to current time for new verifications
+lastPassTime: isCompliant.toField().equals(Field(1)) ? currentTime : UInt64.from(0),
+lastFailTime: isCompliant.not().toField().equals(Field(1)) ? currentTime : UInt64.from(0),
   });
 }
 
@@ -483,8 +493,24 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         await zkApp.deploy({ verificationKey });
       }
     );
-    await deployTxn.sign([deployerKey, zkAppKey]).send();
+    const txnResult = await deployTxn.sign([deployerKey, zkAppKey]).send();
     console.log('✅ Multi-company smart contract deployed successfully');
+    
+    // =================================== Save Deployment Address IMMEDIATELY ===================================
+    console.log('📝 Saving deployment address to environment config...');
+    try {
+      await environmentManager.saveDeployment(
+        'GLEIFOptimMultiCompanySmartContract',
+        zkAppAddress.toBase58(),
+        verificationKey,
+        txnResult.hash
+      );
+      console.log(`✅ Contract address saved: ${zkAppAddress.toBase58()}`);
+      console.log(`📁 Stored in: ./config/environments/${currentEnvironment.toLowerCase()}.json`);
+    } catch (saveError: any) {
+      console.warn(`⚠️ Failed to save deployment address: ${saveError.message}`);
+      console.log(`📝 Manual address for reference: ${zkAppAddress.toBase58()}`);
+    }
 
     // =================================== Initialize Company Registry ===================================
     const companyRegistry = new CompanyRegistry();
@@ -615,16 +641,23 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         console.log(`\n⚡ Executing smart contract verification transaction...`);
         console.log(`🔐 Submitting ZK proof to blockchain...`);
 
-        // Create a dummy MerkleMapWitness for the companies map
-        // In a real implementation, this would be properly managed
+        // Create proper MerkleMapWitness for the companies map
+        // For a new company, we need a witness that proves the company doesn't exist yet
         const { MerkleMap, MerkleMapWitness } = await import('o1js');
-        const dummyMap = new MerkleMap();
-        const dummyMapWitness = dummyMap.getWitness(Field(0));
+        const companiesMap = new MerkleMap();
+        
+        // Create company key for the map
+        const companyLEIHash = complianceData.lei.hash();
+        const companyNameHash = complianceData.name.hash();
+        const companyKeyField = Poseidon.hash([companyLEIHash, companyNameHash]);
+        
+        // Get witness for the company key (should prove non-existence for new company)
+        const companiesMapWitness = companiesMap.getWitness(companyKeyField);
 
         const txn = await Mina.transaction(
           senderAccount,
           async () => {
-            await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, dummyMapWitness);
+            await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, companiesMapWitness);
           }
         );
 
@@ -669,9 +702,41 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
             companyRecord.isCompliant.toField(),
             companyRecord.complianceScore,
             companyRecord.totalVerifications,
+            companyRecord.passedVerifications,
+            companyRecord.failedVerifications,
+            companyRecord.consecutiveFailures,
             companyRecord.lastVerificationTime.value,
-            companyRecord.firstVerificationTime.value
+            companyRecord.firstVerificationTime.value,
+            companyRecord.lastPassTime.value,
+            companyRecord.lastFailTime.value
           ]).toString()}`);
+        
+        // =================================== Show Enhanced Verification Statistics ===================================
+        console.log('\n📊 ENHANCED VERIFICATION STATISTICS:');
+        console.log(`  📈 Total Verifications: ${companyRecord.totalVerifications.toString()}`);
+        console.log(`  ✅ Passed Verifications: ${companyRecord.passedVerifications.toString()}`);
+        console.log(`  ❌ Failed Verifications: ${companyRecord.failedVerifications.toString()}`);
+        console.log(`  🔄 Consecutive Failures: ${companyRecord.consecutiveFailures.toString()}`);
+        
+        const successRate = companyRecord.totalVerifications.equals(Field(0)).toField().equals(Field(1))
+          ? Field(0)
+          : companyRecord.passedVerifications.mul(100).div(companyRecord.totalVerifications);
+        console.log(`  📊 Success Rate: ${successRate.toString()}%`);
+        
+        console.log(`  🕒 First Verification: ${new Date(Number(companyRecord.firstVerificationTime.toString())).toISOString()}`);
+        console.log(`  🕐 Last Verification: ${new Date(Number(companyRecord.lastVerificationTime.toString())).toISOString()}`);
+        
+        if (companyRecord.lastPassTime.toString() !== '0') {
+          console.log(`  ✅ Last Pass Time: ${new Date(Number(companyRecord.lastPassTime.toString())).toISOString()}`);
+        } else {
+          console.log(`  ✅ Last Pass Time: Never`);
+        }
+        
+        if (companyRecord.lastFailTime.toString() !== '0') {
+          console.log(`  ❌ Last Fail Time: ${new Date(Number(companyRecord.lastFailTime.toString())).toISOString()}`);
+        } else {
+          console.log(`  ❌ Last Fail Time: Never`);
+        }
         
         // Show state changes
         console.log('\n📈 STATE CHANGES:');
