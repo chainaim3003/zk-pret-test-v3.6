@@ -436,6 +436,295 @@ export function analyzeGLEIFCompliance(apiResponse: GLEIFAPIResponse, typeOfNet?
   };
 }
 
+// =================================== MULTI-COMPANY UTILITIES (CONSOLIDATION) ===================================
+// These utilities were moved from test utils files to eliminate redundancy
+
+/**
+ * Company registry for managing multiple companies in merkle tree
+ * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
+ */
+export class CompanyRegistry {
+  private companiesTree: any; // MerkleTree imported from o1js in actual usage
+  private companyRecords: Map<string, { record: any; index: number }>;
+  private nextIndex: number;
+  private COMPANY_MERKLE_HEIGHT: number;
+
+  constructor(merkleHeight: number = 8) {
+    // MerkleTree will be imported in the actual usage files
+    this.COMPANY_MERKLE_HEIGHT = merkleHeight;
+    this.companyRecords = new Map();
+    this.nextIndex = 0;
+    // this.companiesTree = new MerkleTree(this.COMPANY_MERKLE_HEIGHT); // Set in actual usage
+  }
+
+  /**
+   * Initialize the merkle tree (called from usage files with proper MerkleTree import)
+   */
+  initializeMerkleTree(MerkleTreeClass: any) {
+    this.companiesTree = new MerkleTreeClass(this.COMPANY_MERKLE_HEIGHT);
+  }
+
+  /**
+   * Add or update a company in the registry
+   */
+  addOrUpdateCompany(lei: string, companyRecord: any, CompanyMerkleWitnessClass: any, PoseidonClass: any): any {
+    let index: number;
+    
+    if (this.companyRecords.has(lei)) {
+      // Update existing company
+      index = this.companyRecords.get(lei)!.index;
+      console.log(`📝 Updating existing company at index ${index}: ${lei}`);
+    } else {
+      // Add new company
+      index = this.nextIndex++;
+      console.log(`➕ Adding new company at index ${index}: ${lei}`);
+    }
+    
+    // Calculate company record hash using the same method as the smart contract
+    const companyHash = PoseidonClass.hash([
+      companyRecord.leiHash,
+      companyRecord.legalNameHash,
+      companyRecord.jurisdictionHash,
+      companyRecord.isCompliant.toField(),
+      companyRecord.complianceScore,
+      companyRecord.totalVerifications,
+      companyRecord.lastVerificationTime.value,
+      companyRecord.firstVerificationTime.value
+    ]);
+    
+    // Update merkle tree
+    this.companiesTree.setLeaf(BigInt(index), companyHash);
+    
+    // Store company record
+    this.companyRecords.set(lei, { record: companyRecord, index });
+    
+    // Return witness for this company
+    return new CompanyMerkleWitnessClass(this.companiesTree.getWitness(BigInt(index)));
+  }
+
+  /**
+   * Get merkle witness for a company
+   */
+  getCompanyWitness(lei: string, CompanyMerkleWitnessClass: any): any | null {
+    const entry = this.companyRecords.get(lei);
+    if (!entry) return null;
+    
+    return new CompanyMerkleWitnessClass(this.companiesTree.getWitness(BigInt(entry.index)));
+  }
+
+  /**
+   * Get company record
+   */
+  getCompanyRecord(lei: string): any | null {
+    const entry = this.companyRecords.get(lei);
+    return entry ? entry.record : null;
+  }
+
+  /**
+   * Get merkle root of companies tree
+   */
+  getRoot(): any {
+    return this.companiesTree.getRoot();
+  }
+
+  /**
+   * Get all tracked companies
+   */
+  getAllCompanies(): string[] {
+    return Array.from(this.companyRecords.keys());
+  }
+
+  /**
+   * Get total number of companies
+   */
+  getTotalCompanies(): number {
+    return this.companyRecords.size;
+  }
+}
+
+/**
+ * Create a comprehensive merkle tree from GLEIF API response
+ * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
+ */
+export function createComprehensiveGLEIFMerkleTree(
+  apiResponse: GLEIFAPIResponse,
+  MerkleTreeClass: any,
+  CircuitStringClass: any,
+  MERKLE_TREE_HEIGHT: number,
+  GLEIF_FIELD_INDICES: any
+): {
+  tree: any,
+  extractedData: any,
+  fieldCount: number
+} {
+  console.log('🌳 Creating comprehensive GLEIF Merkle tree...');
+  
+  const tree = new MerkleTreeClass(MERKLE_TREE_HEIGHT);
+  let fieldCount = 0;
+  const extractedData: any = {};
+
+  // Helper function to safely set field in tree
+  function setTreeField(fieldName: string, value: string | undefined | any[] | null, index: number) {
+    let safeValue: string;
+    
+    // Handle different data types from GLEIF API
+    if (value === null || value === undefined) {
+      safeValue = '';
+    } else if (Array.isArray(value)) {
+      // Handle arrays (like bic, mic codes) by joining them
+      safeValue = value.filter(v => v != null).join(',');
+    } else if (typeof value === 'object') {
+      // Handle objects by converting to string representation
+      safeValue = JSON.stringify(value);
+    } else {
+      // Handle strings and primitives
+      safeValue = String(value);
+    }
+    
+    try {
+      const circuitValue = CircuitStringClass.fromString(safeValue);
+      const hash = circuitValue.hash();
+      tree.setLeaf(BigInt(index), hash);
+      extractedData[fieldName] = circuitValue;
+      fieldCount++;
+      console.log(`  Set field ${fieldName} (${index}): "${safeValue.substring(0, 50)}${safeValue.length > 50 ? '...' : ''}"`);
+    } catch (error) {
+      console.error(`❌ Error setting field ${fieldName}:`, error);
+      // Set empty value as fallback
+      const fallbackValue = CircuitStringClass.fromString('');
+      const hash = fallbackValue.hash();
+      tree.setLeaf(BigInt(index), hash);
+      extractedData[fieldName] = fallbackValue;
+      fieldCount++;
+      console.log(`  Set field ${fieldName} (${index}) with fallback: ""`);
+    }
+  }
+
+  try {
+    console.log('📋 Processing live GLEIF API structure...');
+    const firstRecord = apiResponse.data && apiResponse.data[0] ? apiResponse.data[0] : null;
+    if (!firstRecord) {
+      throw new Error('No GLEIF records found in API response');
+    }
+    
+    const attributes = firstRecord.attributes || {};
+    const entity = attributes.entity || {};
+    const registration = attributes.registration || {};
+    
+    // Core compliance fields - Fixed mapping
+    setTreeField('legalName', entity.legalName?.name, GLEIF_FIELD_INDICES.legalName);
+    setTreeField('lei', attributes.lei, GLEIF_FIELD_INDICES.lei);
+    setTreeField('entityStatus', entity.status, GLEIF_FIELD_INDICES.entityStatus);
+    setTreeField('legalForm', entity.legalForm?.id, GLEIF_FIELD_INDICES.legalForm);
+    setTreeField('jurisdiction', entity.jurisdiction, GLEIF_FIELD_INDICES.jurisdiction);
+    setTreeField('legalAddress', entity.legalAddress?.addressLines?.[0], GLEIF_FIELD_INDICES.legalAddress);
+    setTreeField('legalCity', entity.legalAddress?.city, GLEIF_FIELD_INDICES.legalCity);
+    setTreeField('legalCountry', entity.legalAddress?.country, GLEIF_FIELD_INDICES.legalCountry);
+    setTreeField('registrationAuthority', entity.registeredAt?.id, GLEIF_FIELD_INDICES.registrationAuthority);
+    setTreeField('entityCategory', entity.category, GLEIF_FIELD_INDICES.entityCategory);
+    
+    // Additional GLEIF fields
+    if (GLEIF_FIELD_INDICES.businessRegisterEntityId !== undefined) {
+      setTreeField('businessRegisterEntityId', entity.registeredAs, GLEIF_FIELD_INDICES.businessRegisterEntityId);
+    }
+    if (GLEIF_FIELD_INDICES.leiStatus !== undefined) {
+      setTreeField('leiStatus', registration.status, GLEIF_FIELD_INDICES.leiStatus);
+    }
+    if (GLEIF_FIELD_INDICES.initialRegistrationDate !== undefined) {
+      setTreeField('initialRegistrationDate', registration.initialRegistrationDate, GLEIF_FIELD_INDICES.initialRegistrationDate);
+    }
+    if (GLEIF_FIELD_INDICES.lastUpdateDate !== undefined) {
+      setTreeField('lastUpdateDate', registration.lastUpdateDate, GLEIF_FIELD_INDICES.lastUpdateDate);
+    }
+    if (GLEIF_FIELD_INDICES.nextRenewalDate !== undefined) {
+      setTreeField('nextRenewalDate', registration.nextRenewalDate, GLEIF_FIELD_INDICES.nextRenewalDate);
+    }
+    
+    // Required fields for ZK program witnesses (must be present even if empty)
+    if (GLEIF_FIELD_INDICES.registration_status !== undefined) {
+      setTreeField('registration_status', registration.status, GLEIF_FIELD_INDICES.registration_status);
+    }
+    if (GLEIF_FIELD_INDICES.bic_codes !== undefined) {
+      setTreeField('bic_codes', attributes.bic, GLEIF_FIELD_INDICES.bic_codes);
+    }
+    if (GLEIF_FIELD_INDICES.mic_codes !== undefined) {
+      setTreeField('mic_codes', attributes.mic, GLEIF_FIELD_INDICES.mic_codes);
+    }
+    
+    // Additional fields from attributes
+    if (GLEIF_FIELD_INDICES.conformityFlag !== undefined) {
+      setTreeField('conformityFlag', attributes.conformityFlag, GLEIF_FIELD_INDICES.conformityFlag);
+    }
+    if (GLEIF_FIELD_INDICES.managingLou !== undefined) {
+      setTreeField('managingLou', registration.managingLou, GLEIF_FIELD_INDICES.managingLou);
+    }
+
+    console.log(`✅ Created Merkle tree with ${fieldCount} fields`);
+    console.log(`🌳 Merkle root: ${tree.getRoot().toString()}`);
+    
+    return { tree, extractedData, fieldCount };
+    
+  } catch (error) {
+    console.error('❌ Error creating Merkle tree:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create optimized compliance data from extracted fields
+ * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
+ */
+export function createOptimizedGLEIFComplianceData(
+  extractedData: any,
+  merkleRoot: any,
+  CircuitStringClass: any,
+  GLEIFOptimComplianceDataClass: any
+): any {
+  return new GLEIFOptimComplianceDataClass({
+    lei: extractedData.lei || CircuitStringClass.fromString(''),
+    name: extractedData.legalName || CircuitStringClass.fromString(''),
+    entity_status: extractedData.entityStatus || CircuitStringClass.fromString(''),
+    registration_status: extractedData.registration_status || CircuitStringClass.fromString(''),
+    conformity_flag: extractedData.conformityFlag || CircuitStringClass.fromString(''),
+    initialRegistrationDate: extractedData.initialRegistrationDate || CircuitStringClass.fromString(''),
+    lastUpdateDate: extractedData.lastUpdateDate || CircuitStringClass.fromString(''),
+    nextRenewalDate: extractedData.nextRenewalDate || CircuitStringClass.fromString(''),
+    bic_codes: extractedData.bic_codes || CircuitStringClass.fromString(''),
+    mic_codes: extractedData.mic_codes || CircuitStringClass.fromString(''),
+    managing_lou: extractedData.managingLou || CircuitStringClass.fromString(''),
+    merkle_root: merkleRoot,
+  });
+}
+
+/**
+ * Create a company record from GLEIF compliance data and verification info
+ * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
+ */
+export function createCompanyRecord(
+  complianceData: any,
+  isCompliant: any,
+  verificationTimestamp: any,
+  CircuitStringClass: any,
+  GLEIFCompanyRecordClass: any,
+  FieldClass: any,
+  isFirstVerification: boolean = true
+): any {
+  const currentTime = verificationTimestamp;
+  
+  return new GLEIFCompanyRecordClass({
+    leiHash: complianceData.lei.hash(),
+    legalNameHash: complianceData.name.hash(),
+    jurisdictionHash: CircuitStringClass.fromString('Global').hash(), // GLEIF is global
+    isCompliant: isCompliant,
+    complianceScore: isCompliant.toField().mul(100), // 100 if compliant, 0 if not
+    totalVerifications: FieldClass(1), // This will be updated if company already exists
+    lastVerificationTime: currentTime,
+    firstVerificationTime: currentTime // Set to current time for new verifications
+  });
+}
+
+// =================================== END MULTI-COMPANY UTILITIES ===================================
+
 // Only run main if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(err => {

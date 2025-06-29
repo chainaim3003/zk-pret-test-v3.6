@@ -31,7 +31,11 @@ import {
   fetchGLEIFDataWithFullLogging, 
   GLEIFAPIResponse,
   extractGLEIFSummary,
-  analyzeGLEIFCompliance
+  analyzeGLEIFCompliance,
+  CompanyRegistry as EnhancedCompanyRegistry,
+  createComprehensiveGLEIFMerkleTree as enhancedCreateComprehensiveGLEIFMerkleTree,
+  createOptimizedGLEIFComplianceData as enhancedCreateOptimizedGLEIFComplianceData,
+  createCompanyRecord as enhancedCreateCompanyRecord
 } from './GLEIFEnhancedUtils.js';
 import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
 
@@ -45,7 +49,80 @@ import {
   deploymentManager
 } from '../../infrastructure/index.js';
 
+// =================================== Compliance Analysis Functions ===================================
+
+/**
+ * Analyzes compliance fields for GLEIF verification
+ */
+function analyzeComplianceFields(complianceData: GLEIFOptimComplianceData): {
+  isEntityActive: boolean;
+  isRegistrationIssued: boolean;
+  isConformityOk: boolean;
+  hasValidDates: boolean;
+  hasValidLEI: boolean;
+  allRulesPassed: boolean;
+  rulesPassedCount: number;
+} {
+  const isEntityActive = complianceData.entity_status.toString() === 'ACTIVE';
+  const isRegistrationIssued = complianceData.registration_status.toString() === 'ISSUED';
+  const isConformityOk = ['CONFORMING', 'UNKNOWN', ''].includes(complianceData.conformity_flag.toString());
+  const hasValidDates = complianceData.lastUpdateDate.toString() !== '' && complianceData.nextRenewalDate.toString() !== '';
+  const hasValidLEI = complianceData.lei.toString() !== '';
+  
+  const allRulesPassed = isEntityActive && isRegistrationIssued && isConformityOk && hasValidDates && hasValidLEI;
+  const rulesPassedCount = [isEntityActive, isRegistrationIssued, isConformityOk, hasValidDates, hasValidLEI].filter(Boolean).length;
+
+  return {
+    isEntityActive,
+    isRegistrationIssued,
+    isConformityOk,
+    hasValidDates,
+    hasValidLEI,
+    allRulesPassed,
+    rulesPassedCount
+  };
+}
+
+/**
+ * Logs compliance field analysis results
+ */
+function logComplianceFieldAnalysis(
+  complianceData: GLEIFOptimComplianceData,
+  isCompliant: Bool,
+  phase: 'Pre-Verification' | 'Post-Verification' = 'Pre-Verification'
+): void {
+  console.log(`\n🔍 COMPLIANCE FIELD ANALYSIS (${phase}):`);
+  
+  const analysis = analyzeComplianceFields(complianceData);
+  
+  console.log(`  🏢 Entity Status: "${complianceData.entity_status.toString()}" → ${analysis.isEntityActive ? '✅ ACTIVE (Pass)' : '❌ NOT ACTIVE (Fail)'}`);
+  console.log(`  📋 Registration Status: "${complianceData.registration_status.toString()}" → ${analysis.isRegistrationIssued ? '✅ ISSUED (Pass)' : '❌ NOT ISSUED (Fail)'}`);
+  console.log(`  🔍 Conformity Flag: "${complianceData.conformity_flag.toString()}" → ${analysis.isConformityOk ? '✅ ACCEPTABLE (Pass)' : '❌ NON-CONFORMING (Fail)'}`);
+  console.log(`  📅 Date Validation: Last Update "${complianceData.lastUpdateDate.toString()}", Next Renewal "${complianceData.nextRenewalDate.toString()}" → ${analysis.hasValidDates ? '✅ VALID DATES (Pass)' : '❌ INVALID DATES (Fail)'}`);
+  console.log(`  🆔 LEI Validation: "${complianceData.lei.toString()}" → ${analysis.hasValidLEI ? '✅ VALID LEI (Pass)' : '❌ EMPTY LEI (Fail)'}`);
+  
+  console.log(`  🏆 Overall Compliance Analysis: ${analysis.allRulesPassed ? '✅ ALL RULES PASSED' : '❌ SOME RULES FAILED'} → ZK Proof Shows: ${isCompliant.toJSON() ? '✅ COMPLIANT' : '❌ NON-COMPLIANT'}`);
+  console.log(`  📊 Business Rules: ${analysis.rulesPassedCount}/5 passed`);
+  console.log(`  📈 Compliance Percentage: ${Math.round((analysis.rulesPassedCount / 5) * 100)}%`);
+  
+  if (phase === 'Pre-Verification') {
+    console.log(`  ⏳ Chain Status: NOT YET VERIFIED - Awaiting smart contract transaction...`);
+  } else {
+    console.log(`  ✅ Chain Status: VERIFIED AND STORED ON BLOCKCHAIN`);
+  }
+  
+  if (!analysis.allRulesPassed) {
+    console.log(`  ⚠️ Rules That ${phase === 'Pre-Verification' ? 'Will' : 'Did'} Fail:`);
+    if (!analysis.isEntityActive) console.log(`    - Entity Status must be "ACTIVE", got "${complianceData.entity_status.toString()}"`);
+    if (!analysis.isRegistrationIssued) console.log(`    - Registration Status must be "ISSUED", got "${complianceData.registration_status.toString()}"`);
+    if (!analysis.isConformityOk) console.log(`    - Conformity Flag must be "CONFORMING", "UNKNOWN" or empty, got "${complianceData.conformity_flag.toString()}"`);
+    if (!analysis.hasValidDates) console.log(`    - Last Update and Next Renewal dates must not be empty`);
+    if (!analysis.hasValidLEI) console.log(`    - LEI must not be empty`);
+  }
+}
+
 // =================================== Multi-Company Registry Management ===================================
+// Using local implementation since the enhanced version needs parameterized imports
 
 /**
  * Company registry for managing multiple companies in merkle tree
@@ -140,173 +217,174 @@ class CompanyRegistry {
 }
 
 // =================================== GLEIF Data Processing Functions ===================================
+// Using local implementations for functions that need specific imports
 
 /**
- * Create a comprehensive merkle tree from GLEIF API response
+* Create a comprehensive merkle tree from GLEIF API response
  */
 function createComprehensiveGLEIFMerkleTree(
   apiResponse: GLEIFAPIResponse,
 ): {
-  tree: MerkleTree,
-  extractedData: any,
+tree: MerkleTree,
+extractedData: any,
   fieldCount: number
 } {
-  console.log('🌳 Creating comprehensive GLEIF Merkle tree...');
-  
-  const tree = new MerkleTree(MERKLE_TREE_HEIGHT);
-  let fieldCount = 0;
+console.log('🌳 Creating comprehensive GLEIF Merkle tree...');
+
+const tree = new MerkleTree(MERKLE_TREE_HEIGHT);
+let fieldCount = 0;
   const extractedData: any = {};
 
-  // Helper function to safely set field in tree
-  function setTreeField(fieldName: string, value: string | undefined | any[] | null, index: number) {
-    let safeValue: string;
-    
-    // Handle different data types from GLEIF API
-    if (value === null || value === undefined) {
-      safeValue = '';
-    } else if (Array.isArray(value)) {
-      // Handle arrays (like bic, mic codes) by joining them
-      safeValue = value.filter(v => v != null).join(',');
-    } else if (typeof value === 'object') {
-      // Handle objects by converting to string representation
-      safeValue = JSON.stringify(value);
-    } else {
-      // Handle strings and primitives
-      safeValue = String(value);
-    }
-    
-    try {
-      const circuitValue = CircuitString.fromString(safeValue);
-      const hash = circuitValue.hash();
-      tree.setLeaf(BigInt(index), hash);
-      extractedData[fieldName] = circuitValue;
-      fieldCount++;
-      console.log(`  Set field ${fieldName} (${index}): "${safeValue.substring(0, 50)}${safeValue.length > 50 ? '...' : ''}"`);  
-    } catch (error) {
-      console.error(`❌ Error setting field ${fieldName}:`, error);
-      // Set empty value as fallback
-      const fallbackValue = CircuitString.fromString('');
-      const hash = fallbackValue.hash();
-      tree.setLeaf(BigInt(index), hash);
-      extractedData[fieldName] = fallbackValue;
-      fieldCount++;
-      console.log(`  Set field ${fieldName} (${index}) with fallback: ""`);
-    }
+// Helper function to safely set field in tree
+function setTreeField(fieldName: string, value: string | undefined | any[] | null, index: number) {
+let safeValue: string;
+
+// Handle different data types from GLEIF API
+if (value === null || value === undefined) {
+  safeValue = '';
+} else if (Array.isArray(value)) {
+// Handle arrays (like bic, mic codes) by joining them
+  safeValue = value.filter(v => v != null).join(',');
+} else if (typeof value === 'object') {
+// Handle objects by converting to string representation
+  safeValue = JSON.stringify(value);
+} else {
+// Handle strings and primitives
+  safeValue = String(value);
+}
+
+try {
+const circuitValue = CircuitString.fromString(safeValue);
+const hash = circuitValue.hash();
+tree.setLeaf(BigInt(index), hash);
+extractedData[fieldName] = circuitValue;
+fieldCount++;
+  console.log(`  Set field ${fieldName} (${index}): "${safeValue.substring(0, 50)}${safeValue.length > 50 ? '...' : ''}"`);
+} catch (error) {
+console.error(`❌ Error setting field ${fieldName}:`, error);
+// Set empty value as fallback
+const fallbackValue = CircuitString.fromString('');
+const hash = fallbackValue.hash();
+tree.setLeaf(BigInt(index), hash);
+extractedData[fieldName] = fallbackValue;
+fieldCount++;
+  console.log(`  Set field ${fieldName} (${index}) with fallback: ""`);
+  }
   }
 
-  try {
-    console.log('📋 Processing live GLEIF API structure...');
-    const firstRecord = apiResponse.data && apiResponse.data[0] ? apiResponse.data[0] : null;
-    if (!firstRecord) {
-      throw new Error('No GLEIF records found in API response');
-    }
-    
-    const attributes = firstRecord.attributes || {};
-    const entity = attributes.entity || {};
-    const registration = attributes.registration || {};
-    
-    // Core compliance fields (indices 0-9) - Fixed mapping
-    setTreeField('legalName', entity.legalName?.name, GLEIF_FIELD_INDICES.legalName);
-    setTreeField('lei', attributes.lei, GLEIF_FIELD_INDICES.lei);
-    setTreeField('entityStatus', entity.status, GLEIF_FIELD_INDICES.entityStatus);
-    setTreeField('legalForm', entity.legalForm?.id, GLEIF_FIELD_INDICES.legalForm);
-    setTreeField('jurisdiction', entity.jurisdiction, GLEIF_FIELD_INDICES.jurisdiction);
-    setTreeField('legalAddress', entity.legalAddress?.addressLines?.[0], GLEIF_FIELD_INDICES.legalAddress);
-    setTreeField('legalCity', entity.legalAddress?.city, GLEIF_FIELD_INDICES.legalCity);
-    setTreeField('legalCountry', entity.legalAddress?.country, GLEIF_FIELD_INDICES.legalCountry);
-    setTreeField('registrationAuthority', entity.registeredAt?.id, GLEIF_FIELD_INDICES.registrationAuthority);
-    setTreeField('entityCategory', entity.category, GLEIF_FIELD_INDICES.entityCategory);
-    
-    // Additional GLEIF fields
-    if (GLEIF_FIELD_INDICES.businessRegisterEntityId !== undefined) {
-      setTreeField('businessRegisterEntityId', entity.registeredAs, GLEIF_FIELD_INDICES.businessRegisterEntityId);
-    }
-    if (GLEIF_FIELD_INDICES.leiStatus !== undefined) {
-      setTreeField('leiStatus', registration.status, GLEIF_FIELD_INDICES.leiStatus);
-    }
-    if (GLEIF_FIELD_INDICES.initialRegistrationDate !== undefined) {
-      setTreeField('initialRegistrationDate', registration.initialRegistrationDate, GLEIF_FIELD_INDICES.initialRegistrationDate);
-    }
-    if (GLEIF_FIELD_INDICES.lastUpdateDate !== undefined) {
-      setTreeField('lastUpdateDate', registration.lastUpdateDate, GLEIF_FIELD_INDICES.lastUpdateDate);
-    }
-    if (GLEIF_FIELD_INDICES.nextRenewalDate !== undefined) {
-      setTreeField('nextRenewalDate', registration.nextRenewalDate, GLEIF_FIELD_INDICES.nextRenewalDate);
-    }
-    
-    // Required fields for ZK program witnesses (must be present even if empty)
-    if (GLEIF_FIELD_INDICES.registration_status !== undefined) {
-      setTreeField('registration_status', registration.status, GLEIF_FIELD_INDICES.registration_status);
-    }
-    if (GLEIF_FIELD_INDICES.bic_codes !== undefined) {
-      setTreeField('bic_codes', attributes.bic, GLEIF_FIELD_INDICES.bic_codes);
-    }
-    if (GLEIF_FIELD_INDICES.mic_codes !== undefined) {
-      setTreeField('mic_codes', attributes.mic, GLEIF_FIELD_INDICES.mic_codes);
-    }
-    
-    // Additional fields from attributes
-    if (GLEIF_FIELD_INDICES.conformityFlag !== undefined) {
-      setTreeField('conformityFlag', attributes.conformityFlag, GLEIF_FIELD_INDICES.conformityFlag);
-    }
-    if (GLEIF_FIELD_INDICES.managingLou !== undefined) {
-      setTreeField('managingLou', registration.managingLou, GLEIF_FIELD_INDICES.managingLou);
+try {
+console.log('📋 Processing live GLEIF API structure...');
+const firstRecord = apiResponse.data && apiResponse.data[0] ? apiResponse.data[0] : null;
+if (!firstRecord) {
+  throw new Error('No GLEIF records found in API response');
+}
+
+const attributes = firstRecord.attributes || {};
+const entity = attributes.entity || {};
+const registration = attributes.registration || {};
+
+// Core compliance fields (indices 0-9) - Fixed mapping
+setTreeField('legalName', entity.legalName?.name, GLEIF_FIELD_INDICES.legalName);
+setTreeField('lei', attributes.lei, GLEIF_FIELD_INDICES.lei);
+setTreeField('entityStatus', entity.status, GLEIF_FIELD_INDICES.entityStatus);
+setTreeField('legalForm', entity.legalForm?.id, GLEIF_FIELD_INDICES.legalForm);
+setTreeField('jurisdiction', entity.jurisdiction, GLEIF_FIELD_INDICES.jurisdiction);
+setTreeField('legalAddress', entity.legalAddress?.addressLines?.[0], GLEIF_FIELD_INDICES.legalAddress);
+setTreeField('legalCity', entity.legalAddress?.city, GLEIF_FIELD_INDICES.legalCity);
+setTreeField('legalCountry', entity.legalAddress?.country, GLEIF_FIELD_INDICES.legalCountry);
+setTreeField('registrationAuthority', entity.registeredAt?.id, GLEIF_FIELD_INDICES.registrationAuthority);
+setTreeField('entityCategory', entity.category, GLEIF_FIELD_INDICES.entityCategory);
+
+// Additional GLEIF fields
+if (GLEIF_FIELD_INDICES.businessRegisterEntityId !== undefined) {
+  setTreeField('businessRegisterEntityId', entity.registeredAs, GLEIF_FIELD_INDICES.businessRegisterEntityId);
+}
+if (GLEIF_FIELD_INDICES.leiStatus !== undefined) {
+  setTreeField('leiStatus', registration.status, GLEIF_FIELD_INDICES.leiStatus);
+}
+if (GLEIF_FIELD_INDICES.initialRegistrationDate !== undefined) {
+  setTreeField('initialRegistrationDate', registration.initialRegistrationDate, GLEIF_FIELD_INDICES.initialRegistrationDate);
+}
+if (GLEIF_FIELD_INDICES.lastUpdateDate !== undefined) {
+  setTreeField('lastUpdateDate', registration.lastUpdateDate, GLEIF_FIELD_INDICES.lastUpdateDate);
+}
+if (GLEIF_FIELD_INDICES.nextRenewalDate !== undefined) {
+  setTreeField('nextRenewalDate', registration.nextRenewalDate, GLEIF_FIELD_INDICES.nextRenewalDate);
+}
+
+// Required fields for ZK program witnesses (must be present even if empty)
+if (GLEIF_FIELD_INDICES.registration_status !== undefined) {
+  setTreeField('registration_status', registration.status, GLEIF_FIELD_INDICES.registration_status);
+}
+if (GLEIF_FIELD_INDICES.bic_codes !== undefined) {
+  setTreeField('bic_codes', attributes.bic, GLEIF_FIELD_INDICES.bic_codes);
+}
+if (GLEIF_FIELD_INDICES.mic_codes !== undefined) {
+  setTreeField('mic_codes', attributes.mic, GLEIF_FIELD_INDICES.mic_codes);
+}
+
+// Additional fields from attributes
+if (GLEIF_FIELD_INDICES.conformityFlag !== undefined) {
+  setTreeField('conformityFlag', attributes.conformityFlag, GLEIF_FIELD_INDICES.conformityFlag);
+}
+if (GLEIF_FIELD_INDICES.managingLou !== undefined) {
+  setTreeField('managingLou', registration.managingLou, GLEIF_FIELD_INDICES.managingLou);
     }
 
-    console.log(`✅ Created Merkle tree with ${fieldCount} fields`);
-    console.log(`🌳 Merkle root: ${tree.getRoot().toString()}`);
-    
-    return { tree, extractedData, fieldCount };
-    
-  } catch (error) {
-    console.error('❌ Error creating Merkle tree:', error);
-    throw error;
+console.log(`✅ Created Merkle tree with ${fieldCount} fields`);
+console.log(`🌳 Merkle root: ${tree.getRoot().toString()}`);
+
+return { tree, extractedData, fieldCount };
+  
+} catch (error) {
+console.error('❌ Error creating Merkle tree:', error);
+  throw error;
   }
 }
 
 /**
- * Create optimized compliance data from extracted fields
+* Create optimized compliance data from extracted fields
  */
 function createOptimizedGLEIFComplianceData(
-  extractedData: any,
+extractedData: any,
   merkleRoot: Field
 ): GLEIFOptimComplianceData {
-  return new GLEIFOptimComplianceData({
-    lei: extractedData.lei || CircuitString.fromString(''),
-    name: extractedData.legalName || CircuitString.fromString(''),
-    entity_status: extractedData.entityStatus || CircuitString.fromString(''),
-    registration_status: extractedData.registration_status || CircuitString.fromString(''),
-    conformity_flag: extractedData.conformityFlag || CircuitString.fromString(''),
-    initialRegistrationDate: extractedData.initialRegistrationDate || CircuitString.fromString(''),
-    lastUpdateDate: extractedData.lastUpdateDate || CircuitString.fromString(''),
-    nextRenewalDate: extractedData.nextRenewalDate || CircuitString.fromString(''),
-    bic_codes: extractedData.bic_codes || CircuitString.fromString(''),
-    mic_codes: extractedData.mic_codes || CircuitString.fromString(''),
-    managing_lou: extractedData.managingLou || CircuitString.fromString(''),
-    merkle_root: merkleRoot,
+return new GLEIFOptimComplianceData({
+lei: extractedData.lei || CircuitString.fromString(''),
+name: extractedData.legalName || CircuitString.fromString(''),
+entity_status: extractedData.entityStatus || CircuitString.fromString(''),
+registration_status: extractedData.registration_status || CircuitString.fromString(''),
+conformity_flag: extractedData.conformityFlag || CircuitString.fromString(''),
+initialRegistrationDate: extractedData.initialRegistrationDate || CircuitString.fromString(''),
+lastUpdateDate: extractedData.lastUpdateDate || CircuitString.fromString(''),
+nextRenewalDate: extractedData.nextRenewalDate || CircuitString.fromString(''),
+bic_codes: extractedData.bic_codes || CircuitString.fromString(''),
+mic_codes: extractedData.mic_codes || CircuitString.fromString(''),
+managing_lou: extractedData.managingLou || CircuitString.fromString(''),
+  merkle_root: merkleRoot,
   });
 }
 
 /**
- * Create a company record from GLEIF compliance data and verification info
+* Create a company record from GLEIF compliance data and verification info
  */
 function createCompanyRecord(
-  complianceData: GLEIFOptimComplianceData,
-  isCompliant: Bool,
-  verificationTimestamp: UInt64,
+complianceData: GLEIFOptimComplianceData,
+isCompliant: Bool,
+verificationTimestamp: UInt64,
   isFirstVerification: boolean = true
 ): GLEIFCompanyRecord {
-  const currentTime = verificationTimestamp;
-  
-  return new GLEIFCompanyRecord({
-    leiHash: complianceData.lei.hash(),
-    legalNameHash: complianceData.name.hash(),
-    jurisdictionHash: CircuitString.fromString('Global').hash(), // GLEIF is global
-    isCompliant: isCompliant,
-    complianceScore: isCompliant.toField().mul(100), // 100 if compliant, 0 if not
-    totalVerifications: Field(1), // This will be updated if company already exists
-    lastVerificationTime: currentTime,
-    firstVerificationTime: currentTime // Set to current time for new verifications
+const currentTime = verificationTimestamp;
+
+return new GLEIFCompanyRecord({
+leiHash: complianceData.lei.hash(),
+legalNameHash: complianceData.name.hash(),
+jurisdictionHash: CircuitString.fromString('Global').hash(), // GLEIF is global
+isCompliant: isCompliant,
+complianceScore: isCompliant.toField().mul(100), // 100 if compliant, 0 if not
+totalVerifications: Field(1), // This will be updated if company already exists
+lastVerificationTime: currentTime,
+  firstVerificationTime: currentTime // Set to current time for new verifications
   });
 }
 
@@ -503,43 +581,144 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         // =================================== Verify Proof on Multi-Company Smart Contract ===================================
         console.log(`\n🔍 Verifying proof on multi-company smart contract for ${companyName}...`);
         
-        // Show contract state before verification
-        console.log('📊 Contract state before verification:');
+        // =================================== Show Contract State BEFORE Verification ===================================
+        console.log(`\n📊 Smart Contract State BEFORE Verification:`);
         const stateBefore = zkApp.getRegistryInfo();
         console.log(`  Total Companies: ${stateBefore.totalCompaniesTracked.toString()}`);
         console.log(`  Compliant Companies: ${stateBefore.compliantCompaniesCount.toString()}`);
-        console.log(`  Global Compliance Score: ${stateBefore.globalComplianceScore.toString()}`);
+        console.log(`  Global Compliance Score: ${stateBefore.globalComplianceScore.toString()}%`);
         console.log(`  Total Verifications: ${stateBefore.totalVerificationsGlobal.toString()}`);
+        console.log(`  Companies Root Hash: ${stateBefore.companiesRootHash.toString()}`);
+        console.log(`  Registry Version: ${stateBefore.registryVersion.toString()}`);
+        
+        // =================================== Show Company Compliance Data BEFORE ===================================
+        console.log('\n📋 Company Compliance Data BEFORE Verification:');
+        console.log(`  Company: ${companyName}`);
+        console.log(`  LEI: ${complianceData.lei.toString()}`);
+        console.log(`  Legal Name: ${complianceData.name.toString()}`);
+        console.log(`  Entity Status: ${complianceData.entity_status.toString()}`);
+        console.log(`  Registration Status: ${complianceData.registration_status.toString()}`);
+        console.log(`  Conformity Flag: ${complianceData.conformity_flag.toString()}`);
+        console.log(`  Initial Registration: ${complianceData.initialRegistrationDate.toString()}`);
+        console.log(`  Last Update: ${complianceData.lastUpdateDate.toString()}`);
+        console.log(`  Next Renewal: ${complianceData.nextRenewalDate.toString()}`);
+        console.log(`  BIC Codes: ${complianceData.bic_codes.toString()}`);
+        console.log(`  MIC Codes: ${complianceData.mic_codes.toString()}`);
+        console.log(`  Managing LOU: ${complianceData.managing_lou.toString()}`);
+        console.log(`  🔮 Is GLEIF Compliant (ZK Proof Preview): ${isCompliant.toJSON()}`);
+        console.log(`  📊 Compliance Score (Analysis): ${complianceAnalysis.complianceScore}%`);
+        console.log(`  🕒 Verification Time: ${new Date(Number(currentTimestamp.toString())).toISOString()}`);
+        
+        // Show compliance field analysis BEFORE verification
+        logComplianceFieldAnalysis(complianceData, isCompliant, 'Pre-Verification');
+        
+        console.log(`\n⚡ Executing smart contract verification transaction...`);
+        console.log(`🔐 Submitting ZK proof to blockchain...`);
+
+        // Create a dummy MerkleMapWitness for the companies map
+        // In a real implementation, this would be properly managed
+        const { MerkleMap, MerkleMapWitness } = await import('o1js');
+        const dummyMap = new MerkleMap();
+        const dummyMapWitness = dummyMap.getWitness(Field(0));
 
         const txn = await Mina.transaction(
           senderAccount,
           async () => {
-            await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord);
+            await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, dummyMapWitness);
           }
         );
 
         await txn.prove();
         await txn.sign([senderKey]).send();
 
-        console.log(`✅ Proof verified on multi-company smart contract for ${companyName}!`);
+        console.log(`\n✅ SMART CONTRACT TRANSACTION COMPLETED!`);
+        console.log(`🏢 Company ${companyName} verification recorded on blockchain`);
+        console.log(`🔄 Status Change: Not Verified → ${isCompliant.toJSON() ? 'Now COMPLIANT' : 'Now NON-COMPLIANT'}`);
         
-        // Show contract state after verification
-        console.log('📊 Contract state after verification:');
+        // =================================== Show Contract State AFTER Verification ===================================
+        console.log('\n📊 Contract state AFTER verification:');
         const stateAfter = zkApp.getRegistryInfo();
         console.log(`  Total Companies: ${stateAfter.totalCompaniesTracked.toString()}`);
         console.log(`  Compliant Companies: ${stateAfter.compliantCompaniesCount.toString()}`);
-        console.log(`  Global Compliance Score: ${stateAfter.globalComplianceScore.toString()}`);
+        console.log(`  Global Compliance Score: ${stateAfter.globalComplianceScore.toString()}%`);
         console.log(`  Total Verifications: ${stateAfter.totalVerificationsGlobal.toString()}`);
         console.log(`  Companies Root Hash: ${stateAfter.companiesRootHash.toString()}`);
         console.log(`  Registry Version: ${stateAfter.registryVersion.toString()}`);
-
-        // Store verification result
+        
+        // =================================== Show Company Compliance Data AFTER ===================================
+        console.log('\n📋 Company Compliance Data AFTER Verification:');
+        console.log(`  Company: ${companyName}`);
+        console.log(`  LEI: ${complianceData.lei.toString()}`);
+        console.log(`  Legal Name: ${complianceData.name.toString()}`);
+        console.log(`  Entity Status: ${complianceData.entity_status.toString()}`);
+        console.log(`  Registration Status: ${complianceData.registration_status.toString()}`);
+        console.log(`  Conformity Flag: ${complianceData.conformity_flag.toString()}`);
+        console.log(`  Initial Registration: ${complianceData.initialRegistrationDate.toString()}`);
+        console.log(`  Last Update: ${complianceData.lastUpdateDate.toString()}`);
+        console.log(`  Next Renewal: ${complianceData.nextRenewalDate.toString()}`);
+        console.log(`  BIC Codes: ${complianceData.bic_codes.toString()}`);
+        console.log(`  MIC Codes: ${complianceData.mic_codes.toString()}`);
+        console.log(`  Managing LOU: ${complianceData.managing_lou.toString()}`);
+        console.log(`  ✅ Is GLEIF Compliant (Verified on Chain): ${isCompliant.toJSON()}`);
+        console.log(`  📊 Compliance Score (Analysis): ${complianceAnalysis.complianceScore}%`);
+        console.log(`  🕒 Verification Time: ${new Date(Number(currentTimestamp.toString())).toISOString()}`);
+        console.log(`  🏢 Company Record Hash: ${Poseidon.hash([
+            companyRecord.leiHash,
+            companyRecord.legalNameHash,
+            companyRecord.jurisdictionHash,
+            companyRecord.isCompliant.toField(),
+            companyRecord.complianceScore,
+            companyRecord.totalVerifications,
+            companyRecord.lastVerificationTime.value,
+            companyRecord.firstVerificationTime.value
+          ]).toString()}`);
+        
+        // Show state changes
+        console.log('\n📈 STATE CHANGES:');
+        console.log(`  📊 Total Companies: ${stateBefore.totalCompaniesTracked.toString()} → ${stateAfter.totalCompaniesTracked.toString()}`);
+        console.log(`  ✅ Compliant Companies: ${stateBefore.compliantCompaniesCount.toString()} → ${stateAfter.compliantCompaniesCount.toString()}`);
+        console.log(`  📈 Global Compliance Score: ${stateBefore.globalComplianceScore.toString()}% → ${stateAfter.globalComplianceScore.toString()}%`);
+        console.log(`  🔢 Total Verifications: ${stateBefore.totalVerificationsGlobal.toString()} → ${stateAfter.totalVerificationsGlobal.toString()}`);
+        console.log(`  🌳 Companies Root Hash: ${stateBefore.companiesRootHash.toString()} → ${stateAfter.companiesRootHash.toString()}`);
+        console.log(`  📝 Registry Version: ${stateBefore.registryVersion.toString()} → ${stateAfter.registryVersion.toString()}`);
+        
+        // Show compliance field analysis AFTER
+        logComplianceFieldAnalysis(complianceData, isCompliant, 'Post-Verification');
+        
+        // Store verification result with detailed compliance data
+        const analysis = analyzeComplianceFields(complianceData);
         verificationResults.push({
           companyName,
           lei: complianceData.lei.toString(),
           isCompliant: isCompliant.toJSON(),
           complianceScore: complianceAnalysis.complianceScore,
-          verificationTime: currentTimestamp.toString()
+          verificationTime: currentTimestamp.toString(),
+          complianceFields: {
+            entityStatus: complianceData.entity_status.toString(),
+            registrationStatus: complianceData.registration_status.toString(),
+            conformityFlag: complianceData.conformity_flag.toString(),
+            initialRegistrationDate: complianceData.initialRegistrationDate.toString(),
+            lastUpdateDate: complianceData.lastUpdateDate.toString(),
+            nextRenewalDate: complianceData.nextRenewalDate.toString(),
+            bicCodes: complianceData.bic_codes.toString(),
+            micCodes: complianceData.mic_codes.toString(),
+            managingLou: complianceData.managing_lou.toString(),
+          },
+          businessRules: {
+            entityActive: analysis.isEntityActive,
+            registrationIssued: analysis.isRegistrationIssued,
+            conformityOk: analysis.isConformityOk,
+            validDates: analysis.hasValidDates,
+            validLEI: analysis.hasValidLEI,
+          },
+          stateChanges: {
+            totalCompaniesBefore: stateBefore.totalCompaniesTracked.toString(),
+            totalCompaniesAfter: stateAfter.totalCompaniesTracked.toString(),
+            compliantCompaniesBefore: stateBefore.compliantCompaniesCount.toString(),
+            compliantCompaniesAfter: stateAfter.compliantCompaniesCount.toString(),
+            globalScoreBefore: stateBefore.globalComplianceScore.toString(),
+            globalScoreAfter: stateAfter.globalComplianceScore.toString(),
+          }
         });
 
       } catch (err: any) {
@@ -596,7 +775,6 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     console.log(`  • Merkle Tree Storage: ✅`);
     console.log(`  • Aggregate Statistics: ✅`);
     console.log(`  • Individual Company Verification: ✅`);
-    console.log(`  • No Experimental Flags Required: ✅`);
 
     return {
       proofs,

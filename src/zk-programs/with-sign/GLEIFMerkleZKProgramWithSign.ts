@@ -8,7 +8,7 @@ import {
    Provable,
 } from 'o1js';
 import { getPublicKeyFor } from '../../core/OracleRegistry.js';
-import { MerkleWitness9 } from '../../tests/with-sign/GLEIFMerkleUtils.js';
+import { MerkleWitness8 } from './GLEIFOptimZKProgram.js';
 
 // Public output structure for Merkle-based verification
 export class GLEIFMerklePublicOutput extends Struct({
@@ -58,10 +58,10 @@ export const GLEIFMerkleVerifier = ZkProgram({
       proveSelectiveCompliance: {
          privateInputs: [
             Field,              // Dataset root (signed by oracle)
-            MerkleWitness9,     // Witness for name field
-            MerkleWitness9,     // Witness for entity_status field
-            MerkleWitness9,     // Witness for registration_status field
-            MerkleWitness9,     // Witness for LEI field
+            MerkleWitness8,     // Witness for name field
+            MerkleWitness8,     // Witness for entity_status field
+            MerkleWitness8,     // Witness for registration_status field
+            MerkleWitness8,     // Witness for LEI field
             CircuitString,      // Actual name value
             CircuitString,      // Actual entity_status value
             CircuitString,      // Actual registration_status value  
@@ -72,10 +72,10 @@ export const GLEIFMerkleVerifier = ZkProgram({
          async method(
             GLEIFToProve: Field,
             datasetRoot: Field,
-            nameWitness: MerkleWitness9,
-            entityStatusWitness: MerkleWitness9,
-            registrationStatusWitness: MerkleWitness9,
-            leiWitness: MerkleWitness9,
+            nameWitness: MerkleWitness8,
+            entityStatusWitness: MerkleWitness8,
+            registrationStatusWitness: MerkleWitness8,
+            leiWitness: MerkleWitness8,
             name: CircuitString,
             entityStatus: CircuitString,
             registrationStatus: CircuitString,
@@ -135,13 +135,13 @@ export const GLEIFMerkleVerifier = ZkProgram({
       proveExtendedCompliance: {
          privateInputs: [
             Field,              // Dataset root
-            MerkleWitness9,     // name witness
-            MerkleWitness9,     // entity_status witness
-            MerkleWitness9,     // registration_status witness  
-            MerkleWitness9,     // lei witness
-            MerkleWitness9,     // country witness
-            MerkleWitness9,     // city witness
-            MerkleWitness9,     // jurisdiction witness
+            MerkleWitness8,     // name witness
+            MerkleWitness8,     // entity_status witness
+            MerkleWitness8,     // registration_status witness  
+            MerkleWitness8,     // lei witness
+            MerkleWitness8,     // country witness
+            MerkleWitness8,     // city witness
+            MerkleWitness8,     // jurisdiction witness
             CircuitString,      // name value
             CircuitString,      // entity_status value
             CircuitString,      // registration_status value
@@ -155,13 +155,13 @@ export const GLEIFMerkleVerifier = ZkProgram({
          async method(
             GLEIFToProve: Field,
             datasetRoot: Field,
-            nameWitness: MerkleWitness9,
-            entityStatusWitness: MerkleWitness9,
-            registrationStatusWitness: MerkleWitness9,
-            leiWitness: MerkleWitness9,
-            countryWitness: MerkleWitness9,
-            cityWitness: MerkleWitness9,
-            jurisdictionWitness: MerkleWitness9,
+            nameWitness: MerkleWitness8,
+            entityStatusWitness: MerkleWitness8,
+            registrationStatusWitness: MerkleWitness8,
+            leiWitness: MerkleWitness8,
+            countryWitness: MerkleWitness8,
+            cityWitness: MerkleWitness8,
+            jurisdictionWitness: MerkleWitness8,
             name: CircuitString,
             entityStatus: CircuitString,
             registrationStatus: CircuitString,
@@ -228,16 +228,16 @@ export const GLEIFComprehensiveVerifier = ZkProgram({
       proveComprehensiveCompliance: {
          privateInputs: [
             Field,              // Dataset root (signed by oracle)
-            MerkleWitness9,     // lei witness
-            MerkleWitness9,     // name witness
-            MerkleWitness9,     // entity_status witness
-            MerkleWitness9,     // registration_status witness
-            MerkleWitness9,     // conformity_flag witness
-            MerkleWitness9,     // lastUpdateDate witness
-            MerkleWitness9,     // nextRenewalDate witness
-            MerkleWitness9,     // bic_codes witness
-            MerkleWitness9,     // mic_codes witness
-            MerkleWitness9,     // managingLou witness
+            MerkleWitness8,     // lei witness
+            MerkleWitness8,     // name witness
+            MerkleWitness8,     // entity_status witness
+            MerkleWitness8,     // registration_status witness
+            MerkleWitness8,     // conformity_flag witness
+            MerkleWitness8,     // lastUpdateDate witness
+            MerkleWitness8,     // nextRenewalDate witness
+            MerkleWitness8,     // bic_codes witness
+            MerkleWitness8,     // mic_codes witness
+            MerkleWitness8,     // managingLou witness
             CircuitString,      // lei value
             CircuitString,      // name value
             CircuitString,      // entity_status value
@@ -254,16 +254,16 @@ export const GLEIFComprehensiveVerifier = ZkProgram({
          async method(
             GLEIFToProve: Field,
             datasetRoot: Field,
-            leiWitness: MerkleWitness9,
-            nameWitness: MerkleWitness9,
-            entityStatusWitness: MerkleWitness9,
-            registrationStatusWitness: MerkleWitness9,
-            conformityFlagWitness: MerkleWitness9,
-            lastUpdateWitness: MerkleWitness9,
-            nextRenewalWitness: MerkleWitness9,
-            bicWitness: MerkleWitness9,
-            micWitness: MerkleWitness9,
-            managingLouWitness: MerkleWitness9,
+            leiWitness: MerkleWitness8,
+            nameWitness: MerkleWitness8,
+            entityStatusWitness: MerkleWitness8,
+            registrationStatusWitness: MerkleWitness8,
+            conformityFlagWitness: MerkleWitness8,
+            lastUpdateWitness: MerkleWitness8,
+            nextRenewalWitness: MerkleWitness8,
+            bicWitness: MerkleWitness8,
+            micWitness: MerkleWitness8,
+            managingLouWitness: MerkleWitness8,
             lei: CircuitString,
             name: CircuitString,
             entityStatus: CircuitString,
