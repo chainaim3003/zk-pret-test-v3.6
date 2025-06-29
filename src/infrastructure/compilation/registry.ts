@@ -15,27 +15,6 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
     enabled: true
   },
   {
-    name: 'GLEIFEnhanced',
-    category: CompilationCategory.ZK_PROGRAM,
-    loader: () => import('../../zk-programs/with-sign/GLEIFEnhancedZKProgramWithSign.js'),
-    compilationOrder: 1,
-    enabled: true
-  },
-  {
-    name: 'GLEIFMerkleEnhanced',
-    category: CompilationCategory.ZK_PROGRAM,
-    loader: () => import('../../zk-programs/with-sign/GLEIFMerkleEnhancedZKProgramWithSign.js'),
-    compilationOrder: 1,
-    enabled: true
-  },
-  {
-    name: 'GLEIFMerkle',
-    category: CompilationCategory.ZK_PROGRAM,
-    loader: () => import('../../zk-programs/with-sign/GLEIFMerkleZKProgramWithSign.js'),
-    compilationOrder: 1,
-    enabled: true
-  },
-  {
     name: 'CorporateRegistrationOptim',
     category: CompilationCategory.ZK_PROGRAM,
     loader: () => import('../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js'),
@@ -122,14 +101,6 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
     name: 'GLEIFOptimMultiCompanySmartContract',
     category: CompilationCategory.SMART_CONTRACT,
     loader: () => import('../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js'),
-    dependencies: ['GLEIFOptim'],
-    compilationOrder: 2,
-    enabled: true
-  },
-  {
-    name: 'GLEIFOptimSingleCompanySmartContract',
-    category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/GLEIFOptimSingleCompanySmartContract.js'),
     dependencies: ['GLEIFOptim'],
     compilationOrder: 2,
     enabled: true
