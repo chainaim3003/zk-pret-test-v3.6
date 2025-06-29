@@ -178,8 +178,9 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
          consecutiveFailures: isCompliant.not().toField(), // 1 if this verification failed, 0 if passed
          lastVerificationTime: verificationTimestamp,
          firstVerificationTime: verificationTimestamp,
+         // Fixed: Simple conditional logic - only one should be set to current time
          lastPassTime: isCompliant.toField().equals(Field(1)) ? verificationTimestamp : UInt64.from(0),
-         lastFailTime: isCompliant.not().toField().equals(Field(1)) ? verificationTimestamp : UInt64.from(0),
+         lastFailTime: isCompliant.toField().equals(Field(0)) ? verificationTimestamp : UInt64.from(0),
       });
       
       // =================================== Real Company Data Storage ===================================
@@ -286,7 +287,7 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
       const compliantCompanies = this.compliantCompaniesCount.get();
       
       // Calculate global compliance score (moved from state to computed)
-      const globalScore = totalCompanies.equals(Field(0)).toField().equals(Field(1))
+      const globalScore = totalCompanies.equals(Field(0))
          ? Field(0) // No companies yet
          : compliantCompanies.mul(100).div(totalCompanies);
       
@@ -313,7 +314,7 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
       const compliantCompanies = this.compliantCompaniesCount.get();
       
       // Calculate compliance percentage (moved from state to computed)
-      const compliancePercentage = totalCompanies.equals(Field(0)).toField().equals(Field(1))
+      const compliancePercentage = totalCompanies.equals(Field(0))
          ? Field(0) // No companies yet
          : compliantCompanies.mul(100).div(totalCompanies);
       

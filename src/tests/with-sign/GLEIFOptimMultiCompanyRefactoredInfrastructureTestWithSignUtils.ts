@@ -372,6 +372,7 @@ managing_lou: extractedData.managingLou || CircuitString.fromString(''),
 
 /**
 * Create a company record from GLEIF compliance data and verification info (Enhanced)
+ * Fixed: Use JavaScript conditional to prevent both pass and fail times being set
  */
 function createCompanyRecord(
 complianceData: GLEIFOptimComplianceData,
@@ -380,6 +381,12 @@ verificationTimestamp: UInt64,
   isFirstVerification: boolean = true
 ): GLEIFCompanyRecord {
 const currentTime = verificationTimestamp;
+const zeroTime = UInt64.from(0);
+
+// Simple JavaScript conditional for test utils (not in circuit)
+// The conditional logic should work correctly as originally written
+const lastPassTime = isCompliant.toJSON() ? currentTime : zeroTime;
+const lastFailTime = !isCompliant.toJSON() ? currentTime : zeroTime;
 
 return new GLEIFCompanyRecord({
 leiHash: complianceData.lei.hash(),
@@ -393,8 +400,9 @@ failedVerifications: isCompliant.not().toField(), // 1 if failed, 0 if passed
 consecutiveFailures: isCompliant.not().toField(), // 1 if this verification failed, 0 if passed
 lastVerificationTime: currentTime,
 firstVerificationTime: currentTime, // Set to current time for new verifications
-lastPassTime: isCompliant.toField().equals(Field(1)) ? currentTime : UInt64.from(0),
-lastFailTime: isCompliant.not().toField().equals(Field(1)) ? currentTime : UInt64.from(0),
+// Fixed: Use simple JavaScript conditional for test utils
+lastPassTime: lastPassTime,
+lastFailTime: lastFailTime,
   });
 }
 
@@ -664,9 +672,9 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         await txn.prove();
         await txn.sign([senderKey]).send();
 
-        console.log(`\n✅ SMART CONTRACT TRANSACTION COMPLETED!`);
-        console.log(`🏢 Company ${companyName} verification recorded on blockchain`);
-        console.log(`🔄 Status Change: Not Verified → ${isCompliant.toJSON() ? 'Now COMPLIANT' : 'Now NON-COMPLIANT'}`);
+        console.log(`\n✅ SMART CONTRACT TRANSACTION COMPLETED`);
+        console.log(`📋 Company ${companyName} verification recorded on blockchain`);
+        console.log(`🔄 Verification Status: ${isCompliant.toJSON() ? 'COMPLIANT' : 'NON-COMPLIANT'}`);
         
         // =================================== Show Contract State AFTER Verification ===================================
         console.log('\n📊 Contract state AFTER verification:');
@@ -718,22 +726,28 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         console.log(`  ❌ Failed Verifications: ${companyRecord.failedVerifications.toString()}`);
         console.log(`  🔄 Consecutive Failures: ${companyRecord.consecutiveFailures.toString()}`);
         
-        const successRate = companyRecord.totalVerifications.equals(Field(0)).toField().equals(Field(1))
-          ? Field(0)
-          : companyRecord.passedVerifications.mul(100).div(companyRecord.totalVerifications);
-        console.log(`  📊 Success Rate: ${successRate.toString()}%`);
+        // Calculate success rate with proper zero check
+        const totalVerificationsNum = Number(companyRecord.totalVerifications.toString());
+        const passedVerificationsNum = Number(companyRecord.passedVerifications.toString());
+        const successRatePercent = totalVerificationsNum === 0 ? 0 : Math.round((passedVerificationsNum / totalVerificationsNum) * 100);
+        
+        console.log(`  📊 Success Rate: ${successRatePercent}%`);
         
         console.log(`  🕒 First Verification: ${new Date(Number(companyRecord.firstVerificationTime.toString())).toISOString()}`);
         console.log(`  🕐 Last Verification: ${new Date(Number(companyRecord.lastVerificationTime.toString())).toISOString()}`);
         
-        if (companyRecord.lastPassTime.toString() !== '0') {
-          console.log(`  ✅ Last Pass Time: ${new Date(Number(companyRecord.lastPassTime.toString())).toISOString()}`);
+        // Fix timestamp display - only show actual timestamps, not zero values
+        const lastPassTimestamp = companyRecord.lastPassTime.toString();
+        const lastFailTimestamp = companyRecord.lastFailTime.toString();
+        
+        if (lastPassTimestamp !== '0') {
+          console.log(`  ✅ Last Pass Time: ${new Date(Number(lastPassTimestamp)).toISOString()}`);
         } else {
           console.log(`  ✅ Last Pass Time: Never`);
         }
         
-        if (companyRecord.lastFailTime.toString() !== '0') {
-          console.log(`  ❌ Last Fail Time: ${new Date(Number(companyRecord.lastFailTime.toString())).toISOString()}`);
+        if (lastFailTimestamp !== '0') {
+          console.log(`  ❌ Last Fail Time: ${new Date(Number(lastFailTimestamp)).toISOString()}`);
         } else {
           console.log(`  ❌ Last Fail Time: Never`);
         }
@@ -803,7 +817,7 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
 
     // =================================== Final Registry Analysis with Infrastructure ===================================
     console.log(`\n${'='.repeat(80)}`);
-    console.log(`🎉 GLEIF Multi-Company Refactored Infrastructure Verification Completed!`);
+    console.log(`🎉 GLEIF Multi-Company Refactored Infrastructure Verification Completed`);
     console.log(`${'='.repeat(80)}`);
 
     console.log('\n📈 Final Registry Statistics:');
