@@ -39,8 +39,8 @@ import {
 } from './GLEIFEnhancedUtils.js';
 import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
 
-// Import for oracle key management (direct from old oracle registry)
-import { getPrivateKeyFor } from '../../core/OracleRegistry.js';
+// Import for oracle key management (new semantic approach)
+import { getGleifSignerKey } from '../../core/OracleRegistry.js';
 
 // IMPORTANT: Import the refactored infrastructure system
 import { 
@@ -427,7 +427,7 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     await compilationManager.initialize();
     console.log('✅ Compilation Manager initialized');
     
-    console.log('✅ Infrastructure components initialized (using direct oracle access)');
+    console.log('✅ Infrastructure components initialized (using Oracle Manager)');
 
     // =================================== Setup Blockchain Environment (Direct - like working tests) ===================================
     console.log('\n📋 Setting up blockchain environment...');
@@ -574,11 +574,11 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         const bicWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.bic_codes)));
         const micWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.mic_codes)));
 
-        // =================================== Oracle Signature (Direct from old oracle registry) ===================================
-        console.log(`\n🔏 Generating oracle signature for ${companyName} using direct oracle access...`);
-        const registryPrivateKey = getPrivateKeyFor('GLEIF');
-        const oracleSignature = Signature.create(registryPrivateKey, [merkleRoot]);
-        console.log('✅ Oracle signature generated via direct access');
+        // =================================== Oracle Signature (Semantic Oracle Manager) ===================================
+        console.log(`\n🔏 Generating oracle signature for ${companyName}...`);
+        const gleifSignerPrivateKey = getGleifSignerKey();
+        const oracleSignature = Signature.create(gleifSignerPrivateKey, [merkleRoot]);
+        console.log('✅ Oracle signature generated');
 
         // =================================== Generate ZK Proof ===================================
         console.log(`\n⚡ Generating ZK proof for ${companyName}...`);
@@ -847,7 +847,7 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     console.log('\n🔧 Infrastructure Features Demonstrated:');
     console.log(`  • Environment Management: ${currentEnvironment} ✅`);
     console.log(`  • Compilation Caching: ✅`);
-    console.log(`  • Direct Oracle Access: ✅`);
+    console.log(`  • Semantic Oracle Management: ✅`);
     console.log(`  • Multi-Company Tracking: ✅`);
     console.log(`  • Global Compliance Metrics: ✅`);
     console.log(`  • Company Registry Management: ✅`);

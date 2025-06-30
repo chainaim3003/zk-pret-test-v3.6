@@ -22,7 +22,13 @@ import {
   CompanyKey,
   RegistryInfo
 } from '../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
-import { GLEIFdeployerAccount, GLEIFsenderAccount, GLEIFdeployerKey, GLEIFsenderKey, getPrivateKeyFor } from '../../core/OracleRegistry.js';
+import { 
+  getGleifDeployerAccount, 
+  getGleifSenderAccount, 
+  getGleifDeployerKey, 
+  getGleifSenderKey, 
+  getGleifSignerKey 
+} from '../../core/OracleRegistry.js';
 import { 
   fetchGLEIFDataWithFullLogging, 
   GLEIFAPIResponse,
@@ -153,10 +159,10 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
     const { Local } = await import('../../core/OracleRegistry.js');
     Mina.setActiveInstance(Local);
     
-    const deployerAccount = GLEIFdeployerAccount;
-    const deployerKey = GLEIFdeployerKey;
-    const senderAccount = GLEIFsenderAccount;
-    const senderKey = GLEIFsenderKey;
+    const deployerAccount = getGleifDeployerAccount();
+    const deployerKey = getGleifDeployerKey();
+    const senderAccount = getGleifSenderAccount();
+    const senderKey = getGleifSenderKey();
 
     // =================================== Compile Programs ===================================
     console.log('\n📝 Compiling ZK programs...');
@@ -243,19 +249,46 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
         );
         
         // Generate merkle witnesses for the 8 compliance fields (matching ZK program)
+        // Add validation to ensure field indices exist before converting to BigInt
+        console.log('🔍 Validating field indices before BigInt conversion...');
+        
+        // Validate all required field indices exist
+        const requiredFields = {
+          entity_status: GLEIF_FIELD_INDICES.entity_status,
+          registration_status: GLEIF_FIELD_INDICES.registration_status,
+          conformityFlag: GLEIF_FIELD_INDICES.conformityFlag, // Use camelCase version
+          lastUpdateDate: GLEIF_FIELD_INDICES.lastUpdateDate,
+          nextRenewalDate: GLEIF_FIELD_INDICES.nextRenewalDate,
+          lei: GLEIF_FIELD_INDICES.lei,
+          bic_codes: GLEIF_FIELD_INDICES.bic_codes,
+          mic_codes: GLEIF_FIELD_INDICES.mic_codes
+        };
+        
+        // Check for undefined indices
+        for (const [fieldName, index] of Object.entries(requiredFields)) {
+          if (index === undefined) {
+            throw new Error(`❌ GLEIF_FIELD_INDICES.${fieldName} is undefined! Cannot convert to BigInt.`);
+          }
+          console.log(`  ✅ ${fieldName}: ${index}`);
+        }
+        
+        console.log('✅ All field indices validated, proceeding with witness generation...');
+        
         const entityStatusWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.entity_status)));
         const registrationStatusWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.registration_status)));
-        const conformityFlagWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.conformity_flag)));
+        const conformityFlagWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.conformityFlag))); // Fixed: use conformityFlag instead of conformity_flag
         const lastUpdateWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.lastUpdateDate)));
         const nextRenewalWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.nextRenewalDate)));
         const leiWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.lei)));
         const bicWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.bic_codes)));
         const micWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.mic_codes)));
+        
+        console.log('✅ All MerkleWitness8 instances created successfully');
 
         // =================================== Oracle Signature ===================================
         console.log(`\n🔏 Generating oracle signature for ${companyName}...`);
-        const registryPrivateKey = getPrivateKeyFor('GLEIF');
-        const oracleSignature = Signature.create(registryPrivateKey, [merkleRoot]);
+        const gleifSignerPrivateKey = getGleifSignerKey();
+        const oracleSignature = Signature.create(gleifSignerPrivateKey, [merkleRoot]);
         console.log('✅ Oracle signature generated');
 
         // =================================== Generate ZK Proof ===================================
@@ -283,15 +316,93 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
         // =================================== Add Company to Registry ===================================
         console.log(`\n📋 Adding ${companyName} to company registry...`);
         const isCompliant = proof.publicOutput.isGLEIFCompliant;
-        const companyRecord = createCompanyRecord(
-          complianceData,
-          isCompliant,
-          currentTimestamp,
-          CircuitString,
-          GLEIFCompanyRecord,
-          Field,
-          true
-        );
+        
+        // =================================== Debug and Validate Company Record Creation ===================================
+        console.log(`\n🔍 DEBUGGING COMPANY RECORD CREATION...`);
+        console.log(`  Compliance Data Validation:`);
+        console.log(`    - complianceData: ${complianceData ? 'EXISTS' : 'NULL/UNDEFINED'}`);
+        console.log(`    - complianceData.lei: "${complianceData?.lei?.toString() || 'UNDEFINED'}"`);
+        console.log(`    - complianceData.name: "${complianceData?.name?.toString() || 'UNDEFINED'}"`);
+        console.log(`    - isCompliant: ${isCompliant ? isCompliant.toString() : 'UNDEFINED'}`);
+        console.log(`    - currentTimestamp: ${currentTimestamp ? currentTimestamp.toString() : 'UNDEFINED'}`);
+        
+        // Validate all required parameters before creating company record
+        if (!complianceData) {
+          throw new Error('❌ complianceData is null or undefined');
+        }
+        if (!complianceData.lei) {
+          throw new Error('❌ complianceData.lei is null or undefined');
+        }
+        if (!complianceData.name) {
+          throw new Error('❌ complianceData.name is null or undefined');
+        }
+        if (isCompliant === null || isCompliant === undefined) {
+          throw new Error('❌ isCompliant is null or undefined');
+        }
+        if (!currentTimestamp) {
+          throw new Error('❌ currentTimestamp is null or undefined');
+        }
+        
+        console.log(`  ✅ All parameters validated for company record creation`);
+        
+        // Create company record with enhanced error handling
+        let companyRecord: any;
+        try {
+          console.log(`  🔄 Creating company record...`);
+          companyRecord = createCompanyRecord(
+            complianceData,
+            isCompliant,
+            currentTimestamp,
+            CircuitString,
+            GLEIFCompanyRecord,
+            Field,
+            true
+          );
+          console.log(`  ✅ Company record created successfully`);
+          
+          // Validate the created company record
+          console.log(`  🔍 Validating created company record fields:`);
+          console.log(`    - leiHash: ${companyRecord.leiHash ? companyRecord.leiHash.toString() : 'UNDEFINED'}`);
+          console.log(`    - legalNameHash: ${companyRecord.legalNameHash ? companyRecord.legalNameHash.toString() : 'UNDEFINED'}`);
+          console.log(`    - jurisdictionHash: ${companyRecord.jurisdictionHash ? companyRecord.jurisdictionHash.toString() : 'UNDEFINED'}`);
+          console.log(`    - isCompliant: ${companyRecord.isCompliant ? companyRecord.isCompliant.toString() : 'UNDEFINED'}`);
+          console.log(`    - complianceScore: ${companyRecord.complianceScore ? companyRecord.complianceScore.toString() : 'UNDEFINED'}`);
+          console.log(`    - totalVerifications: ${companyRecord.totalVerifications ? companyRecord.totalVerifications.toString() : 'UNDEFINED'}`);
+          console.log(`    - passedVerifications: ${companyRecord.passedVerifications ? companyRecord.passedVerifications.toString() : 'UNDEFINED'}`);
+          console.log(`    - failedVerifications: ${companyRecord.failedVerifications ? companyRecord.failedVerifications.toString() : 'UNDEFINED'}`);
+          console.log(`    - consecutiveFailures: ${companyRecord.consecutiveFailures ? companyRecord.consecutiveFailures.toString() : 'UNDEFINED'}`);
+          console.log(`    - lastVerificationTime: ${companyRecord.lastVerificationTime ? companyRecord.lastVerificationTime.toString() : 'UNDEFINED'}`);
+          console.log(`    - firstVerificationTime: ${companyRecord.firstVerificationTime ? companyRecord.firstVerificationTime.toString() : 'UNDEFINED'}`);
+          console.log(`    - lastPassTime: ${companyRecord.lastPassTime ? companyRecord.lastPassTime.toString() : 'UNDEFINED'}`);
+          console.log(`    - lastFailTime: ${companyRecord.lastFailTime ? companyRecord.lastFailTime.toString() : 'UNDEFINED'}`);
+          
+          // Check for any undefined fields in the company record (all 13 fields)
+          const undefinedFields = [];
+          if (!companyRecord.leiHash) undefinedFields.push('leiHash');
+          if (!companyRecord.legalNameHash) undefinedFields.push('legalNameHash');
+          if (!companyRecord.jurisdictionHash) undefinedFields.push('jurisdictionHash');
+          if (companyRecord.isCompliant === null || companyRecord.isCompliant === undefined) undefinedFields.push('isCompliant');
+          if (!companyRecord.complianceScore) undefinedFields.push('complianceScore');
+          if (!companyRecord.totalVerifications) undefinedFields.push('totalVerifications');
+          if (!companyRecord.passedVerifications) undefinedFields.push('passedVerifications');
+          if (!companyRecord.failedVerifications) undefinedFields.push('failedVerifications');
+          if (!companyRecord.consecutiveFailures) undefinedFields.push('consecutiveFailures');
+          if (!companyRecord.lastVerificationTime) undefinedFields.push('lastVerificationTime');
+          if (!companyRecord.firstVerificationTime) undefinedFields.push('firstVerificationTime');
+          if (!companyRecord.lastPassTime) undefinedFields.push('lastPassTime');
+          if (!companyRecord.lastFailTime) undefinedFields.push('lastFailTime');
+          
+          if (undefinedFields.length > 0) {
+            throw new Error(`❌ Company record has undefined fields: ${undefinedFields.join(', ')}`);
+          }
+          
+          console.log(`  ✅ All company record fields validated successfully`);
+          
+        } catch (recordError: any) {
+          console.error(`❌ Error creating company record:`, recordError.message);
+          throw new Error(`Company record creation failed: ${recordError.message}`);
+        }
+        
         const lei = complianceData.lei.toString();
         
         // =================================== Prepare MerkleMap Witness for Real Storage ===================================
@@ -303,9 +414,6 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
           complianceData.name.hash()
         );
         const companyKeyField = companyKey.toField();
-        
-        // Get witness for this company in the map (will be empty for new companies)
-        const mapWitness = companiesMap.getWitness(companyKeyField);
         
         console.log(`  Company Key: ${companyKeyField.toString()}`);
         console.log(`  Map Root Before: ${companiesMap.getRoot().toString()}`);
@@ -322,8 +430,13 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
           companyRecord.isCompliant.toField(),
           companyRecord.complianceScore,
           companyRecord.totalVerifications,
+          companyRecord.passedVerifications,
+          companyRecord.failedVerifications,
+          companyRecord.consecutiveFailures,
           companyRecord.lastVerificationTime.value,
-          companyRecord.firstVerificationTime.value
+          companyRecord.firstVerificationTime.value,
+          companyRecord.lastPassTime.value,
+          companyRecord.lastFailTime.value
         ]);
         
         companiesMap.set(companyKeyField, companyRecordHash);
@@ -340,15 +453,36 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
         console.log(`\n⚡ Executing smart contract verification transaction...`);
         console.log(`🔐 Submitting ZK proof to blockchain...`);
 
-        const txn = await Mina.transaction(
-          senderAccount,
-          async () => {
-            await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, mapWitness);
+        try {
+          // Get witness for this company in the map AFTER storing the company record
+          // This ensures the witness corresponds to the updated map state
+          const mapWitness = companiesMap.getWitness(companyKeyField);
+          console.log(`🔍 MerkleMap witness obtained for company key: ${companyKeyField.toString()}`);
+          
+          // Validate mapWitness before using it in transaction
+          if (!mapWitness) {
+            throw new Error('❌ MerkleMap witness is null or undefined');
           }
-        );
+          
+          console.log(`🔐 Creating blockchain transaction...`);
+          const txn = await Mina.transaction(
+            senderAccount,
+            async () => {
+              await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, mapWitness);
+            }
+          );
 
-        await txn.prove();
-        await txn.sign([senderKey]).send();
+          console.log(`🔐 Proving transaction...`);
+          await txn.prove();
+          
+          console.log(`🔐 Signing and sending transaction...`);
+          await txn.sign([senderKey]).send();
+          
+        } catch (txError: any) {
+          console.error(`❌ Smart contract transaction failed:`, txError.message);
+          console.error(`🔍 Error details:`, txError);
+          throw new Error(`Smart contract transaction failed: ${txError.message}`);
+        }
 
         console.log(`\n✅ SMART CONTRACT TRANSACTION COMPLETED!`);
         console.log(`🏢 Company ${companyName} verification recorded on blockchain`);

@@ -709,18 +709,131 @@ export function createCompanyRecord(
   FieldClass: any,
   isFirstVerification: boolean = true
 ): any {
+  console.log(`    🔍 createCompanyRecord: Validating input parameters...`);
+  
+  // Validate all input parameters
+  if (!complianceData) {
+    throw new Error('createCompanyRecord: complianceData is null or undefined');
+  }
+  if (!complianceData.lei) {
+    throw new Error('createCompanyRecord: complianceData.lei is null or undefined');
+  }
+  if (!complianceData.name) {
+    throw new Error('createCompanyRecord: complianceData.name is null or undefined');
+  }
+  if (isCompliant === null || isCompliant === undefined) {
+    throw new Error('createCompanyRecord: isCompliant is null or undefined');
+  }
+  if (!verificationTimestamp) {
+    throw new Error('createCompanyRecord: verificationTimestamp is null or undefined');
+  }
+  if (!CircuitStringClass) {
+    throw new Error('createCompanyRecord: CircuitStringClass is null or undefined');
+  }
+  if (!GLEIFCompanyRecordClass) {
+    throw new Error('createCompanyRecord: GLEIFCompanyRecordClass is null or undefined');
+  }
+  if (!FieldClass) {
+    throw new Error('createCompanyRecord: FieldClass is null or undefined');
+  }
+  
+  console.log(`    ✅ createCompanyRecord: All input parameters validated`);
+  
   const currentTime = verificationTimestamp;
   
-  return new GLEIFCompanyRecordClass({
-    leiHash: complianceData.lei.hash(),
-    legalNameHash: complianceData.name.hash(),
-    jurisdictionHash: CircuitStringClass.fromString('Global').hash(), // GLEIF is global
-    isCompliant: isCompliant,
-    complianceScore: isCompliant.toField().mul(100), // 100 if compliant, 0 if not
-    totalVerifications: FieldClass(1), // This will be updated if company already exists
-    lastVerificationTime: currentTime,
-    firstVerificationTime: currentTime // Set to current time for new verifications
-  });
+  try {
+    console.log(`    🔄 createCompanyRecord: Creating hashes...`);
+    
+    // Create hashes with error handling
+    let leiHash, legalNameHash, jurisdictionHash;
+    
+    try {
+      leiHash = complianceData.lei.hash();
+      console.log(`      ✅ leiHash created: ${leiHash.toString()}`);
+    } catch (error) {
+      throw new Error(`createCompanyRecord: Failed to create leiHash - ${error}`);
+    }
+    
+    try {
+      legalNameHash = complianceData.name.hash();
+      console.log(`      ✅ legalNameHash created: ${legalNameHash.toString()}`);
+    } catch (error) {
+      throw new Error(`createCompanyRecord: Failed to create legalNameHash - ${error}`);
+    }
+    
+    try {
+      jurisdictionHash = CircuitStringClass.fromString('Global').hash();
+      console.log(`      ✅ jurisdictionHash created: ${jurisdictionHash.toString()}`);
+    } catch (error) {
+      throw new Error(`createCompanyRecord: Failed to create jurisdictionHash - ${error}`);
+    }
+    
+    console.log(`    🔄 createCompanyRecord: Creating compliance score...`);
+    let complianceScore;
+    try {
+      complianceScore = isCompliant.toField().mul(100);
+      console.log(`      ✅ complianceScore created: ${complianceScore.toString()}`);
+    } catch (error) {
+      throw new Error(`createCompanyRecord: Failed to create complianceScore - ${error}`);
+    }
+    
+    console.log(`    🔄 createCompanyRecord: Creating verification counts...`);
+    let totalVerifications, passedVerifications, failedVerifications, consecutiveFailures;
+    try {
+      totalVerifications = FieldClass(1); // This is the first verification
+      passedVerifications = isCompliant.toField(); // 1 if passed, 0 if failed
+      failedVerifications = isCompliant.not().toField(); // 1 if failed, 0 if passed
+      consecutiveFailures = isCompliant.not().toField(); // 1 if this verification failed, 0 if passed
+      
+      console.log(`      ✅ totalVerifications created: ${totalVerifications.toString()}`);
+      console.log(`      ✅ passedVerifications created: ${passedVerifications.toString()}`);
+      console.log(`      ✅ failedVerifications created: ${failedVerifications.toString()}`);
+      console.log(`      ✅ consecutiveFailures created: ${consecutiveFailures.toString()}`);
+    } catch (error) {
+      throw new Error(`createCompanyRecord: Failed to create verification counts - ${error}`);
+    }
+    
+    console.log(`    🔄 createCompanyRecord: Creating timestamp fields...`);
+    let lastPassTime, lastFailTime;
+    try {
+      // Import UInt64 from the modules that should be available
+      const UInt64 = verificationTimestamp.constructor; // Get UInt64 constructor from the timestamp
+      
+      // Set lastPassTime to current time if compliant, 0 if not
+      lastPassTime = isCompliant.toField().equals(FieldClass(1)) ? currentTime : UInt64.from(0);
+      // Set lastFailTime to current time if not compliant, 0 if compliant 
+      lastFailTime = isCompliant.toField().equals(FieldClass(0)) ? currentTime : UInt64.from(0);
+      
+      console.log(`      ✅ lastPassTime created: ${lastPassTime.toString()}`);
+      console.log(`      ✅ lastFailTime created: ${lastFailTime.toString()}`);
+    } catch (error) {
+      throw new Error(`createCompanyRecord: Failed to create timestamp fields - ${error}`);
+    }
+    
+    console.log(`    🔄 createCompanyRecord: Creating GLEIFCompanyRecord with all 13 fields...`);
+    const record = new GLEIFCompanyRecordClass({
+      leiHash: leiHash,
+      legalNameHash: legalNameHash,
+      jurisdictionHash: jurisdictionHash,
+      isCompliant: isCompliant,
+      complianceScore: complianceScore,
+      totalVerifications: totalVerifications,
+      passedVerifications: passedVerifications,         // NEW FIELD
+      failedVerifications: failedVerifications,         // NEW FIELD
+      consecutiveFailures: consecutiveFailures,         // NEW FIELD
+      lastVerificationTime: currentTime,
+      firstVerificationTime: currentTime,
+      lastPassTime: lastPassTime,                       // NEW FIELD
+      lastFailTime: lastFailTime                        // NEW FIELD
+    });
+    
+    console.log(`    ✅ createCompanyRecord: GLEIFCompanyRecord created successfully with all 13 fields`);
+    return record;
+    
+  } catch (error) {
+    console.error(`    ❌ createCompanyRecord: Error creating company record:`, error);
+    throw error;
+  }
 }
 
 // =================================== END MULTI-COMPANY UTILITIES ===================================

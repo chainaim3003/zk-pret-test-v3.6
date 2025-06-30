@@ -9,7 +9,7 @@ import {
    UInt64,
    Bool,
 } from 'o1js';
-import { getPublicKeyFor } from '../../core/OracleRegistry.js';
+import { getGleifSignerAccount } from '../../core/OracleRegistry.js';
 
 // =================================== Merkle Tree Configuration ===================================
 export const MERKLE_TREE_HEIGHT = 8; // Height 8 for up to 256 fields
@@ -130,8 +130,8 @@ export const GLEIFOptim = ZkProgram({
 
             // =================================== Oracle Signature Verification ===================================
             // Verify oracle signed the merkle root
-            const registryPublicKey = getPublicKeyFor('GLEIF');
-            const isValidSignature = oracleSignature.verify(registryPublicKey, [complianceData.merkle_root]);
+            const gleifSignerPublicKey = getGleifSignerAccount();
+            const isValidSignature = oracleSignature.verify(gleifSignerPublicKey, [complianceData.merkle_root]);
             isValidSignature.assertTrue();
 
             // =================================== Merkle Inclusion Proofs ===================================
