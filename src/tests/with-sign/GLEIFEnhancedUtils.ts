@@ -47,11 +47,13 @@ export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string):
     console.log('+++++++++++++++++++++++++++++++++++++++++++++++++++++in sandbox++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
     BASEURL = process.env.GLEIF_URL_SANDBOX;
     url = `${BASEURL}?filter[entity.legalName]=${encodeURIComponent(companyName)}`;
-  } else if (typeOfNet === 'LOCAL') {
+  } 
+  else if (typeOfNet === 'LOCAL') {
     console.log('------------------------------------------------using live GLEIF API--------------------------------------------------');
     BASEURL = process.env.GLEIF_URL_MOCK; // Use live GLEIF API for LOCAL too
-    url = `${BASEURL}?filter[entity.legalName]=${encodeURIComponent(companyName)}`;
-  } else {
+    url = `${BASEURL}/${encodeURIComponent(companyName)}`; // Assuming mock API uses company name directly
+  } 
+  else {
     console.log('///////////////////////////////////////////////in prod//////////////////////////////////////////////');
     BASEURL = process.env.GLEIF_URL_PROD;
     url = `${BASEURL}?filter[entity.legalName]=${encodeURIComponent(companyName)}`;
@@ -367,7 +369,7 @@ export async function isCompanyGLEIFCompliant(companyName: string): Promise<bool
 // Main execution for testing
 async function main() {
   const companyName = process.argv[2];
-  let typeOfNet = process.argv[3] || 'TESTNET';
+  //let typeOfNet = process.argv[3] || 'TESTNET';
 
   if (!companyName) {
     console.error('❌ Please provide a company name');
