@@ -14,9 +14,8 @@ const CHECKSUMS_FILE = path.join(PRECOMPILED_DIR, 'checksums.json');
 
 // Source files to monitor for changes
 const SOURCE_FILES = [
-    'src/zk-programs/with-sign/GLEIFEnhancedZKProgramWithSign.ts',
-    'src/contracts/with-sign/GLEIFEnhancedVerifierSmartContractWithSign.ts',
-    'src/zk-programs/with-sign/GLEIFEnhancedComplianceData.ts'
+    'src/zk-programs/with-sign/GLEIFOptimZKProgram.ts',
+    'src/contracts/with-sign/GLEIFOptimMultiCompanySmartContract.ts'
 ];
 
 function calculateFileChecksum(filePath) {
@@ -79,6 +78,10 @@ async function smartPrecompile() {
     console.log('🤖 Smart ZK Pre-compilation with Change Detection');
     console.log('================================================');
     
+    // Check environment and proofs setting
+    const buildEnv = process.env.BUILD_ENV || 'LOCAL';
+    console.log(`🌍 Detected environment: ${buildEnv}`);
+    
     const { changes, currentChecksums } = detectChanges();
     
     if (changes.length === 0) {
@@ -86,8 +89,8 @@ async function smartPrecompile() {
         console.log('🚀 Using existing precompiled artifacts');
         
         // Check if precompiled files exist
-        const zkVkFile = path.join(PRECOMPILED_DIR, 'gleif-enhanced-zk-program.vk.json');
-        const scVkFile = path.join(PRECOMPILED_DIR, 'gleif-enhanced-smart-contract.vk.json');
+        const zkVkFile = path.join(PRECOMPILED_DIR, 'gleif-optim-zk-program.vk.json');
+        const scVkFile = path.join(PRECOMPILED_DIR, 'gleif-optim-multi-company-smart-contract.vk.json');
         
         if (fs.existsSync(zkVkFile) && fs.existsSync(scVkFile)) {
             console.log('💾 Precompiled verification keys are up to date');
@@ -106,8 +109,8 @@ async function smartPrecompile() {
     
     try {
         // Dynamic import after TypeScript compilation
-        const { GLEIFEnhancedZKProgram } = await import('../build/zk-programs/with-sign/GLEIFEnhancedZKProgramWithSign.js');
-        const { GLEIFEnhancedVerifierSmartContractWithSign } = await import('../build/contracts/with-sign/GLEIFEnhancedVerifierSmartContractWithSign.js');
+        const { GLEIFOptim } = await import('../build/zk-programs/with-sign/GLEIFOptimZKProgram.js');
+        const { GLEIFOptimMultiCompanySmartContract } = await import('../build/contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js');
         
         if (!fs.existsSync(PRECOMPILED_DIR)) {
             fs.mkdirSync(PRECOMPILED_DIR, { recursive: true });
@@ -116,16 +119,16 @@ async function smartPrecompile() {
         // Compile ZK Program
         console.log('🧮 Compiling ZK Program...');
         const startZK = Date.now();
-        const zkResult = await GLEIFEnhancedZKProgram.compile();
+        const zkResult = await GLEIFOptim.compile();
         const zkTime = Date.now() - startZK;
         
         fs.writeFileSync(
-            path.join(PRECOMPILED_DIR, 'gleif-enhanced-zk-program.vk.json'),
+            path.join(PRECOMPILED_DIR, 'gleif-optim-zk-program.vk.json'),
             JSON.stringify({
                 verificationKey: zkResult.verificationKey,
                 compiledAt: new Date().toISOString(),
                 compileTimeMs: zkTime,
-                type: 'GLEIFEnhancedZKProgram',
+                type: 'GLEIFOptimZKProgram',
                 sourceFiles: SOURCE_FILES.filter(f => f.includes('zk-programs'))
             }, null, 2)
         );
@@ -133,16 +136,16 @@ async function smartPrecompile() {
         // Compile Smart Contract
         console.log('🏛️ Compiling Smart Contract...');
         const startSC = Date.now();
-        const scResult = await GLEIFEnhancedVerifierSmartContractWithSign.compile();
+        const scResult = await GLEIFOptimMultiCompanySmartContract.compile();
         const scTime = Date.now() - startSC;
         
         fs.writeFileSync(
-            path.join(PRECOMPILED_DIR, 'gleif-enhanced-smart-contract.vk.json'),
+            path.join(PRECOMPILED_DIR, 'gleif-optim-multi-company-smart-contract.vk.json'),
             JSON.stringify({
                 verificationKey: scResult.verificationKey,
                 compiledAt: new Date().toISOString(),
                 compileTimeMs: scTime,
-                type: 'GLEIFEnhancedVerifierSmartContract',
+                type: 'GLEIFOptimMultiCompanySmartContract',
                 sourceFiles: SOURCE_FILES.filter(f => f.includes('contracts'))
             }, null, 2)
         );

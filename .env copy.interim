@@ -1,15 +1,15 @@
 GLEIF_URL_PROD=https://api.gleif.org/api/v1/lei-records
 GLEIF_URL_SANDBOX=https://api.gleif.org/api/v1/lei-records
-GLEIF_URL_MOCK=https://09d2b28c-5e4c-4350-812e-0b5d99a2a740.mock.pstmn.io
-#GLEIF_URL_MOCK=https://api.gleif.org/api/v1/lei-records
+#GLEIF_URL_MOCK=https://09d2b28c-5e4c-4350-812e-0b5d99a2a740.mock.pstmn.io
+GLEIF_URL_MOCK=https://api.gleif.org/api/v1/lei-records
 #BUILD_ENV=TESTNET or TESTNET or MAINNET
 BUILD_ENV=LOCAL
 
 CORPREG_URL_PROD_INDIA=https://api.sandbox.co.in/mca/company/master-data/search
 CORPREG_URL_SANDBOX_INDIA=https://api.sandbox.co.in/mca/company/master-data/search
 
-CORPREG_URL_MOCK_INDIA=https://a483f01c-bb1b-4db4-8936-3ed5d25c6898.mock.pstmn.io
-#CORPREG_URL_MOCK_INDIA=https://api.sandbox.co.in/mca/company/master-data/search				
+#CORPREG_URL_MOCK_INDIA=https://a483f01c-bb1b-4db4-8936-3ed5d25c6898.mock.pstmn.io
+CORPREG_URL_MOCK_INDIA=https://api.sandbox.co.in/mca/company/master-data/search				
 
 AUTH_URL=https://api.sandbox.co.in/authenticate
 
@@ -21,11 +21,9 @@ API_KEY=key_live_8d7cNCKQpDFFuwl3PuyhMfcXZJ2zi7If
 API_SECRET=secret_live_S2HMw55pj2Ow78EsD9OEyPfadqlyOLue
 API_VERSION=v3
 
-
 EXIM_URL_PROD_INDIA=https://192f66e5-a7b1-4dc2-873a-4bbf6a3a91d9.mock.pstmn.io
 EXIM_URL_SANDBOX_INDIA=https://192f66e5-a7b1-4dc2-873a-4bbf6a3a91d9.mock.pstmn.io
 EXIM_URL_MOCK_INDIA=https://192f66e5-a7b1-4dc2-873a-4bbf6a3a91d9.mock.pstmn.io
-
 
 # ZK-PRET Server Configuration
 ZK_PRET_SERVER_PORT=3001

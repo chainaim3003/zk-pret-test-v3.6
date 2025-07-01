@@ -15,7 +15,7 @@ export class EnvironmentManager {
 
   private constructor() {
     // Load from environment variable or default to LOCAL
-    const envValue = process.env.BUILD_ENV || process.env.NODE_ENV || 'LOCAL';
+    const envValue = process.env.BUILD_ENV || 'LOCAL';
     this.currentEnvironment = this.parseEnvironment(envValue);
     this.storage = new FileBasedEnvironmentStorage();
     
@@ -103,7 +103,7 @@ export class EnvironmentManager {
       case Environment.LOCAL:
         return {
           environment: Environment.LOCAL,
-          proofsEnabled: false
+          proofsEnabled: true
         };
       
       case Environment.TESTNET:
