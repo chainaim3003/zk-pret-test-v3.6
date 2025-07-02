@@ -65,7 +65,7 @@ export class CompanyKey extends Struct({
 export class RegistryInfo extends Struct({
    totalCompaniesTracked: Field,
    compliantCompaniesCount: Field,
-   globalComplianceScore: Field,
+   // ✅ ZK BEST PRACTICE: Removed globalComplianceScore - calculate in JavaScript
    totalVerificationsGlobal: Field,
    companiesRootHash: Field,
    registryVersion: Field,
@@ -74,7 +74,7 @@ export class RegistryInfo extends Struct({
 export class GlobalComplianceStats extends Struct({
    totalCompanies: Field,
    compliantCompanies: Field,
-   compliancePercentage: Field,
+   // ✅ ZK BEST PRACTICE: Removed compliancePercentage - calculate in JavaScript
    totalVerifications: Field,
    lastVerificationTime: UInt64,
 }) {}
@@ -274,7 +274,7 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
    }
    
    /**
-    * Get registry information (updated for new state structure)
+    * Get registry information (ZK optimized - percentage calculated in JavaScript)
     */
    getRegistryInfo(): RegistryInfo {
       // Add required state preconditions
@@ -286,15 +286,10 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
       const totalCompanies = this.totalCompaniesTracked.get();
       const compliantCompanies = this.compliantCompaniesCount.get();
       
-      // Calculate global compliance score (moved from state to computed)
-      const globalScore = totalCompanies.equals(Field(0))
-         ? Field(0) // No companies yet
-         : compliantCompanies.mul(100).div(totalCompanies);
-      
+      // ✅ ZK BEST PRACTICE: Return raw data only - no division in circuit
       return new RegistryInfo({
          totalCompaniesTracked: totalCompanies,
          compliantCompaniesCount: compliantCompanies,
-         globalComplianceScore: globalScore,
          totalVerificationsGlobal: totalCompanies, // Same as totalCompanies in simplified version
          companiesRootHash: this.companiesMapRoot.get(), // Use MerkleMap root
          registryVersion: this.registryVersion.get(),
@@ -302,7 +297,7 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
    }
 
    /**
-    * Get global compliance statistics (updated for new state structure)
+    * Get global compliance statistics (ZK optimized - percentage calculated in JavaScript)
     */
    getGlobalComplianceStats(): GlobalComplianceStats {
       // Add required state preconditions
@@ -313,15 +308,10 @@ export class GLEIFOptimMultiCompanySmartContract extends SmartContract {
       const totalCompanies = this.totalCompaniesTracked.get();
       const compliantCompanies = this.compliantCompaniesCount.get();
       
-      // Calculate compliance percentage (moved from state to computed)
-      const compliancePercentage = totalCompanies.equals(Field(0))
-         ? Field(0) // No companies yet
-         : compliantCompanies.mul(100).div(totalCompanies);
-      
+      // ✅ ZK BEST PRACTICE: Return raw data only - no division in circuit
       return new GlobalComplianceStats({
          totalCompanies: totalCompanies,
          compliantCompanies: compliantCompanies,
-         compliancePercentage: compliancePercentage,
          totalVerifications: totalCompanies, // Same as totalCompanies in simplified version
          lastVerificationTime: this.lastVerificationTime.get(),
       });

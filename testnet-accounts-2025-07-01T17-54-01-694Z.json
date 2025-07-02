@@ -1,0 +1,80 @@
+[
+  {
+    "role": "MCA",
+    "deployer": {
+      "privateKey": "EKEToRBXajxz1VYs6SJvJkGmzmapPvRH3rmYGNazHGdqDTnnXMDq",
+      "publicKey": "B62qmHa4M2r8zXia5u58hr1ssWeVMZJ4fh5rZt3Cd7YMDjVgDowDtir",
+      "index": 0
+    },
+    "sender": {
+      "privateKey": "EKEvaQDp3URzZk3PfJPtie6bauHhJqVu56ZZxoJKfFKsL4kyQ2pt",
+      "publicKey": "B62qovk2mWbAP25erhuBfe4iJth6hCyv44yq6HMMgwyKmM6xfZXsxWP",
+      "index": 1
+    }
+  },
+  {
+    "role": "GLEIF",
+    "deployer": {
+      "privateKey": "EKFACxjqcdjStPwQMwG8zDQ2AJknMwfmuD18k1QN9LiiwsQp4MBM",
+      "publicKey": "B62qo3JqEQno6Z234yV42Sdqy2qfwjVtLFUpdn21kBKmUMRAGrKeEJ9",
+      "index": 2
+    },
+    "sender": {
+      "privateKey": "EKEAHNWMDUqbiP95VDKzLeJsPHcg7gHXguxqskJJ9x3Wnenk1LVP",
+      "publicKey": "B62qoNcJvEUVJ7ncM2YsVkXXAwcnuAtuQRhTYLYVcCAJHwjYHuNxqyk",
+      "index": 3
+    }
+  },
+  {
+    "role": "EXIM",
+    "deployer": {
+      "privateKey": "EKFHb92bBnANLaXpQZUU4ibbdeqUWZTREoXoHFQKCx8gxqTsVuVA",
+      "publicKey": "B62qrCRSsA9vXwnYdkdroSMQQnfKM6byQFcjjiFTfPsAJSEv1jyuWmT",
+      "index": 4
+    },
+    "sender": {
+      "privateKey": "EKEURbrbzREAgsH3ZbLWt6tEpUywmMuzLd9ZUYLyCHPcpMQYPX4G",
+      "publicKey": "B62qoYfBGNAUphcL6jqsSoNYhN4qQbYjxsW5aJ2G48zVDyTidHmUw6j",
+      "index": 5
+    }
+  },
+  {
+    "role": "BPMN",
+    "deployer": {
+      "privateKey": "EKFPVZhweixLYVoqyCnoCoBjSFk53paW7cmBW63eK182rAwJ5ccV",
+      "publicKey": "B62qoRcJkqKb34yUBnX7Dk6sEShqFXhvATtjhaHMyqeTGJPQUbSSKfx",
+      "index": 6
+    },
+    "sender": {
+      "privateKey": "EKEJCceSq5i3oDbs3uyQNVMjT3ifrxV3usNs7zUc4SSLhTaPiH3i",
+      "publicKey": "B62qiXyt4WV9JvuZxx2jC7dHzQcvKXDr1EAh8eHHYoaEMzVZoWQe6hY",
+      "index": 7
+    }
+  },
+  {
+    "role": "RISK",
+    "deployer": {
+      "privateKey": "EKFALwE97wY4uiVXD1FehvFuuKSBQ78FPHF7YaDvjttNfQA618cn",
+      "publicKey": "B62qqMVBpR3D2XMKU1Zs6Xirq1PQTehtRDDGN9gcAbz3NYophdUY3EF",
+      "index": 8
+    },
+    "sender": {
+      "privateKey": "EKEhRDTvKvNT6qHUnWydUZE9iVEvcZyfUbXevN4cz2fDEAKmkKAX",
+      "publicKey": "B62qnKsLJr2ZPzrXaRojNUwvqqLRArWAvwsfbL1JJ67XQp7XZ5xx7na",
+      "index": 9
+    }
+  },
+  {
+    "role": "BL_REGISTRY",
+    "deployer": {
+      "privateKey": "EKF4jTDuJ3FnPQx9kMEVdNuKPyjrRaiUNUkHrg7DdcTEErAi6Krw",
+      "publicKey": "B62qnLAML6a8smUzpFZAk2de4kncjLSCQAAYp3E35geH2s4YuNzXjnf",
+      "index": 10
+    },
+    "sender": {
+      "privateKey": "EKDjhz8sMo5DEVmTYYTNZ9DbsRGhiCfTaHuhXzehvQ65NwfWvayV",
+      "publicKey": "B62qpywvYKbPGH87YFAqTRbzMXAtf7MsCibj5GUXZ8AtZcrppmxctpK",
+      "index": 11
+    }
+  }
+]

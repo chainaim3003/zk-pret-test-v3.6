@@ -20,7 +20,8 @@ import {
   CompanyMerkleWitness,
   COMPANY_MERKLE_HEIGHT,
   CompanyKey,
-  RegistryInfo
+  RegistryInfo,
+  GlobalComplianceStats
 } from '../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
 import { 
   getGleifDeployerAccount, 
@@ -40,6 +41,49 @@ import {
   createCompanyRecord
 } from './GLEIFEnhancedUtils.js';
 import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
+
+// =================================== Compliance Analysis Functions ===================================
+
+/**
+ * Type guard to check if the contract stats is RegistryInfo
+ */
+function isRegistryInfo(contractStats: RegistryInfo | GlobalComplianceStats): contractStats is RegistryInfo {
+  return 'totalCompaniesTracked' in contractStats;
+}
+
+/**
+ * ✅ ZK BEST PRACTICE: Calculate compliance percentage outside the circuit
+ * Adds percentage field to raw contract data - avoids expensive division in ZK constraints
+ */
+function addCompliancePercentage(contractStats: RegistryInfo | GlobalComplianceStats): {
+  totalCompanies: number;
+  compliantCompanies: number;
+  compliancePercentage: number;
+} & (RegistryInfo | GlobalComplianceStats) {
+  let total: number;
+  let compliant: number;
+  
+  if (isRegistryInfo(contractStats)) {
+    // RegistryInfo type
+    total = Number(contractStats.totalCompaniesTracked.toString());
+    compliant = Number(contractStats.compliantCompaniesCount.toString());
+  } else {
+    // GlobalComplianceStats type
+    total = Number(contractStats.totalCompanies.toString());
+    compliant = Number(contractStats.compliantCompanies.toString());
+  }
+  
+  const percentage = total > 0 
+    ? Math.round((compliant / total) * 100) 
+    : 0;
+    
+  return {
+    ...contractStats,
+    totalCompanies: total,
+    compliantCompanies: compliant,
+    compliancePercentage: percentage
+  } as any;
+}
 
 /**
  * Analyzes compliance fields for GLEIF verification
@@ -120,10 +164,11 @@ export function logSmartContractState(
 ): RegistryInfo {
   console.log(`\n📊 Smart Contract State ${phase} Verification:`);
   const state = zkApp.getRegistryInfo();
+  const stateWithPercentage = addCompliancePercentage(state);
   
   console.log(`  Total Companies: ${state.totalCompaniesTracked.toString()}`);
   console.log(`  Compliant Companies: ${state.compliantCompaniesCount.toString()}`);
-  console.log(`  Global Compliance Score: ${state.globalComplianceScore.toString()}%`);
+  console.log(`  Global Compliance Score: ${stateWithPercentage.compliancePercentage}%`);
   console.log(`  Total Verifications: ${state.totalVerificationsGlobal.toString()}`);
   console.log(`  Companies Root Hash: ${state.companiesRootHash.toString()}`);
   console.log(`  Registry Version: ${state.registryVersion.toString()}`);
@@ -136,9 +181,11 @@ export function logSmartContractState(
  */
 export function logStateChanges(stateBefore: RegistryInfo, stateAfter: RegistryInfo): void {
   console.log('\n📈 STATE CHANGES:');
+  const stateBeforeWithPercentage = addCompliancePercentage(stateBefore);
+  const stateAfterWithPercentage = addCompliancePercentage(stateAfter);
   console.log(`  📊 Total Companies: ${stateBefore.totalCompaniesTracked.toString()} → ${stateAfter.totalCompaniesTracked.toString()}`);
   console.log(`  ✅ Compliant Companies: ${stateBefore.compliantCompaniesCount.toString()} → ${stateAfter.compliantCompaniesCount.toString()}`);
-  console.log(`  📈 Global Compliance Score: ${stateBefore.globalComplianceScore.toString()}% → ${stateAfter.globalComplianceScore.toString()}%`);
+  console.log(`  📈 Global Compliance Score: ${stateBeforeWithPercentage.compliancePercentage}% → ${stateAfterWithPercentage.compliancePercentage}%`);
   console.log(`  🔢 Total Verifications: ${stateBefore.totalVerificationsGlobal.toString()} → ${stateAfter.totalVerificationsGlobal.toString()}`);
   console.log(`  🌳 Companies Root Hash: ${stateBefore.companiesRootHash.toString()} → ${stateAfter.companiesRootHash.toString()}`);
   console.log(`  📝 Registry Version: ${stateBefore.registryVersion.toString()} → ${stateAfter.registryVersion.toString()}`);
@@ -529,8 +576,8 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
             totalCompaniesAfter: stateAfter.totalCompaniesTracked.toString(),
             compliantCompaniesBefore: stateBefore.compliantCompaniesCount.toString(),
             compliantCompaniesAfter: stateAfter.compliantCompaniesCount.toString(),
-            globalScoreBefore: stateBefore.globalComplianceScore.toString(),
-            globalScoreAfter: stateAfter.globalComplianceScore.toString(),
+            globalScoreBefore: addCompliancePercentage(stateBefore).compliancePercentage.toString(),
+            globalScoreAfter: addCompliancePercentage(stateAfter).compliancePercentage.toString(),
           }
         });
 
@@ -559,9 +606,10 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
 
     console.log('\n📈 Final Registry Statistics:');
     const finalStats = zkApp.getGlobalComplianceStats();
-    console.log(`  • Total Companies Tracked: ${finalStats.totalCompanies.toString()}`);
-    console.log(`  • Compliant Companies: ${finalStats.compliantCompanies.toString()}`);
-    console.log(`  • Compliance Percentage: ${finalStats.compliancePercentage.toString()}%`);
+    const finalStatsWithPercentage = addCompliancePercentage(finalStats);
+    console.log(`  • Total Companies Tracked: ${finalStatsWithPercentage.totalCompanies}`);
+    console.log(`  • Compliant Companies: ${finalStatsWithPercentage.compliantCompanies}`);
+    console.log(`  • Compliance Percentage: ${finalStatsWithPercentage.compliancePercentage}%`);
     console.log(`  • Total Verifications: ${finalStats.totalVerifications.toString()}`);
     if (finalStats.lastVerificationTime.toString() !== '0') {
       console.log(`  • Last Verification: ${new Date(Number(finalStats.lastVerificationTime.toString())).toISOString()}`);

@@ -59,7 +59,11 @@
     "test:gleif-refactored-infra": "npm run build && node ./build/tests/with-sign/GLEIFOptimRefactoredInfrastructureTestWithSign.js",
     "test:gleif-multi-refactored-infra": "npm run build && node ./build/tests/with-sign/GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSign.js",
     "test:gleif-infrastructure": "npm run build && node ./build/tests/with-sign/GLEIFOptimInfrastructureTestWithSign.js",
-    "test:gleif-updated": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./build/tests/with-sign/GLEIFOptimVerificationTestWithSignUtilsUpdated.js"
+    "test:gleif-updated": "npm run build && node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads ./build/tests/with-sign/GLEIFOptimVerificationTestWithSignUtilsUpdated.js",
+    "setup:testnet": "npm run build && node ./build/testnet-setup.js",
+    "setup:testnet-direct": "npx ts-node --esm src/testnet-setup.ts",
+    "check:funding": "npm run build && node ./build/check-funding.js",
+    "check:funding-direct": "npx ts-node --esm src/check-funding.ts"
   },
   "lint-staged": {
     "**/*": [

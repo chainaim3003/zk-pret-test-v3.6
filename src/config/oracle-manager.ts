@@ -13,6 +13,7 @@ import {
   Jurisdiction,
   OracleKeyPair
 } from './oracle-types.js';
+import type { EnvironmentConfig } from '../infrastructure/environment/types.js';
 
 export class ConfigurableOracleManager {
   private environment: string;
@@ -20,9 +21,18 @@ export class ConfigurableOracleManager {
   private localBlockchain: any = null;
   private initialized = false;
   private legacyMapping: Map<string, string> = new Map();
+  private environmentConfig: EnvironmentConfig | null = null;
 
   constructor(environment: string = 'LOCAL') {
     this.environment = environment;
+  }
+
+  /**
+   * Set environment configuration from loaded JSON config
+   */
+  setEnvironmentConfig(config: EnvironmentConfig): void {
+    this.environmentConfig = config;
+    console.log(`✅ Oracle Manager: Environment config loaded for ${this.environment}`);
   }
 
   async initialize(): Promise<void> {
@@ -303,59 +313,63 @@ export class ConfigurableOracleManager {
       console.log(`🔐 Oracle Manager: Using ${definition.description} ${role} key`);
       return this.localBlockchain.testAccounts[accountIndex].key;
       
-    } else if (this.environment === 'TESTNET') {
-      // ✅ MINA o1js BEST PRACTICE: Environment-based key management for networks
-      const roleConfig = definition.roles[role];
-      const envVarName = `${definition.id}_${role}_PRIVATE_KEY`;
-      const privateKeyString = process.env[envVarName];
+    } else if (this.environment === 'TESTNET' || this.environment === 'MAINNET') {
+      // ✅ NEW: Use JSON config instead of environment variables
+      if (!this.environmentConfig) {
+        throw new Error(`Environment config not loaded for ${this.environment}. Call setEnvironmentConfig() first.`);
+      }
       
-      if (!privateKeyString) {
-        throw new Error(`Environment variable ${envVarName} not set for TESTNET Oracle key`);
+      // Map oracle definition ID to legacy oracle names in JSON config
+      const legacyOracleName = this.getLegacyOracleNameFromDefinition(definition);
+      const oracleConfig = this.environmentConfig.oracles.registry[legacyOracleName];
+      
+      if (!oracleConfig) {
+        throw new Error(`Oracle config not found for '${legacyOracleName}' in ${this.environment} environment`);
+      }
+      
+      if (!oracleConfig.privateKey) {
+        throw new Error(`Private key not configured for oracle '${legacyOracleName}' in ${this.environment} environment`);
       }
       
       // ✅ MINA o1js BEST PRACTICE: Validate private key format before use
-      if (!this.isValidPrivateKeyFormat(privateKeyString)) {
-        throw new Error(`Invalid private key format in ${envVarName}: Must be valid Base58 string`);
+      if (!this.isValidPrivateKeyFormat(oracleConfig.privateKey)) {
+        throw new Error(`Invalid private key format for oracle '${legacyOracleName}': Must be valid Base58 string`);
       }
       
-      console.log(`🌐 Oracle Manager: Using ${definition.description} ${role} key from environment`);
+      console.log(`🌐 Oracle Manager: Using ${definition.description} ${role} key from JSON config`);
       
       try {
-        return PrivateKey.fromBase58(privateKeyString);
+        return PrivateKey.fromBase58(oracleConfig.privateKey);
       } catch (error) {
-        throw new Error(`Failed to parse private key from ${envVarName}: ${(error as Error).message}`);
-      }
-      
-    } else if (this.environment === 'MAINNET') {
-      // ✅ MINA o1js BEST PRACTICE: Secure key management for production
-      const roleConfig = definition.roles[role];
-      
-      // Future: Integrate with Hardware Security Modules (HSM)
-      // Future: Integrate with Cloud Key Management (AWS KMS, Azure Key Vault)
-      // Future: Implement key derivation from secure seeds
-      
-      const envVarName = `${definition.id}_${role}_PRIVATE_KEY_MAINNET`;
-      const privateKeyString = process.env[envVarName];
-      
-      if (!privateKeyString) {
-        throw new Error(`Secure key not found for MAINNET Oracle ${definition.id} role ${role}. Configure secure key management.`);
-      }
-      
-      // ✅ MINA o1js BEST PRACTICE: Extra validation for MAINNET keys
-      if (!this.isValidPrivateKeyFormat(privateKeyString)) {
-        throw new Error(`Invalid secure key format for MAINNET Oracle: Must be valid Base58 string`);
-      }
-      
-      console.log(`🔒 Oracle Manager: Using ${definition.description} ${role} key from secure storage`);
-      
-      try {
-        return PrivateKey.fromBase58(privateKeyString);
-      } catch (error) {
-        throw new Error(`Failed to parse secure MAINNET key: ${(error as Error).message}`);
+        throw new Error(`Failed to parse private key for '${legacyOracleName}': ${(error as Error).message}`);
       }
       
     } else {
       throw new Error(`Unsupported environment: ${this.environment}. Supported: LOCAL, TESTNET, MAINNET`);
+    }
+  }
+
+  private getLegacyOracleNameFromDefinition(definition: OracleDefinition): string {
+    // Map the oracle definition ID to the legacy oracle name used in JSON config
+    switch (definition.id) {
+      case 'CORPREG_INDIA_MCA':
+        return 'MCA';
+      case 'GLEIF_GLOBAL':
+        return 'GLEIF';
+      case 'EXIM_INDIA_DGFT':
+        return 'EXIM';
+      case 'RISK_GLOBAL_ACTUS_IMPLEMENTOR_1':
+        return 'RISK';
+      case 'BIZ_STD_GLOBAL_DCSAV3':
+        return 'BPMN';
+      default:
+        // Try to find via legacy mapping as fallback
+        for (const [legacyName, oracleId] of this.legacyMapping.entries()) {
+          if (oracleId === definition.id) {
+            return legacyName;
+          }
+        }
+        throw new Error(`No legacy oracle name mapping found for oracle definition '${definition.id}'`);
     }
   }
 
