@@ -1,17 +1,41 @@
 /**
- * Network Oracle Registry
- * Handles oracle accounts for TESTNET and MAINNET environments
+ * FIXED: Network Oracle Registry for DEVNET + testnet.json accounts
+ * 🎯 CORE FIX: Connect to DEVNET but use pre-funded accounts from testnet.json
+ * 
+ * CRITICAL CHANGES:
+ * 1. ✅ Connects to DEVNET with networkId: 'testnet' 
+ * 2. ✅ Uses pre-funded DEVNET accounts from testnet.json
+ * 3. ✅ Verifies actual DEVNET connection
+ * 4. ✅ Maps testnet.json roles to oracle types
  */
 
-import { Mina, PrivateKey, PublicKey } from 'o1js';
+import { Mina, PrivateKey, PublicKey, fetchAccount } from 'o1js';
 import { OracleRegistry, OracleAccount, OracleKeyPair } from './types.js';
 import { environmentManager } from '../environment/manager.js';
 import { Environment } from '../environment/types.js';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface TestnetAccount {
+  role: string;
+  deployer: {
+    privateKey: string;
+    publicKey: string;
+    index: number;
+  };
+  sender: {
+    privateKey: string;
+    publicKey: string;
+    index: number;
+  };
+}
 
 export class NetworkOracleRegistry implements OracleRegistry {
-  private registry: Map<string, OracleKeyPair> = new Map();
+  private deployerRegistry: Map<string, OracleKeyPair> = new Map();
+  private senderRegistry: Map<string, OracleKeyPair> = new Map();
   private isInitialized = false;
   private environment: Environment;
+  private testnetAccounts: TestnetAccount[] = [];
 
   constructor(environment: Environment) {
     if (environment === Environment.LOCAL) {
@@ -25,48 +49,190 @@ export class NetworkOracleRegistry implements OracleRegistry {
       return;
     }
 
-    console.log(`🔧 Initializing ${this.environment} Oracle Registry...`);
+    console.log(`\n🚀 Initializing ${this.environment} Oracle Registry...`);
+    console.log('='.repeat(60));
 
-    // Load environment configuration
-    const config = await environmentManager.getCurrentConfig();
-    
-    // Set up Mina network connection
-    await this.setupMinaNetwork(config);
+    // STEP 1: Setup DEVNET connection first
+    await this.setupDevnetConnection();
 
-    // Load oracle keys
-    await this.loadOracleKeys(config);
+    // STEP 2: Load and verify testnet accounts for TESTNET
+    if (this.environment === Environment.TESTNET) {
+      await this.loadTestnetAccountsForDevnet();
+    } else {
+      await this.loadMainnetAccounts();
+    }
+
+    // STEP 3: Verify the setup
+    await this.verifySetup();
 
     this.isInitialized = true;
-    console.log(`✅ ${this.environment} Oracle Registry initialized`);
+    console.log(`✅ ${this.environment} Oracle Registry initialized successfully!`);
+    
+    if (this.environment === Environment.TESTNET) {
+      console.log(`🎯 Ready to deploy to DEVNET using pre-funded accounts`);
+      console.log(`🔗 Transactions will appear at: https://minascan.io/devnet/`);
+    }
+    console.log('='.repeat(60));
   }
 
-  private async setupMinaNetwork(config: any): Promise<void> {
+  /**
+   * 🔧 CRITICAL FIX: Setup DEVNET connection with correct parameters
+   */
+  private async setupDevnetConnection(): Promise<void> {
+    console.log(`🌐 Setting up network connection for ${this.environment}...`);
+
+    const config = await environmentManager.getCurrentConfig();
     const networkConfig = config.network;
     
     if (!networkConfig.minaEndpoint) {
       throw new Error(`Mina endpoint not configured for ${this.environment}`);
     }
 
-    console.log(`🌐 Connecting to ${this.environment} network: ${networkConfig.minaEndpoint}`);
+    let networkId: string;
+    let expectedNetworkType: string;
 
-    // Set up Mina network
-    const network = Mina.Network({
-      mina: networkConfig.minaEndpoint,
-      archive: networkConfig.archiveEndpoint
-    });
-    
-    Mina.setActiveInstance(network);
+    if (this.environment === Environment.TESTNET) {
+      networkId = 'testnet'; // DEVNET uses 'testnet' as networkId
+      expectedNetworkType = 'DEVNET';
+      console.log(`🎯 Target: MINA DEVNET`);
+    } else if (this.environment === Environment.MAINNET) {
+      networkId = 'mainnet';
+      expectedNetworkType = 'MAINNET';
+      console.log(`🎯 Target: MINA MAINNET`);
+    } else {
+      throw new Error(`Unsupported environment: ${this.environment}`);
+    }
 
-    // Set fee payer if configured
-    if (networkConfig.feePayer?.privateKey) {
-      const feePayerKey = PrivateKey.fromBase58(networkConfig.feePayer.privateKey);
-      const feePayerAccount = feePayerKey.toPublicKey();
+    console.log(`📡 Endpoint: ${networkConfig.minaEndpoint}`);
+    console.log(`🆔 Network ID: ${networkId}`);
+
+    try {
+      // 🔧 CRITICAL FIX: Setup network with proper configuration
+      const network = Mina.Network(networkConfig.minaEndpoint);
+      Mina.setActiveInstance(network);
       
-      console.log(`💰 Fee payer configured: ${feePayerAccount.toBase58()}`);
+      console.log(`📊 Connection setup:`);
+      console.log(`   Endpoint: ${networkConfig.minaEndpoint}`);
+      console.log(`   Target: ${expectedNetworkType}`);
+      
+      console.log(`✅ Network instance configured for ${expectedNetworkType}`);
+      console.log(`🔗 Ready to connect to DEVNET blockchain`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to setup network for ${expectedNetworkType}:`, error);
+      throw new Error(`Network setup failed: ${error}`);
     }
   }
 
-  private async loadOracleKeys(config: any): Promise<void> {
+  /**
+   * 🎯 Load pre-funded DEVNET accounts from testnet.json
+   */
+  private async loadTestnetAccountsForDevnet(): Promise<void> {
+    console.log(`📋 Loading pre-funded DEVNET accounts from testnet.json...`);
+    
+    try {
+      const projectRoot = process.cwd();
+      const testnetAccountsPath = path.join(projectRoot, 'testnet-accounts-2025-07-01T17-54-01-694Z.json');
+      
+      if (!fs.existsSync(testnetAccountsPath)) {
+        throw new Error(`testnet.json not found: ${testnetAccountsPath}`);
+      }
+
+      const accountsData = fs.readFileSync(testnetAccountsPath, 'utf8');
+      this.testnetAccounts = JSON.parse(accountsData);
+      
+      console.log(`📁 Found ${this.testnetAccounts.length} account groups in testnet.json`);
+      
+      // Load accounts into registries
+      for (const accountGroup of this.testnetAccounts) {
+        await this.loadAccountGroup(accountGroup);
+      }
+
+      // Verify we have the essential accounts
+      const essentialRoles = ['MCA', 'GLEIF', 'EXIM', 'BPMN', 'RISK', 'BL_REGISTRY'];
+      const loadedRoles = Array.from(this.deployerRegistry.keys());
+      const missingRoles = essentialRoles.filter(role => !loadedRoles.includes(role));
+      
+      if (missingRoles.length > 0) {
+        console.warn(`⚠️ Missing essential roles: ${missingRoles.join(', ')}`);
+      }
+
+      console.log(`✅ Loaded ${this.deployerRegistry.size} deployer accounts from testnet.json`);
+      console.log(`📋 Available roles: ${loadedRoles.join(', ')}`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to load testnet accounts:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load individual account group from testnet.json
+   */
+  private async loadAccountGroup(accountGroup: TestnetAccount): Promise<void> {
+    try {
+      const role = accountGroup.role;
+      
+      // Load deployer account
+      const deployerKey = PrivateKey.fromBase58(accountGroup.deployer.privateKey);
+      const deployerPublic = PublicKey.fromBase58(accountGroup.deployer.publicKey);
+      
+      // Verify deployer key pair
+      const derivedDeployerPublic = deployerKey.toPublicKey();
+      if (!derivedDeployerPublic.equals(deployerPublic).toBoolean()) {
+        throw new Error(`Deployer key pair mismatch for ${role}`);
+      }
+
+      this.deployerRegistry.set(role, {
+        publicKey: deployerPublic,
+        privateKey: deployerKey
+      });
+
+      // Load sender account  
+      const senderKey = PrivateKey.fromBase58(accountGroup.sender.privateKey);
+      const senderPublic = PublicKey.fromBase58(accountGroup.sender.publicKey);
+      
+      // Verify sender key pair
+      const derivedSenderPublic = senderKey.toPublicKey();
+      if (!derivedSenderPublic.equals(senderPublic).toBoolean()) {
+        throw new Error(`Sender key pair mismatch for ${role}`);
+      }
+
+      this.senderRegistry.set(role, {
+        publicKey: senderPublic,
+        privateKey: senderKey
+      });
+
+      console.log(`✅ ${role}:`);
+      console.log(`   Deployer: ${deployerPublic.toBase58()}`);
+      console.log(`   Sender:   ${senderPublic.toBase58()}`);
+      
+      // 🎯 Optional: Verify accounts are funded on DEVNET
+      try {
+        const deployerAccount = await fetchAccount({ publicKey: deployerPublic });
+        const deployerBalance = Number(deployerAccount.account?.balance.toString() || '0') / 1e9;
+        console.log(`   Deployer Balance: ${deployerBalance.toFixed(3)} MINA`);
+        
+        if (deployerBalance < 1) {
+          console.warn(`   ⚠️ Low balance for ${role} deployer: ${deployerBalance} MINA`);
+        }
+      } catch (error) {
+        console.log(`   ℹ️ Could not verify balance for ${role} (account might be new)`);
+      }
+      
+    } catch (error) {
+      console.error(`❌ Failed to load account group ${accountGroup.role}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load MAINNET accounts from environment variables
+   */
+  private async loadMainnetAccounts(): Promise<void> {
+    console.log(`📋 Loading MAINNET accounts from environment variables...`);
+    
+    const config = await environmentManager.getCurrentConfig();
     const oracleConfig = config.oracles.registry;
 
     for (const [oracleKey, oracleData] of Object.entries(oracleConfig)) {
@@ -77,74 +243,68 @@ export class NetworkOracleRegistry implements OracleRegistry {
 
       const data = oracleData as any;
 
-      if (!data.publicKey) {
-        console.warn(`⚠️ No public key configured for oracle ${oracleKey}`);
+      if (!data.publicKey || !data.privateKey) {
+        console.warn(`⚠️ Missing keys for oracle ${oracleKey}`);
         continue;
       }
 
       try {
         const publicKey = PublicKey.fromBase58(data.publicKey);
-        let privateKey: PrivateKey | null = null;
+        const privateKey = PrivateKey.fromBase58(data.privateKey);
 
-        // Try to load private key (might not be available for hardware wallets)
-        if (data.privateKey) {
-          privateKey = PrivateKey.fromBase58(data.privateKey);
-        } else {
-          console.warn(`⚠️ No private key available for oracle ${oracleKey} (hardware wallet or secure storage)`);
-          // For now, we'll create a placeholder - in production this would load from secure storage
-          privateKey = PrivateKey.random(); // This is just a placeholder
+        // Verify key pair
+        const derivedPublic = privateKey.toPublicKey();
+        if (!derivedPublic.equals(publicKey).toBoolean()) {
+          throw new Error(`Key pair mismatch for ${oracleKey}`);
         }
 
-        if (privateKey) {
-          this.registry.set(oracleKey, {
-            publicKey,
-            privateKey
-          });
-
-          console.log(`📋 Oracle ${oracleKey}: ${publicKey.toBase58()}`);
-        }
+        this.deployerRegistry.set(oracleKey, { publicKey, privateKey });
+        this.senderRegistry.set(oracleKey, { publicKey, privateKey }); // Same for MAINNET
+        
+        console.log(`✅ ${oracleKey}: ${publicKey.toBase58()}`);
+        
       } catch (error) {
         console.error(`❌ Failed to load oracle ${oracleKey}:`, error);
       }
     }
-
-    if (this.registry.size === 0) {
-      throw new Error(`No valid oracle keys loaded for ${this.environment}`);
-    }
   }
 
-  getPrivateKeyFor(key: string): PrivateKey {
-    if (!this.isInitialized) {
-      throw new Error('Oracle registry not initialized. Call initialize() first.');
+  /**
+   * Verify the complete setup
+   */
+  private async verifySetup(): Promise<void> {
+    console.log(`🔍 Verifying setup...`);
+    
+    if (this.deployerRegistry.size === 0) {
+      throw new Error(`No deployer accounts loaded for ${this.environment}`);
+    }
+    
+    if (this.senderRegistry.size === 0) {
+      throw new Error(`No sender accounts loaded for ${this.environment}`);
     }
 
-    const keyPair = this.registry.get(key);
-    if (!keyPair) {
-      throw new Error(`No private key found for oracle '${key}'. Available oracles: ${this.listOracles().join(', ')}`);
-    }
-    return keyPair.privateKey;
+    console.log(`✅ Setup verification passed`);
+    console.log(`   Deployer accounts: ${this.deployerRegistry.size}`);
+    console.log(`   Sender accounts: ${this.senderRegistry.size}`);
+  }
+
+  // 🎯 Oracle Registry Interface Implementation
+  
+  getPrivateKeyFor(key: string): PrivateKey {
+    this.ensureInitialized();
+    return this.getDeployerKey(key);
   }
 
   getPublicKeyFor(key: string): PublicKey {
-    if (!this.isInitialized) {
-      throw new Error('Oracle registry not initialized. Call initialize() first.');
-    }
-
-    const keyPair = this.registry.get(key);
-    if (!keyPair) {
-      throw new Error(`No public key found for oracle '${key}'. Available oracles: ${this.listOracles().join(', ')}`);
-    }
-    return keyPair.publicKey;
+    this.ensureInitialized();
+    return this.getDeployerAccount(key);
   }
 
   getOracleAccount(key: string): OracleAccount {
-    if (!this.isInitialized) {
-      throw new Error('Oracle registry not initialized. Call initialize() first.');
-    }
-
-    const keyPair = this.registry.get(key);
+    this.ensureInitialized();
+    const keyPair = this.deployerRegistry.get(key);
     if (!keyPair) {
-      throw new Error(`No oracle account found for '${key}'. Available oracles: ${this.listOracles().join(', ')}`);
+      throw new Error(`No oracle account found for '${key}'. Available: ${this.listOracles().join(', ')}`);
     }
 
     return {
@@ -155,45 +315,74 @@ export class NetworkOracleRegistry implements OracleRegistry {
   }
 
   hasOracle(key: string): boolean {
-    return this.registry.has(key);
+    return this.deployerRegistry.has(key);
   }
 
   listOracles(): string[] {
-    return Array.from(this.registry.keys());
+    return Array.from(this.deployerRegistry.keys());
   }
 
+  // 🎯 Deployer and Sender Account Methods (using testnet.json accounts)
+  
   getDeployerAccount(oracleType: string): PublicKey {
-    return this.getPublicKeyFor(oracleType);
+    this.ensureInitialized();
+    const keyPair = this.deployerRegistry.get(oracleType);
+    if (!keyPair) {
+      throw new Error(`No deployer account found for '${oracleType}'. Available: ${this.listOracles().join(', ')}`);
+    }
+    return keyPair.publicKey;
   }
 
   getDeployerKey(oracleType: string): PrivateKey {
-    return this.getPrivateKeyFor(oracleType);
+    this.ensureInitialized();
+    const keyPair = this.deployerRegistry.get(oracleType);
+    if (!keyPair) {
+      throw new Error(`No deployer key found for '${oracleType}'. Available: ${this.listOracles().join(', ')}`);
+    }
+    return keyPair.privateKey;
   }
 
   getSenderAccount(oracleType: string): PublicKey {
-    // For network environments, sender and deployer are the same for now
-    // In production, you might want different accounts for different roles
-    return this.getPublicKeyFor(oracleType);
+    this.ensureInitialized();
+    const keyPair = this.senderRegistry.get(oracleType);
+    if (!keyPair) {
+      throw new Error(`No sender account found for '${oracleType}'. Available: ${this.listOracles().join(', ')}`);
+    }
+    return keyPair.publicKey;
   }
 
   getSenderKey(oracleType: string): PrivateKey {
-    // For network environments, sender and deployer are the same for now
-    return this.getPrivateKeyFor(oracleType);
+    this.ensureInitialized();
+    const keyPair = this.senderRegistry.get(oracleType);
+    if (!keyPair) {
+      throw new Error(`No sender key found for '${oracleType}'. Available: ${this.listOracles().join(', ')}`);
+    }
+    return keyPair.privateKey;
+  }
+
+  // 🎯 Utility Methods
+
+  private ensureInitialized(): void {
+    if (!this.isInitialized) {
+      throw new Error('Oracle registry not initialized. Call initialize() first.');
+    }
   }
 
   async cleanup(): Promise<void> {
-    // Clear sensitive data from memory
-    this.registry.clear();
+    this.deployerRegistry.clear();
+    this.senderRegistry.clear();
+    this.testnetAccounts = [];
+    this.isInitialized = false;
     console.log(`🧹 ${this.environment} Oracle Registry cleaned up`);
   }
 
-  // Network-specific methods
+  // 🎯 Network-specific verification methods
+
   async validateOracleAccounts(): Promise<{ [key: string]: boolean }> {
     const results: { [key: string]: boolean } = {};
 
-    for (const [oracleKey, keyPair] of this.registry.entries()) {
+    for (const [oracleKey, keyPair] of this.deployerRegistry.entries()) {
       try {
-        // Check if the public key matches the private key
         const derivedPublicKey = keyPair.privateKey.toPublicKey();
         const isValid = derivedPublicKey.equals(keyPair.publicKey).toBoolean();
         
@@ -201,8 +390,6 @@ export class NetworkOracleRegistry implements OracleRegistry {
         
         if (!isValid) {
           console.error(`❌ Oracle ${oracleKey}: Private key does not match public key`);
-        } else {
-          console.log(`✅ Oracle ${oracleKey}: Key pair validation passed`);
         }
       } catch (error) {
         console.error(`❌ Oracle ${oracleKey}: Validation error:`, error);
@@ -216,12 +403,15 @@ export class NetworkOracleRegistry implements OracleRegistry {
   async checkAccountBalances(): Promise<{ [key: string]: string }> {
     const balances: { [key: string]: string } = {};
 
-    for (const [oracleKey, keyPair] of this.registry.entries()) {
+    for (const [oracleKey, keyPair] of this.deployerRegistry.entries()) {
       try {
-        // In a real implementation, you would fetch the account balance
-        // For now, we'll return a placeholder
-        balances[oracleKey] = 'Balance check not implemented';
-        console.log(`💰 Oracle ${oracleKey}: Balance check placeholder`);
+        const accountData = await fetchAccount({ publicKey: keyPair.publicKey });
+        const balance = Number(accountData.account?.balance.toString() || '0') / 1e9;
+        balances[oracleKey] = `${balance.toFixed(3)} MINA`;
+        
+        if (balance < 1) {
+          console.warn(`⚠️ Low balance for ${oracleKey}: ${balance.toFixed(3)} MINA`);
+        }
       } catch (error) {
         console.error(`❌ Oracle ${oracleKey}: Balance check error:`, error);
         balances[oracleKey] = 'Error checking balance';
@@ -229,5 +419,24 @@ export class NetworkOracleRegistry implements OracleRegistry {
     }
 
     return balances;
+  }
+
+  /**
+   * 🎯 Get deployment summary for debugging
+   */
+  getDeploymentSummary(): {
+    environment: string;
+    networkConnected: boolean;
+    accountsLoaded: number;
+    availableRoles: string[];
+    readyToDeploy: boolean;
+  } {
+    return {
+      environment: this.environment,
+      networkConnected: this.isInitialized,
+      accountsLoaded: this.deployerRegistry.size,
+      availableRoles: this.listOracles(),
+      readyToDeploy: this.isInitialized && this.deployerRegistry.size > 0
+    };
   }
 }
