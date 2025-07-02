@@ -349,12 +349,14 @@ export class TransactionMonitor {
 }
 
 /**
- * Enhanced fee calculation with environment awareness - INCREASED FOR DEVNET
+ * Enhanced fee calculation with o1js best practices - FIXED FOR DEVNET COMPATIBILITY
  */
 export function calculateOptimalFee(environment: string, operationType: 'deploy' | 'verify' | 'update' = 'verify'): UInt64 {
-  // Substantially increased fees for DEVNET to handle network congestion and fee competition
-  const baseDeployFee = UInt64.from(5_000_000_000); // 5 MINA for deployment (increased from 1 MINA)
-  const baseVerifyFee = UInt64.from(1_000_000_000);   // 1 MINA for verification (increased from 0.2 MINA)
+  // Using o1js recommended fees for DEVNET compatibility
+  const baseDeployFee = UInt64.from(100_000_000);   // 0.1 MINA for deployment (o1js best practice)
+  const baseVerifyFee = UInt64.from(100_000_000);   // 0.1 MINA for verification (o1js best practice)
+  
+  console.log(`💰 Using ${operationType} fee: ${operationType === 'deploy' ? baseDeployFee.toString() : baseVerifyFee.toString()} nanomina (0.1 MINA)`);
   
   switch (operationType) {
     case 'deploy':

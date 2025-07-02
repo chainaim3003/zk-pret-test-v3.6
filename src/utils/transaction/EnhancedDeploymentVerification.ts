@@ -84,12 +84,13 @@ export async function executeDeploymentWithRealVerification(
     // Step 2: Create and submit deployment transaction
     console.log(`\n📤 Step 1: Creating deployment transaction...`);
     
-    const deploymentFee = UInt64.from(5_000_000_000); // 5 MINA for DEVNET
-    const accountCreationFee = 3; // 3 MINA for account creation
+    // O1js Best Practice Fees for DEVNET
+    const deploymentFee = UInt64.from(100_000_000); // 0.1 MINA for DEVNET (o1js recommended)
+    const accountCreationCount = 1; // Number of accounts to create
     
     console.log(`💰 Deployment fee: ${Number(deploymentFee.toString()) / 1e9} MINA`);
-    console.log(`🏦 Account creation: ${accountCreationFee} MINA`);
-    console.log(`💵 Total cost: ${Number(deploymentFee.toString()) / 1e9 + accountCreationFee} MINA`);
+    console.log(`🏦 Account creation: 1 MINA (protocol standard)`);
+    console.log(`💵 Total cost: ${Number(deploymentFee.toString()) / 1e9 + 1} MINA`);
 
     const deployTxn = await Mina.transaction(
       {
@@ -97,8 +98,8 @@ export async function executeDeploymentWithRealVerification(
         fee: deploymentFee,
       },
       async () => {
-        // Fund the new account (3 MINA)
-        AccountUpdate.fundNewAccount(deployerAccount, 3);
+        // Fund the new account (1 MINA - protocol standard)
+        AccountUpdate.fundNewAccount(deployerAccount);
         // Deploy the contract
         await zkApp.deploy({ verificationKey });
       }

@@ -88,17 +88,17 @@ dotenv.config();
 // Import o1js directly
 import { Field, Mina, PrivateKey, PublicKey, AccountUpdate, CircuitString, Poseidon, Signature, MerkleTree, UInt64, Bool, fetchAccount, Permissions, UInt32 } from 'o1js';
 
-// =================================== Fee Configuration for DEVNET ===================================
-// Fee configuration for different environments - INCREASED FOR DEVNET
+// =================================== Fee Configuration for DEVNET - O1JS BEST PRACTICES ===================================
+// Optimized fee configuration following o1js recommendations for DEVNET
 const TRANSACTION_FEES = {
   LOCAL: UInt64.from(1000000),        // 0.001 MINA for local testing
-  TESTNET: UInt64.from(1000000000),    // 1 MINA for DEVNET/TESTNET (increased for zkApp)
-  DEVNET: UInt64.from(1000000000),     // 1 MINA for DEVNET (increased for zkApp)
+  TESTNET: UInt64.from(100000000),    // 0.1 MINA for DEVNET/TESTNET (o1js best practice)
+  DEVNET: UInt64.from(100000000),     // 0.1 MINA for DEVNET (o1js best practice)
   MAINNET: UInt64.from(300000000),    // 0.3 MINA for mainnet
 };
 
-// Account creation fee (3 MINA for new account to ensure sufficient funds for DEVNET)
-const ACCOUNT_CREATION_FEE = UInt64.from(3000000000); // 3 MINA (increased for DEVNET)
+// Account creation fee (1 MINA - protocol requirement, not inflated)
+const ACCOUNT_CREATION_FEE = UInt64.from(1000000000); // 1 MINA (protocol standard)
 
 // Helper function to get appropriate fee based on environment
 function getTransactionFee(environment: string): UInt64 {
