@@ -6,21 +6,44 @@
 import * as dotenv from 'dotenv';
 import { Environment, EnvironmentConfig, NetworkConfig, OracleConfig, DeploymentConfig } from './types.js';
 import { FileBasedEnvironmentStorage } from './storage.js';
+import { getDevnetNetworkConfig, getEnvironmentFee, nanominaToMina, isDevnetEndpoint } from './devnet-endpoints.js';
 
 export class EnvironmentManager {
   private static instance: EnvironmentManager;
-  private currentEnvironment: Environment;
+  private currentEnvironment!: Environment; // Use definite assignment assertion
   private storage: FileBasedEnvironmentStorage;
   private currentConfig: EnvironmentConfig | null = null;
 
   private constructor() {
-    // Load from environment variable or default to LOCAL
-    const envValue = process.env.BUILD_ENV || 'LOCAL';
-    this.currentEnvironment = this.parseEnvironment(envValue);
-    this.storage = new FileBasedEnvironmentStorage();
-    
-    // Load .env file
+    // Load .env file FIRST before environment detection
     dotenv.config();
+    
+    // Enhanced environment detection with debugging
+    this.loadAndValidateEnvironment();
+    this.storage = new FileBasedEnvironmentStorage();
+  }
+
+  private loadAndValidateEnvironment(): void {
+    // Read from multiple sources with priority
+    const sources = {
+      BUILD_ENV: process.env.BUILD_ENV,
+      NODE_ENV: process.env.NODE_ENV,
+      MINA_ENV: process.env.MINA_ENV,
+    };
+
+    console.log('🔍 Environment Detection Debug:');
+    console.log('  BUILD_ENV:', sources.BUILD_ENV);
+    console.log('  NODE_ENV:', sources.NODE_ENV);
+    console.log('  MINA_ENV:', sources.MINA_ENV);
+
+    // Primary source is BUILD_ENV
+    const envValue = sources.BUILD_ENV || 'LOCAL';
+    console.log(`🎯 Selected environment value: "${envValue}"`);
+
+    this.currentEnvironment = this.parseEnvironment(envValue);
+    
+    // Enhanced validation
+    this.validateEnvironment();
   }
 
   static getInstance(): EnvironmentManager {
@@ -31,16 +54,59 @@ export class EnvironmentManager {
   }
 
   private parseEnvironment(value: string): Environment {
-    const upperValue = value.toUpperCase();
-    if (Object.values(Environment).includes(upperValue as Environment)) {
-      return upperValue as Environment;
+    const upperValue = value.toUpperCase().trim();
+    
+    // Enhanced validation with explicit mapping
+    const environmentMap: Record<string, Environment> = {
+      'LOCAL': Environment.LOCAL,
+      'TESTNET': Environment.TESTNET,
+      'DEVNET': Environment.TESTNET, // Map DEVNET to TESTNET internally
+      'MAINNET': Environment.MAINNET,
+      'PRODUCTION': Environment.MAINNET,
+    };
+
+    if (environmentMap[upperValue]) {
+      const mappedEnv = environmentMap[upperValue];
+      console.log(`✅ Environment "${value}" mapped to: ${mappedEnv}`);
+      return mappedEnv;
     }
+
     console.warn(`⚠️ Unknown environment '${value}', defaulting to LOCAL`);
+    console.warn(`⚠️ Valid environments: ${Object.keys(environmentMap).join(', ')}`);
     return Environment.LOCAL;
+  }
+
+  private validateEnvironment(): void {
+    console.log(`🔍 Environment Validation:`);
+    console.log(`  Current Environment: ${this.currentEnvironment}`);
+    console.log(`  Should use NetworkOracleRegistry: ${this.shouldUseNetworkRegistry()}`);
+    console.log(`  Should connect to DEVNET: ${this.shouldConnectToDevnet()}`);
   }
 
   getCurrentEnvironment(): Environment {
     return this.currentEnvironment;
+  }
+
+  /**
+   * New method: Explicitly check if we should use NetworkOracleRegistry
+   */
+  shouldUseNetworkRegistry(): boolean {
+    return this.currentEnvironment === Environment.TESTNET || 
+           this.currentEnvironment === Environment.MAINNET;
+  }
+
+  /**
+   * New method: Explicitly check if we should connect to DEVNET
+   */
+  shouldConnectToDevnet(): boolean {
+    return this.currentEnvironment === Environment.TESTNET;
+  }
+
+  /**
+   * New method: Get expected registry type
+   */
+  getExpectedRegistryType(): 'Local' | 'Network' {
+    return this.shouldUseNetworkRegistry() ? 'Network' : 'Local';
   }
 
   async switchEnvironment(environment: Environment): Promise<void> {
@@ -107,13 +173,9 @@ export class EnvironmentManager {
         };
       
       case Environment.TESTNET:
-        return {
-          environment: Environment.TESTNET,
-          minaEndpoint: process.env.MINA_TESTNET_ENDPOINT || 'https://api.minaexplorer.com/testnet/',
-          minaGraphQLEndpoint: process.env.MINA_TESTNET_GRAPHQL || 'https://api.minaexplorer.com/testnet/graphql',
-          archiveEndpoint: process.env.MINA_TESTNET_ARCHIVE,
-          proofsEnabled: true
-        };
+        // 🎯 TESTNET now connects to Mina DEVNET (not Berkeley testnet)
+        console.log('🌐 TESTNET environment connecting to Mina DEVNET');
+        return getDevnetNetworkConfig();
       
       case Environment.MAINNET:
         return {
@@ -255,14 +317,67 @@ export class EnvironmentManager {
     return this.currentEnvironment === Environment.MAINNET;
   }
 
-  getEnvironmentInfo(): { environment: Environment; proofsEnabled: boolean; hasPersistedConfig: boolean } {
+  getEnvironmentInfo(): { 
+    environment: Environment; 
+    proofsEnabled: boolean; 
+    hasPersistedConfig: boolean;
+    networkEndpoint?: string;
+    isDevnet?: boolean;
+    feeNanoMina?: bigint;
+  } {
+    const networkEndpoint = this.currentConfig?.network.minaEndpoint;
     return {
       environment: this.currentEnvironment,
       proofsEnabled: this.currentConfig?.network.proofsEnabled ?? false,
-      hasPersistedConfig: this.currentConfig !== null
+      hasPersistedConfig: this.currentConfig !== null,
+      networkEndpoint,
+      isDevnet: isDevnetEndpoint(networkEndpoint),
+      feeNanoMina: this.getFeeNanoMina('DEPLOY')
     };
+  }
+
+  /**
+   * ✅ Get fee in nanomina for transactions (o1js best practice)
+   */
+  getFeeNanoMina(operation: 'DEPLOY' | 'UPDATE' | 'VERIFY' = 'DEPLOY'): bigint {
+    return getEnvironmentFee(this.currentEnvironment, operation);
+  }
+
+  /**
+   * ✅ Check if currently connected to DEVNET
+   */
+  isConnectedToDevnet(): boolean {
+    return this.isTestnet() && isDevnetEndpoint(this.currentConfig?.network.minaEndpoint);
+  }
+
+  /**
+   * ✅ Get fee in MINA for display purposes
+   */
+  getFeeInMina(operation: 'DEPLOY' | 'UPDATE' | 'VERIFY' = 'DEPLOY'): string {
+    const feeNano = this.getFeeNanoMina(operation);
+    return nanominaToMina(feeNano);
   }
 }
 
 // Export singleton instance
 export const environmentManager = EnvironmentManager.getInstance();
+
+/**
+ * Debug function to trace the environment setup
+ */
+export function debugEnvironmentInfo(): void {
+  console.log('\n🔍 ENVIRONMENT INFO');
+  console.log('='.repeat(30));
+  
+  console.log('📝 Environment Variables:');
+  console.log(`  BUILD_ENV: "${process.env.BUILD_ENV}"`);
+  console.log(`  NODE_ENV: "${process.env.NODE_ENV}"`);
+  
+  console.log('\n🎯 Environment Manager:');
+  console.log(`  Current Environment: ${environmentManager.getCurrentEnvironment()}`);
+  console.log(`  Should use NetworkOracleRegistry: ${environmentManager.shouldUseNetworkRegistry()}`);
+  console.log(`  Should connect to DEVNET: ${environmentManager.shouldConnectToDevnet()}`);
+  console.log(`  Expected Registry Type: ${environmentManager.getExpectedRegistryType()}`);
+  
+  console.log('\n' + '='.repeat(30) + '\n');
+}

@@ -6,7 +6,7 @@
 // Environment Management
 export { Environment } from './environment/types.js';
 export type { EnvironmentConfig, NetworkConfig } from './environment/types.js';
-export { environmentManager, EnvironmentManager } from './environment/manager.js';
+export { environmentManager, EnvironmentManager, debugEnvironmentInfo } from './environment/manager.js';
 export { FileBasedEnvironmentStorage } from './environment/storage.js';
 
 // Oracle Management
@@ -16,6 +16,7 @@ export { NetworkOracleRegistry } from './oracle/NetworkOracleRegistry.js';
 export { 
   OracleRegistryFactory,
   initializeOracleRegistry,
+  debugEnvironmentSetup,
   getPrivateKeyFor,
   getPublicKeyFor,
   getDeployerAccount,

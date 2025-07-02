@@ -5,20 +5,32 @@ import { environmentManager } from '../infrastructure/environment/manager.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// ===== LEGACY BLOCKCHAIN SETUP FOR BACKWARD COMPATIBILITY =====
-// ✅ MINA o1js BEST PRACTICE: Single Local blockchain instance
-// Only ONE Local blockchain should be created per application to avoid conflicts
-const useProof = false;
-export const Local = await Mina.LocalBlockchain({ proofsEnabled: useProof });
-Mina.setActiveInstance(Local);
+// ===== CONDITIONAL BLOCKCHAIN SETUP =====
+// 🔧 FIX: Only create LocalBlockchain for LOCAL environment
+// For TESTNET/MAINNET, let NetworkOracleRegistry handle the connection
+const detectedEnvironment = process.env.BUILD_ENV || process.env.NODE_ENV || 'LOCAL';
+console.log(`🌍 Detected environment: ${detectedEnvironment}`);
+
+let Local: any;
+if (detectedEnvironment === 'LOCAL') {
+  // ✅ LOCAL environment: Use LocalBlockchain
+  console.log('🔧 Setting up LocalBlockchain for LOCAL environment');
+  const useProof = false;
+  Local = await Mina.LocalBlockchain({ proofsEnabled: useProof });
+  Mina.setActiveInstance(Local);
+  console.log('✅ LocalBlockchain initialized for LOCAL environment');
+} else {
+  // ✅ TESTNET/MAINNET: Don't override - let NetworkOracleRegistry handle it
+  console.log(`🌐 ${detectedEnvironment} environment detected - NetworkOracleRegistry will handle blockchain connection`);
+  console.log('⚠️ Do not use Local blockchain variable for non-LOCAL environments');
+  Local = null;
+}
+
+export { Local };
 
 // Initialize the new Oracle Manager with environment detection
 let isOracleManagerInitialized = false;
 let initializationError: Error | null = null;
-
-// Detect environment from process.env or default to LOCAL
-const detectedEnvironment = process.env.BUILD_ENV || process.env.NODE_ENV || 'LOCAL';
-console.log(`🌍 Detected environment: ${detectedEnvironment}`);
 
 // Create Oracle Manager with detected environment
 const environmentalOracleManager = new ConfigurableOracleManager(detectedEnvironment);
@@ -66,32 +78,86 @@ function ensureOracleManagerInitialized(): void {
   }
 }
 
-// ===== LEGACY ACCOUNT EXPORTS (100% BACKWARD COMPATIBLE) =====
-// These exports remain exactly the same to ensure existing imports work
-export const MCAdeployerAccount = Local.testAccounts[0];
-export const MCAdeployerKey = MCAdeployerAccount.key;
-export const MCAsenderAccount = Local.testAccounts[1];
-export const MCAsenderKey = MCAsenderAccount.key;
+// ===== CONDITIONAL LEGACY ACCOUNT EXPORTS (100% BACKWARD COMPATIBLE) =====
+// These exports are conditional based on environment to prevent null access errors
+let MCAdeployerAccount: any;
+let MCAdeployerKey: any;
+let MCAsenderAccount: any;
+let MCAsenderKey: any;
+let GLEIFdeployerAccount: any;
+let GLEIFdeployerKey: any;
+let GLEIFsenderAccount: any;
+let GLEIFsenderKey: any;
+let EXIMdeployerAccount: any;
+let EXIMdeployerKey: any;
+let EXIMsenderAccount: any;
+let EXIMsenderKey: any;
+let BusinessProverdeployerAccount: any;
+let BusinessProverdeployerKey: any;
+let BusinessProversenderAccount: any;
+let BusinessProversenderKey: any;
+let RiskProverdeployerAccount: any;
+let RiskProverdeployerKey: any;
+let RiskProversenderAccount: any;
+let RiskProversenderKey: any;
 
-export const GLEIFdeployerAccount = Local.testAccounts[2];
-export const GLEIFdeployerKey = GLEIFdeployerAccount.key;
-export const GLEIFsenderAccount = Local.testAccounts[3];
-export const GLEIFsenderKey = GLEIFsenderAccount.key;
+if (detectedEnvironment === 'LOCAL' && Local) {
+  // Only export LocalBlockchain accounts for LOCAL environment
+  MCAdeployerAccount = Local.testAccounts[0];
+  MCAdeployerKey = MCAdeployerAccount.key;
+  MCAsenderAccount = Local.testAccounts[1];
+  MCAsenderKey = MCAsenderAccount.key;
 
-export const EXIMdeployerAccount = Local.testAccounts[4];
-export const EXIMdeployerKey = EXIMdeployerAccount.key;
-export const EXIMsenderAccount = Local.testAccounts[5];
-export const EXIMsenderKey = EXIMsenderAccount.key;
+  GLEIFdeployerAccount = Local.testAccounts[2];
+  GLEIFdeployerKey = GLEIFdeployerAccount.key;
+  GLEIFsenderAccount = Local.testAccounts[3];
+  GLEIFsenderKey = GLEIFsenderAccount.key;
 
-export const BusinessProverdeployerAccount = Local.testAccounts[6];
-export const BusinessProverdeployerKey = BusinessProverdeployerAccount.key;
-export const BusinessProversenderAccount = Local.testAccounts[7];
-export const BusinessProversenderKey = BusinessProversenderAccount.key;
+  EXIMdeployerAccount = Local.testAccounts[4];
+  EXIMdeployerKey = EXIMdeployerAccount.key;
+  EXIMsenderAccount = Local.testAccounts[5];
+  EXIMsenderKey = EXIMsenderAccount.key;
 
-export const RiskProverdeployerAccount = Local.testAccounts[8];
-export const RiskProverdeployerKey = RiskProverdeployerAccount.key;
-export const RiskProversenderAccount = Local.testAccounts[9];
-export const RiskProversenderKey = RiskProversenderAccount.key;
+  BusinessProverdeployerAccount = Local.testAccounts[6];
+  BusinessProverdeployerKey = BusinessProverdeployerAccount.key;
+  BusinessProversenderAccount = Local.testAccounts[7];
+  BusinessProversenderKey = BusinessProversenderAccount.key;
+
+  RiskProverdeployerAccount = Local.testAccounts[8];
+  RiskProverdeployerKey = RiskProverdeployerAccount.key;
+  RiskProversenderAccount = Local.testAccounts[9];
+  RiskProversenderKey = RiskProversenderAccount.key;
+} else {
+  // For TESTNET/MAINNET, these will be null (should use Oracle Manager instead)
+  console.log('ℹ️ Legacy account exports set to null for non-LOCAL environment - use Oracle Manager instead');
+  MCAdeployerAccount = null;
+  MCAdeployerKey = null;
+  MCAsenderAccount = null;
+  MCAsenderKey = null;
+  GLEIFdeployerAccount = null;
+  GLEIFdeployerKey = null;
+  GLEIFsenderAccount = null;
+  GLEIFsenderKey = null;
+  EXIMdeployerAccount = null;
+  EXIMdeployerKey = null;
+  EXIMsenderAccount = null;
+  EXIMsenderKey = null;
+  BusinessProverdeployerAccount = null;
+  BusinessProverdeployerKey = null;
+  BusinessProversenderAccount = null;
+  BusinessProversenderKey = null;
+  RiskProverdeployerAccount = null;
+  RiskProverdeployerKey = null;
+  RiskProversenderAccount = null;
+  RiskProversenderKey = null;
+}
+
+// Export all the conditional variables
+export { MCAdeployerAccount, MCAdeployerKey, MCAsenderAccount, MCAsenderKey };
+export { GLEIFdeployerAccount, GLEIFdeployerKey, GLEIFsenderAccount, GLEIFsenderKey };
+export { EXIMdeployerAccount, EXIMdeployerKey, EXIMsenderAccount, EXIMsenderKey };
+export { BusinessProverdeployerAccount, BusinessProverdeployerKey, BusinessProversenderAccount, BusinessProversenderKey };
+export { RiskProverdeployerAccount, RiskProverdeployerKey, RiskProversenderAccount, RiskProversenderKey };
 
 // ===== LEGACY REGISTRY MAP (MAINTAINED FOR BACKWARD COMPATIBILITY) =====
 export const Registry = new Map<string, {

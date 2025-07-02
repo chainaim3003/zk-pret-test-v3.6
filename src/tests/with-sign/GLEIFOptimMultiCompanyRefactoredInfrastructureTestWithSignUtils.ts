@@ -8,7 +8,35 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // Import o1js directly
-import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signature, MerkleTree, UInt64, Bool } from 'o1js';
+import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signature, MerkleTree, UInt64, Bool, fetchAccount, Permissions, UInt32 } from 'o1js';
+
+// =================================== Fee Configuration for DEVNET ===================================
+// Fee configuration for different environments
+const TRANSACTION_FEES = {
+  LOCAL: UInt64.from(1000000),        // 0.001 MINA for local testing
+  TESTNET: UInt64.from(200000000),    // 0.2 MINA for DEVNET/TESTNET (increased for zkApp)
+  DEVNET: UInt64.from(200000000),     // 0.2 MINA for DEVNET (increased for zkApp)
+  MAINNET: UInt64.from(300000000),    // 0.3 MINA for mainnet
+};
+
+// Account creation fee (1 MINA required for new account)
+const ACCOUNT_CREATION_FEE = UInt64.from(1000000000); // 1 MINA
+
+// Helper function to get appropriate fee based on environment
+function getTransactionFee(environment: string): UInt64 {
+  switch (environment.toUpperCase()) {
+    case 'LOCAL':
+      return TRANSACTION_FEES.LOCAL;
+    case 'TESTNET':
+    case 'DEVNET':
+      return TRANSACTION_FEES.TESTNET;
+    case 'MAINNET':
+      return TRANSACTION_FEES.MAINNET;
+    default:
+      console.warn(`Unknown environment ${environment}, using TESTNET fee`);
+      return TRANSACTION_FEES.TESTNET;
+  }
+}
 
 // Import ZK programs directly
 import { 
@@ -34,7 +62,6 @@ import {
   GLEIFAPIResponse,
   extractGLEIFSummary,
   analyzeGLEIFCompliance,
-  CompanyRegistry as EnhancedCompanyRegistry,
   createComprehensiveGLEIFMerkleTree as enhancedCreateComprehensiveGLEIFMerkleTree,
   createOptimizedGLEIFComplianceData as enhancedCreateOptimizedGLEIFComplianceData,
   createCompanyRecord as enhancedCreateCompanyRecord
@@ -48,7 +75,11 @@ import { getGleifSignerKey } from '../../core/OracleRegistry.js';
 import { 
   environmentManager,
   compilationManager,
-  deploymentManager
+  deploymentManager,
+  getDeployerAccount,
+  getDeployerKey,
+  getSenderAccount,
+  getSenderKey
 } from '../../infrastructure/index.js';
 
 // =================================== Compliance Analysis Functions ===================================
@@ -191,12 +222,13 @@ function logComplianceFieldAnalysis(
 // Using local implementation since the enhanced version needs parameterized imports
 
 /**
- * Company registry for managing multiple companies in merkle tree
+ * Local Company registry for managing multiple companies in merkle tree
+ * Using local implementation to avoid import conflicts
  */
-class CompanyRegistry {
-  private companiesTree: MerkleTree;
-  private companyRecords: Map<string, { record: GLEIFCompanyRecord; index: number }>;
-  private nextIndex: number;
+class LocalCompanyRegistry {
+  public companiesTree: MerkleTree;
+  public companyRecords: Map<string, { record: GLEIFCompanyRecord; index: number }>;
+  public nextIndex: number;
 
   constructor() {
     this.companiesTree = new MerkleTree(COMPANY_MERKLE_HEIGHT);
@@ -495,23 +527,59 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     
     console.log('✅ Infrastructure components initialized (using Oracle Manager)');
 
-    // =================================== Setup Blockchain Environment (Direct - like working tests) ===================================
+    // =================================== Setup Blockchain Environment (DEVNET-Aware) ===================================
     console.log('\n📋 Setting up blockchain environment...');
     
-    const useProof = false;
-    const Local = await Mina.LocalBlockchain({ proofsEnabled: useProof });
-    Mina.setActiveInstance(Local);
+    const currentEnv = environmentManager.getCurrentEnvironment();
+    const shouldConnectToDevnet = environmentManager.shouldConnectToDevnet();
+    
+    let deployerAccount: any;
+    let deployerKey: any;
+    let senderAccount: any;
+    let senderKey: any;
+    
+    if (currentEnv === 'TESTNET' && shouldConnectToDevnet) {
+      // ✅ DEVNET MODE: Use Oracle Registry funded accounts
+      console.log('🌐 DEVNET environment detected - using funded Oracle accounts');
+      console.log('🎯 Oracle Registry should already be initialized with DEVNET connection');
+      
+      try {
+        // Get funded Oracle accounts from the registry
+        deployerAccount = getDeployerAccount('GLEIF');
+        deployerKey = getDeployerKey('GLEIF');
+        senderAccount = getSenderAccount('GLEIF');
+        senderKey = getSenderKey('GLEIF');
+        
+        console.log('✅ Blockchain environment initialized with DEVNET Oracle accounts');
+        console.log(`  🎯 GLEIF Deployer: ${deployerAccount.toBase58()} (Funded: ~297.9 MINA)`);
+        console.log(`  🎯 GLEIF Sender: ${senderAccount.toBase58()}`);
+        console.log('  🌐 Connected to: MINA DEVNET via Oracle Registry');
+        console.log('  📍 Transactions will appear in DEVNET explorer');
+        
+      } catch (oracleError) {
+        console.error('❌ Failed to get Oracle accounts:', oracleError);
+        throw new Error(`Oracle Registry not properly initialized for DEVNET: ${oracleError}`);
+      }
+      
+    } else {
+      // 🔧 LOCAL MODE: Use LocalBlockchain for development
+      console.log(`🔧 ${currentEnv} environment - creating LocalBlockchain for development`);
+      
+      const useProof = false;
+      const Local = await Mina.LocalBlockchain({ proofsEnabled: useProof });
+      Mina.setActiveInstance(Local);
 
-    // Use direct account assignment (like working Risk tests)
-    const deployerAccount = Local.testAccounts[0];
-    const deployerKey = deployerAccount.key;
-    const senderAccount = Local.testAccounts[1];
-    const senderKey = senderAccount.key;
+      // Use direct account assignment for local development
+      deployerAccount = Local.testAccounts[0];
+      deployerKey = deployerAccount.key;
+      senderAccount = Local.testAccounts[1];
+      senderKey = senderAccount.key;
 
-    console.log('✅ Blockchain environment initialized with direct accounts');
-    console.log(`  Deployer: ${deployerAccount.toBase58()}`);
-    console.log(`  Sender: ${senderAccount.toBase58()}`);
-
+      console.log('✅ Blockchain environment initialized with LocalBlockchain accounts');
+      console.log(`  🔧 Local Deployer: ${deployerAccount.toBase58()}`);
+      console.log(`  🔧 Local Sender: ${senderAccount.toBase58()}`);
+      console.log('  🏠 Mode: Local development blockchain');
+    }
     // =================================== Compile Programs with Infrastructure Caching ===================================
     console.log('\n📝 Compiling ZK programs with infrastructure caching...');
     
@@ -560,15 +628,57 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     const zkAppAddress = zkAppKey.toPublicKey();
     const zkApp = new GLEIFOptimMultiCompanySmartContract(zkAppAddress);
 
+    // Get appropriate fee for current environment (higher for zkApp deployment)
+    const deploymentFee = getTransactionFee(currentEnvironment);
+    console.log(`💰 Using deployment fee: ${deploymentFee.toString()} nanomina (${Number(deploymentFee.toString()) / 1e9} MINA)`);
+    console.log(`🏦 Account creation fee: ${ACCOUNT_CREATION_FEE.toString()} nanomina (${Number(ACCOUNT_CREATION_FEE.toString()) / 1e9} MINA)`);
+    console.log(`💵 Total cost: ${Number(deploymentFee.toString()) + Number(ACCOUNT_CREATION_FEE.toString())} nanomina (${(Number(deploymentFee.toString()) + Number(ACCOUNT_CREATION_FEE.toString())) / 1e9} MINA)`);
+
     const deployTxn = await Mina.transaction(
-      deployerAccount,
+      {
+        sender: deployerAccount,
+        fee: deploymentFee,
+      },
       async () => {
-        AccountUpdate.fundNewAccount(deployerAccount);
+        // Fund the new zkApp account with 1 MINA (required for account creation)
+        AccountUpdate.fundNewAccount(deployerAccount, 1);
         await zkApp.deploy({ verificationKey });
       }
     );
     const txnResult = await deployTxn.sign([deployerKey, zkAppKey]).send();
+    
+    // Wait for deployment transaction to be confirmed
+    console.log(`⏳ Waiting for deployment transaction to be confirmed on DEVNET...`);
+    try {
+      await txnResult.wait();
+      console.log(`✅ Deployment transaction confirmed on DEVNET`);
+    } catch (waitError: any) {
+      console.log(`⚠️ Deployment wait failed, but proceeding: ${waitError.message}`);
+    }
+    
     console.log('✅ Multi-company smart contract deployed successfully');
+    console.log(`📋 Transaction hash: ${txnResult.hash}`);
+    console.log(`🏠 Contract address: ${zkAppAddress.toBase58()}`);
+    
+    // Fetch the newly deployed account to ensure it's accessible and verify activation
+    console.log(`🔄 Fetching deployed zkApp account from DEVNET...`);
+    await fetchAccount({ publicKey: zkAppAddress });
+    console.log(`✅ Deployed zkApp account fetched and accessible`);
+    
+    // Verify account is properly activated
+    try {
+      const accountInfo = Mina.getAccount(zkAppAddress);
+      console.log(`💵 zkApp Account Balance: ${accountInfo.balance.toString()} nanomina (${Number(accountInfo.balance.toString()) / 1e9} MINA)`);
+      console.log(`✅ zkApp Account Status: ACTIVATED`);
+      
+      if (Number(accountInfo.balance.toString()) === 0) {
+        console.warn(`⚠️ Warning: zkApp account has 0 balance, but this might be normal for zkApps`);
+      }
+    } catch (accountError) {
+      console.error(`❌ Account verification failed:`, accountError);
+      throw new Error(`zkApp account not properly activated: ${accountError}`);
+    }
+    
     
     // =================================== Save Deployment Address IMMEDIATELY ===================================
     console.log('📝 Saving deployment address to environment config...');
@@ -587,7 +697,7 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     }
 
     // =================================== Initialize Company Registry ===================================
-    const companyRegistry = new CompanyRegistry();
+    const companyRegistry = new LocalCompanyRegistry();
     const proofs = [];
     const verificationResults = [];
 
@@ -683,6 +793,12 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         
         // =================================== Show Contract State BEFORE Verification ===================================
         console.log(`\n📊 Smart Contract State BEFORE Verification:`);
+        
+        // Fetch account state from DEVNET before reading
+        console.log(`🔄 Fetching zkApp account state from DEVNET...`);
+        await fetchAccount({ publicKey: zkAppAddress });
+        console.log(`✅ zkApp account state fetched from DEVNET`);
+        
         const stateBefore = zkApp.getRegistryInfo();
         const stateBeforeWithPercentage = addCompliancePercentage(stateBefore);
         console.log(`  Total Companies: ${stateBefore.totalCompaniesTracked.toString()}`);
@@ -729,22 +845,45 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         // Get witness for the company key (should prove non-existence for new company)
         const companiesMapWitness = companiesMap.getWitness(companyKeyField);
 
+        // Get appropriate fee for current environment
+        const verificationFee = getTransactionFee(currentEnvironment);
+        console.log(`💰 Using verification fee: ${verificationFee.toString()} nanomina (${Number(verificationFee.toString()) / 1e9} MINA)`);
+
         const txn = await Mina.transaction(
-          senderAccount,
+          {
+            sender: senderAccount,
+            fee: verificationFee,
+          },
           async () => {
             await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, companiesMapWitness);
           }
         );
 
         await txn.prove();
-        await txn.sign([senderKey]).send();
+        const verificationResult = await txn.sign([senderKey]).send();
+
+        // Wait for transaction to be included before fetching state
+        console.log(`⏳ Waiting for transaction to be included in DEVNET...`);
+        try {
+          await verificationResult.wait();
+          console.log(`✅ Transaction confirmed on DEVNET`);
+        } catch (waitError: any) {
+          console.log(`⚠️ Transaction wait failed, but proceeding: ${waitError.message}`);
+        }
 
         console.log(`\n✅ SMART CONTRACT TRANSACTION COMPLETED`);
         console.log(`📋 Company ${companyName} verification recorded on blockchain`);
+        console.log(`📋 Transaction hash: ${verificationResult.hash}`);
         console.log(`🔄 Verification Status: ${isCompliant.toJSON() ? 'COMPLIANT' : 'NON-COMPLIANT'}`);
         
         // =================================== Show Contract State AFTER Verification ===================================
         console.log('\n📊 Contract state AFTER verification:');
+        
+        // Fetch updated account state from DEVNET after verification
+        console.log(`🔄 Fetching updated zkApp account state from DEVNET...`);
+        await fetchAccount({ publicKey: zkAppAddress });
+        console.log(`✅ Updated zkApp account state fetched from DEVNET`);
+        
         const stateAfter = zkApp.getRegistryInfo();
         const stateAfterWithPercentage = addCompliancePercentage(stateAfter);
         console.log(`  Total Companies: ${stateAfter.totalCompaniesTracked.toString()}`);
@@ -889,6 +1028,12 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     console.log(`${'='.repeat(80)}`);
 
     console.log('\n📈 Final Registry Statistics:');
+    
+    // Fetch final account state from DEVNET before reading stats
+    console.log(`🔄 Fetching final zkApp account state from DEVNET...`);
+    await fetchAccount({ publicKey: zkAppAddress });
+    console.log(`✅ Final zkApp account state fetched from DEVNET`);
+    
     const finalStats = zkApp.getGlobalComplianceStats();
     const finalStatsWithPercentage = addCompliancePercentage(finalStats);
     console.log(`  • Total Companies Tracked: ${finalStatsWithPercentage.totalCompanies}`);

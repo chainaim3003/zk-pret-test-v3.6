@@ -1,12 +1,12 @@
 /**
  * GLEIF Multi-Company Refactored Infrastructure Test
- * Combines multi-company functionality with the refactored infrastructure system
+ * Enhanced version with proper DEVNET connection and funded account usage
  */
 
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificationWithSignUtils } from './GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.js';
+import { runGLEIFTestWithFundedAccounts } from './GLEIFEnhancedTestWrapper.js';
 
 async function main() {
     // Get company names and network type from command line arguments
@@ -39,7 +39,7 @@ async function main() {
     console.log('🔧 Using Refactored Infrastructure System');
     
     try {
-        const result = await getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificationWithSignUtils(companyNames);
+        const result = await runGLEIFTestWithFundedAccounts(companyNames);
         
         console.log('\n🎯 Multi-Company Refactored Infrastructure Verification completed successfully!');
         console.log('\n📊 Final Summary:');

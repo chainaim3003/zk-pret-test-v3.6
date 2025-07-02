@@ -6,43 +6,43 @@
   "oracles": {
     "registry": {
       "MCA": {
-        "publicKey": "B62qpx6ACzCBLtMiCDJWdRGj9Jj4pWV34FGAFaxTYtpQCRdfQYrPJeT",
-        "privateKey": "EKFHMHF7e6eQDCz9a3T8YVHcrk5v3ZnqYSCuDR6Cnh5b6yj3obmH",
+        "publicKey": "B62qob5BYzgedmdtLgfNUKZox37zvyF6qBeLyNd8G88CnERK1JvWxVg",
+        "privateKey": "EKEbGj8xwPurrjnttKZo8YmtgQFWHr1H8qoccAnKHsuf6xK26Acs",
         "role": "MCA_ORACLE",
         "deployerAccountIndex": 0,
         "senderAccountIndex": 1
       },
       "GLEIF": {
-        "publicKey": "B62qk5UC314UcBJJXHMxNVV7S8XMz7BYVPHVuKR8dxrsBnn1gSLiSGP",
-        "privateKey": "EKEdsD9zLnxwWrNuko3vupwrMGciRpRaFZYVQPLAtr6V8Egp2Sxo",
+        "publicKey": "B62qm7n253HmBVcd4AMgaXg7L71BqtCGuJQCdLt6JjAWUazEDXW3XgQ",
+        "privateKey": "EKF9zhY7s9UWdus4CQHsh8UUUgaT9L8cXbxTqw4RGxBM1PJaH9gw",
         "role": "GLEIF_ORACLE",
         "deployerAccountIndex": 2,
         "senderAccountIndex": 3
       },
       "EXIM": {
-        "publicKey": "B62qkn1AH5P2KfD6FenisAE9jQSUommhfo9ouuh3o6dasYbyEajetM4",
-        "privateKey": "EKEuiPaPzsd26nJsdmyQ1f9t8rfE1FzFTMkbqN7TPu2w5JtYpnhy",
+        "publicKey": "B62qjuAGrXhiFba4PKUSZUqpymHrcwq9RT6cc25P8GD7fTQRAEqnf8n",
+        "privateKey": "EKFH688Bp4Tfw8FuCeFRGevxRHy7psknAVP4SWinZbn5T5d4hLhz",
         "role": "EXIM_ORACLE",
         "deployerAccountIndex": 4,
         "senderAccountIndex": 5
       },
       "BPMN": {
-        "publicKey": "B62qqrWHEHkE1ecdKUsrF38dXyBYRbSbM8MxVvRQESEtPWAvVzAsCMC",
-        "privateKey": "EKFdwbv5zqgnzYkB83et2dbybWpNCbKFmsAm85Zdv1VZZVeKy1Bk",
+        "publicKey": "B62qo8PRf8zXZtujDr4AwxkrsEpoM2dARsVZyGmDfU3GEjkzMiGyNoF",
+        "privateKey": "EKFTSETNaj49d4LYFxyeF3DyATKYZvF6iM4HR7H8a8DmPfMx9nNg",
         "role": "BPMN_ORACLE",
         "deployerAccountIndex": 6,
         "senderAccountIndex": 7
       },
       "RISK": {
-        "publicKey": "B62qkJL4P67ToHYXqMCSL61QN4AcNkCmcYYzqStKsy22FAgURRBX2CX",
-        "privateKey": "EKFQLehni1Hof9mRsaekrrDVT6XkMcYz938qe8iArFatn2VBkPJz",
+        "publicKey": "B62qq9gTXco8QCUKVRxNp6tao3jGNESQm2adAZVCRrFTTtdD6g3jUU5",
+        "privateKey": "EKDuwAuKv1C7V7fFxUNXpB33hLNJdFNg9QWZEABjBiUJY6p57WqR",
         "role": "RISK_ORACLE",
         "deployerAccountIndex": 8,
         "senderAccountIndex": 9
       },
       "BL_REGISTRY": {
-        "publicKey": "B62qqrWHEHkE1ecdKUsrF38dXyBYRbSbM8MxVvRQESEtPWAvVzAsCMC",
-        "privateKey": "EKFdwbv5zqgnzYkB83et2dbybWpNCbKFmsAm85Zdv1VZZVeKy1Bk",
+        "publicKey": "B62qo8PRf8zXZtujDr4AwxkrsEpoM2dARsVZyGmDfU3GEjkzMiGyNoF",
+        "privateKey": "EKFTSETNaj49d4LYFxyeF3DyATKYZvF6iM4HR7H8a8DmPfMx9nNg",
         "role": "BL_REGISTRY_ORACLE",
         "deployerAccountIndex": 6,
         "senderAccountIndex": 7
