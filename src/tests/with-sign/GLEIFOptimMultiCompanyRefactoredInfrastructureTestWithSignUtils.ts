@@ -1490,3 +1490,15 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     throw error;
   }
 }
+
+// =================================== EXPORTS FOR EXTERNAL USE ===================================
+
+// Export key functions for use by other modules
+export { 
+  safeGetGlobalComplianceStats,
+  addCompliancePercentage,
+  LocalCompanyRegistry,
+  MerkleWitness8,
+  analyzeComplianceFields,
+  logComplianceFieldAnalysis
+};
