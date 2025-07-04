@@ -27,14 +27,13 @@ export async function runGLEIFTestWithFundedAccounts(companyNames: string[]) {
   console.log('='.repeat(70));
   
   try {
-    // Step 1: Force proper Oracle Registry initialization for DEVNET
-    console.log('\n📋 Step 1: Initializing Oracle Registry with DEVNET accounts...');
+    // Step 1: Environment-aware Oracle Registry initialization
+    console.log('\n📋 Step 1: Initializing Oracle Registry with environment-aware accounts...');
     
     // ✅ CRITICAL: Initialize Oracle Registry BEFORE the utils function runs
-    // This ensures DEVNET connection is active when utils checks for it
     await initializeOracleRegistry();
     
-    // Verify Oracle Registry is properly initialized
+    // Verify Oracle Registry is properly initialized with environment awareness
     const currentEnv = environmentManager.getCurrentEnvironment();
     const shouldConnectToDevnet = environmentManager.shouldConnectToDevnet();
     
@@ -58,14 +57,18 @@ export async function runGLEIFTestWithFundedAccounts(companyNames: string[]) {
         throw new Error(`Oracle accounts not accessible: ${accountError}`);
       }
       
+    } else if (currentEnv === 'LOCAL') {
+      console.log('✅ LOCAL environment confirmed - will use local blockchain only');
+    } else if (currentEnv === 'MAINNET') {
+      console.log('✅ MAINNET environment confirmed - will use mainnet');
     } else {
-      console.warn(`⚠️ Environment: ${currentEnv}, DEVNET: ${shouldConnectToDevnet} - using local mode`);
+      console.warn(`⚠️ Environment: ${currentEnv}, DEVNET: ${shouldConnectToDevnet} - using detected mode`);
     }
     
     // Step 2: Run the actual GLEIF test with proper Oracle setup
     console.log('\n📋 Step 2: Running GLEIF verification with enhanced setup...');
     console.log('🚀 Starting GLEIF Multi-Company verification...');
-    console.log('🎯 Oracle Registry initialized - utils will use DEVNET accounts');
+    console.log('🎯 Oracle Registry initialized - utils will use environment-aware accounts');
     
     const result = await getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificationWithSignUtils(companyNames);
     
@@ -75,6 +78,9 @@ export async function runGLEIFTestWithFundedAccounts(companyNames: string[]) {
       console.log('🎯 Transactions should now appear in DEVNET explorer');
       console.log('🔗 Check: https://minascan.io/devnet/');
       console.log('🔗 Check: https://devnet.minaexplorer.com/');
+    } else if (currentEnv === 'MAINNET') {
+      console.log('🎯 Transactions should now appear in MAINNET explorer');
+      console.log('🔗 Check: https://minascan.io/mainnet/');
     } else {
       console.log('🏠 Local blockchain transactions completed');
     }

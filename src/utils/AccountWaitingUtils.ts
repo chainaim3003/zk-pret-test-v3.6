@@ -4,6 +4,7 @@
  */
 
 import { Mina, PublicKey, fetchAccount } from 'o1js';
+import { environmentManager } from '../infrastructure/index.js';
 
 export interface AccountWaitOptions {
   maxAttempts?: number;
@@ -43,13 +44,41 @@ export async function loopUntilAccountExists(
   console.log(`   Require zkApp: ${requireZkApp}`);
   console.log(`   Require funded: ${requireFunded}`);
 
+  // Get current environment
+  const env = environmentManager.getCurrentEnvironment();
+  
+  // Environment-aware network setup
+  let shouldUseNetwork = env !== 'LOCAL';
+  let networkEndpoint: string | null = null;
+  
+  if (shouldUseNetwork) {
+    switch (env) {
+      case 'TESTNET':
+        networkEndpoint = 'https://api.minascan.io/node/devnet/v1/graphql';
+        break;
+      case 'MAINNET':
+        networkEndpoint = 'https://api.minaexplorer.com/mainnet/graphql';
+        break;
+      default:
+        shouldUseNetwork = false;
+    }
+  }
+  
+  console.log(`   Environment: ${env}`);
+  console.log(`   Use network: ${shouldUseNetwork}`);
+  if (networkEndpoint) {
+    console.log(`   Network endpoint: ${networkEndpoint}`);
+  }
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`\n🔍 Attempt ${attempt}/${maxAttempts} - Checking account...`);
       
-      // Re-establish network connection (DEVNET best practice)
-      const Network = Mina.Network('https://api.minascan.io/node/devnet/v1/graphql');
-      Mina.setActiveInstance(Network);
+      // Environment-aware network connection
+      if (shouldUseNetwork && networkEndpoint) {
+        const Network = Mina.Network(networkEndpoint);
+        Mina.setActiveInstance(Network);
+      }
       
       // Fetch account with proper error handling
       await fetchAccount({ publicKey });

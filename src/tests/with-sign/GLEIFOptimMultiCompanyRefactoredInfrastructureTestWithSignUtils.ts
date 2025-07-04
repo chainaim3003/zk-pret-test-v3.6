@@ -1,80 +1,15 @@
-/**
- * FIXED: Safely fetch account with retry logic for DEVNET propagation delays
- * Now properly re-establishes DEVNET connection and handles data types correctly
- */
-async function safelyFetchAccountWithRetry(
-  zkAppAddress: PublicKey,
-  maxRetries: number = 10,
-  delayMs: number = 5000
-): Promise<boolean> {
-  console.log(`🔄 Fetching zkApp account with retry logic...`);
-  
-  // DEVNET endpoint - should match your environment config
-  const DEVNET_ENDPOINT = 'https://api.minascan.io/node/devnet/v1/graphql';
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`   Attempt ${attempt}/${maxRetries} - Fetching account...`);
-      
-      // 🔧 CRITICAL FIX 1: Re-establish DEVNET connection before each attempt
-      console.log(`   🌐 Re-establishing DEVNET connection...`);
-      const Network = Mina.Network(DEVNET_ENDPOINT);
-      Mina.setActiveInstance(Network);
-      console.log(`   ✅ Network set to: ${DEVNET_ENDPOINT}`);
-      
-      // 🔧 CRITICAL FIX 2: Use PublicKey object directly (already correct type)
-      console.log(`   ✅ PublicKey object ready: ${zkAppAddress.toBase58()}`);
-      
-      // Now try to fetch the account with proper types
-      await fetchAccount({ publicKey: zkAppAddress });
-      
-      // If successful, try to access account info
-      const accountInfo = Mina.getAccount(zkAppAddress);
-      
-      if (accountInfo && accountInfo.zkapp) {
-        console.log(`✅ zkApp account successfully fetched on attempt ${attempt}`);
-        console.log(`💵 Account Balance: ${accountInfo.balance.toString()} nanomina (${Number(accountInfo.balance.toString()) / 1e9} MINA)`);
-        console.log(`✅ Account Status: ACTIVATED zkApp`);
-        console.log(`📊 App State: ${accountInfo.zkapp.appState.map(f => f.toString()).join(', ')}`);
-        return true;
-      } else if (accountInfo) {
-        console.log(`⚠️ Account exists but not yet a zkApp (attempt ${attempt})`);
-        console.log(`💵 Account Balance: ${accountInfo.balance.toString()} nanomina (${Number(accountInfo.balance.toString()) / 1e9} MINA)`);
-        console.log(`⏳ Waiting for zkApp activation...`);
-        
-        // Account exists but not zkApp yet - this is progress!
-        if (attempt === maxRetries) {
-          console.log(`⚠️ Account exists but not yet activated as zkApp after ${maxRetries} attempts`);
-          console.log(`💡 This may be normal - zkApp activation can take additional time`);
-          return false;
-        }
-      } else {
-        console.log(`❌ Account not found on DEVNET (attempt ${attempt})`);
-        console.log(`⏳ Transaction may still be processing...`);
-      }
-      
-    } catch (error: any) {
-      console.log(`   ❌ Attempt ${attempt} failed: ${error.message}`);
-      if (error.message.includes("Cannot destructure")) {
-        console.log(`   💡 This means the account doesn't exist yet - normal for DEVNET`);
-      }
-      
-      if (attempt === maxRetries) {
-        console.log(`🚨 All ${maxRetries} attempts failed`);
-        console.log(`⏳ Account may still be processing - this is normal for DEVNET`);
-        return false;
-      }
-    }
-    
-    // Wait before next attempt
-    if (attempt < maxRetries) {
-      console.log(`   ⏳ Waiting ${delayMs/1000} seconds before next attempt...`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-  
-  return false;
-}
+// Import environment-aware utilities
+import { 
+  safelyFetchAccountWithRetry,
+  waitForDeploymentConfirmation,
+  fetchDeployedZkAppAccount,
+  getExplorerUrl,
+  validateEnvironmentForGLEIF,
+  setupNetworkConnection,
+  getEnvironmentDisplayName,
+  waitForTransactionConfirmation,
+  logExplorerLinks
+} from './GLEIFEnvironmentAwareUtils.js';
 
 /**
  * GLEIF Multi-Company Refactored Infrastructure Test Utils - FIXED
@@ -698,7 +633,7 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     let senderAccount: any;
     let senderKey: any;
     
-    if (currentEnv === 'TESTNET' && shouldConnectToDevnet) {
+    if (shouldConnectToDevnet) {
       // ✅ DEVNET MODE: Use Oracle Registry funded accounts
       console.log('🌐 DEVNET environment detected - using funded Oracle accounts');
       console.log('🎯 Oracle Registry should already be initialized with DEVNET connection');
@@ -803,22 +738,26 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     // =================================== Deploy Multi-Company Smart Contract with Existence Check ===================================
     console.log('\n🚀 Deploying multi-company smart contract...');
     
-    // 🔧 CRITICAL: Verify DEVNET connection before deployment
-    console.log('\n🔧 CRITICAL PRE-DEPLOYMENT CHECK: Verifying DEVNET connection...');
-    try {
-      const testResult = await fetchAccount({ publicKey: deployerAccount });
-      if (testResult.account) {
-        const testBalance = Number(testResult.account.balance.toString()) / 1e9;
-        console.log(`✅ DEPLOYER ACCOUNT VERIFIED ON DEVNET: ${testBalance} MINA balance`);
-        console.log(`✅ CONFIRMED: Ready to deploy to real DEVNET blockchain`);
-      } else {
-        throw new Error('Account not found on DEVNET');
+    // 🔧 CRITICAL: Environment-specific connection verification
+    if (shouldConnectToDevnet) {
+      console.log('\n🔧 DEVNET PRE-DEPLOYMENT CHECK: Verifying DEVNET connection...');
+      try {
+        const testResult = await fetchAccount({ publicKey: deployerAccount });
+        if (testResult.account) {
+          const testBalance = Number(testResult.account.balance.toString()) / 1e9;
+          console.log(`✅ DEPLOYER ACCOUNT VERIFIED ON DEVNET: ${testBalance} MINA balance`);
+          console.log(`✅ CONFIRMED: Ready to deploy to real DEVNET blockchain`);
+        } else {
+          throw new Error('Account not found on DEVNET');
+        }
+      } catch (devnetTestError) {
+        console.error(`🛑 CRITICAL ERROR: Cannot verify DEVNET connection!`);
+        console.error(`🛑 Error: ${devnetTestError}`);
+        throw new Error('DEVNET connection verification failed - aborting deployment');
       }
-    } catch (devnetTestError) {
-      console.error(`🛑 CRITICAL ERROR: Cannot verify DEVNET connection!`);
-      console.error(`🛑 This means you're probably deploying to LOCAL blockchain`);
-      console.error(`🛑 Error: ${devnetTestError}`);
-      throw new Error('DEVNET connection verification failed - aborting deployment');
+    } else {
+      console.log(`\n✅ Skipping DEVNET verification for ${currentEnv} environment`);
+      console.log(`🔧 Using ${currentEnv} blockchain environment as configured`);
     }
     
     // 🔍 ENHANCED: Check for existing contract deployment first
@@ -1073,9 +1012,9 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
     console.log(`💰 Deployer Account: ${deployerAccount.toBase58()} (pre-funded from testnet.json)`);
     console.log(`🔗 Explorer Links:`);
     if (shouldDeploy && txnResult) {
-      console.log(`   • Transaction: https://minascan.io/devnet/tx/${txnResult.hash}`);
+      console.log(`   • Transaction: ${getExplorerUrl('tx', txnResult.hash)}`);
     }
-    console.log(`   • Account: https://minascan.io/devnet/account/${zkAppAddress.toBase58()}`);
+    console.log(`   • Account: ${getExplorerUrl('account', zkAppAddress.toBase58())}`);
     console.log(`✅ Ready for GLEIF verification process`);
     console.log('='.repeat(50));
 
@@ -1177,8 +1116,8 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         // =================================== Show Contract State BEFORE Verification ===================================
         console.log(`\n📊 Smart Contract State BEFORE Verification:`);
         
-        // Fetch account state from DEVNET before reading
-        console.log(`🔄 Fetching zkApp account state from DEVNET...`);
+        // Fetch account state before reading
+        console.log(`🔄 Fetching zkApp account state from ${getEnvironmentDisplayName()}...`);
         const beforeFetchSuccess = await safelyFetchAccountWithRetry(zkAppAddress, 5, 3000);
         
         if (!beforeFetchSuccess) {
@@ -1186,7 +1125,7 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
           console.log(`🗓️ Proceeding without state display - this may be normal for new deployments`);
           // Set some default values for display
         } else {
-          console.log(`✅ zkApp account state fetched from DEVNET`);
+          console.log(`✅ zkApp account state fetched from ${getEnvironmentDisplayName()}`);
         }
         
         const stateBefore = zkApp.getRegistryInfo();
@@ -1253,13 +1192,8 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         const verificationResult = await txn.sign([senderKey]).send();
 
         // Wait for transaction to be included before fetching state
-        console.log(`⏳ Waiting for transaction to be included in DEVNET...`);
-        try {
-          await verificationResult.wait();
-          console.log(`✅ Transaction confirmed on DEVNET`);
-        } catch (waitError: any) {
-          console.log(`⚠️ Transaction wait failed, but proceeding: ${waitError.message}`);
-        }
+        await waitForTransactionConfirmation(verificationResult, 'verification transaction');
+        
 
         console.log(`\n✅ SMART CONTRACT TRANSACTION COMPLETED`);
         console.log(`📋 Company ${companyName} verification recorded on blockchain`);
@@ -1269,15 +1203,15 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         // =================================== Show Contract State AFTER Verification ===================================
         console.log('\n📊 Contract state AFTER verification:');
         
-        // Fetch updated account state from DEVNET after verification
-        console.log(`🔄 Fetching updated zkApp account state from DEVNET...`);
+        // Fetch updated account state after verification
+        console.log(`🔄 Fetching updated zkApp account state from ${getEnvironmentDisplayName()}...`);
         const afterFetchSuccess = await safelyFetchAccountWithRetry(zkAppAddress, 5, 3000);
         
         if (!afterFetchSuccess) {
           console.warn(`⚠️ Could not fetch updated zkApp account state after verification`);
           console.log(`🗓️ This may be normal due to DEVNET propagation delays`);
         } else {
-          console.log(`✅ Updated zkApp account state fetched from DEVNET`);
+          console.log(`✅ Updated zkApp account state fetched from ${getEnvironmentDisplayName()}`);
         }
         
         const stateAfter = zkApp.getRegistryInfo();
@@ -1425,15 +1359,15 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
 
     console.log('\n📈 Final Registry Statistics:');
     
-    // Fetch final account state from DEVNET before reading stats
-    console.log(`🔄 Fetching final zkApp account state from DEVNET...`);
+    // Fetch final account state before reading stats
+    console.log(`🔄 Fetching final zkApp account state from ${getEnvironmentDisplayName()}...`);
     const finalFetchSuccess = await safelyFetchAccountWithRetry(zkAppAddress, 5, 3000);
     
     if (!finalFetchSuccess) {
       console.warn(`⚠️ Could not fetch final zkApp account state`);
       console.log(`🗓️ Final statistics may not be available due to DEVNET delays`);
     } else {
-      console.log(`✅ Final zkApp account state fetched from DEVNET`);
+      console.log(`✅ Final zkApp account state fetched from ${getEnvironmentDisplayName()}`);
     }
     
     const finalStats = await safeGetGlobalComplianceStats(zkApp, zkAppAddress, 'final_registry_statistics');

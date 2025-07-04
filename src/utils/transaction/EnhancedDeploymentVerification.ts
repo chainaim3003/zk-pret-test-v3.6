@@ -60,35 +60,47 @@ export async function executeDeploymentWithRealVerification(
   };
 
   try {
-    // Step 1: CRITICAL - Ensure DEVNET connection before creating transaction
-    console.log(`\n🔧 CRITICAL: Verifying DEVNET connection before transaction creation...`);
+    // Step 1: Environment-specific network connection
+    console.log(`\n🔧 CRITICAL: Verifying ${environment} connection before transaction creation...`);
     
-    // Re-establish DEVNET connection to be absolutely sure
-    const devnetNetwork = Mina.Network('https://api.minascan.io/node/devnet/v1/graphql');
-    Mina.setActiveInstance(devnetNetwork);
-    console.log(`✅ DEVNET network instance re-established`);
-    
-    // Verify deployer account exists on DEVNET
-    try {
-      const deployerCheck = await fetchAccount({ publicKey: deployerAccount });
-      if (deployerCheck.account) {
-        const balance = Number(deployerCheck.account.balance.toString()) / 1e9;
-        console.log(`✅ Deployer verified on DEVNET: ${balance} MINA`);
-      } else {
-        throw new Error('Deployer account not found on DEVNET');
+    if (environment === 'TESTNET') {
+      // Re-establish DEVNET connection for TESTNET environment
+      const devnetNetwork = Mina.Network('https://api.minascan.io/node/devnet/v1/graphql');
+      Mina.setActiveInstance(devnetNetwork);
+      console.log(`✅ DEVNET network instance re-established`);
+      
+      // Verify deployer account exists on DEVNET
+      try {
+        const deployerCheck = await fetchAccount({ publicKey: deployerAccount });
+        if (deployerCheck.account) {
+          const balance = Number(deployerCheck.account.balance.toString()) / 1e9;
+          console.log(`✅ Deployer verified on DEVNET: ${balance} MINA`);
+        } else {
+          throw new Error('Deployer account not found on DEVNET');
+        }
+      } catch (deployerError) {
+        throw new Error(`Deployer account verification failed: ${deployerError}`);
       }
-    } catch (deployerError) {
-      throw new Error(`Deployer account verification failed: ${deployerError}`);
+    } else {
+      // For LOCAL/MAINNET environments, skip DEVNET verification
+      console.log(`✅ Skipping DEVNET verification for ${environment} environment`);
+      console.log(`🔧 Using ${environment} blockchain environment as configured`);
     }
     
     // Step 2: Create and submit deployment transaction
     console.log(`\n📤 Step 1: Creating deployment transaction...`);
     
-    // O1js Best Practice Fees for DEVNET
-    const deploymentFee = UInt64.from(100_000_000); // 0.1 MINA for DEVNET (o1js recommended)
-    const accountCreationCount = 1; // Number of accounts to create
+    // O1js Best Practice Fees - Environment Specific
+    let deploymentFee: UInt64;
+    if (environment === 'LOCAL') {
+      deploymentFee = UInt64.from(1_000_000); // 0.001 MINA for local testing
+    } else if (environment === 'TESTNET') {
+      deploymentFee = UInt64.from(100_000_000); // 0.1 MINA for DEVNET (o1js recommended)
+    } else {
+      deploymentFee = UInt64.from(300_000_000); // 0.3 MINA for mainnet
+    }
     
-    console.log(`💰 Deployment fee: ${Number(deploymentFee.toString()) / 1e9} MINA`);
+    console.log(`💰 Deployment fee: ${Number(deploymentFee.toString()) / 1e9} MINA (${environment})`);
     console.log(`🏦 Account creation: 1 MINA (protocol standard)`);
     console.log(`💵 Total cost: ${Number(deploymentFee.toString()) / 1e9 + 1} MINA`);
 
@@ -112,8 +124,17 @@ export async function executeDeploymentWithRealVerification(
     deploymentResult.transactionHash = signedTxn.hash;
     
     console.log(`📤 Transaction submitted: ${signedTxn.hash}`);
-    console.log(`🔗 Minascan: https://minascan.io/devnet/tx/${signedTxn.hash}`);
-    console.log(`🔗 MinaExplorer: https://devnet.minaexplorer.com/transaction/${signedTxn.hash}`);
+    
+    // Environment-specific explorer links
+    if (environment === 'TESTNET') {
+      console.log(`🔗 Minascan: https://minascan.io/devnet/tx/${signedTxn.hash}`);
+      console.log(`🔗 MinaExplorer: https://devnet.minaexplorer.com/transaction/${signedTxn.hash}`);
+    } else if (environment === 'MAINNET') {
+      console.log(`🔗 Minascan: https://minascan.io/mainnet/tx/${signedTxn.hash}`);
+      console.log(`🔗 MinaExplorer: https://minaexplorer.com/transaction/${signedTxn.hash}`);
+    } else {
+      console.log(`🏠 Local transaction hash: ${signedTxn.hash}`);
+    }
 
     // Step 2: REAL verification - Multiple verification methods
     console.log(`\n🔍 Step 2: REAL DEPLOYMENT VERIFICATION (No timeout assumptions)`);

@@ -1,8 +1,7 @@
 /**
  * Enhanced Transaction Wrapper for GLEIF Verification
  * Implements comprehensive transaction monitoring and state verification
- * 
- * FIXES THE CRITICAL ISSUE: Local success vs On-chain state mismatch
+ * FIXED: Now environment-aware for LOCAL, TESTNET, and MAINNET
  */
 
 import { Field, Mina, PublicKey, UInt64, PrivateKey, Bool, AccountUpdate, fetchAccount } from 'o1js';
@@ -13,6 +12,7 @@ import {
   CompanyMerkleWitness 
 } from '../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
 import { GLEIFOptimComplianceData } from '../../zk-programs/with-sign/GLEIFOptimZKProgram.js';
+import { getExplorerUrl } from '../../tests/with-sign/GLEIFEnvironmentAwareUtils.js';
 
 /**
  * Enhanced verification transaction with comprehensive monitoring
@@ -71,8 +71,7 @@ export async function executeVerificationTransactionWithMonitoring(
       const signedTxn = await txn.sign([senderKey]).send();
       
       console.log(`📤 Transaction submitted: ${signedTxn.hash}`);
-      console.log(`🔗 Track on Minascan: https://minascan.io/devnet/tx/${signedTxn.hash}`);
-      console.log(`🔗 Track on MinaExplorer: https://devnet.minaexplorer.com/transaction/${signedTxn.hash}`);
+      console.log(`🔗 Track transaction: ${getExplorerUrl('tx', signedTxn.hash)}`);
       
       return signedTxn;
     },
@@ -119,7 +118,7 @@ export async function executeDeploymentTransactionWithMonitoring(
   
   console.log(`💰 Using deployment fee: ${deploymentFee.toString()} nanomina (${Number(deploymentFee.toString()) / 1e9} MINA)`);
   console.log(`📋 Deployment Details:`);
-  console.log(`   • Deployer Account: ${deployerAccount.toBase58()} (PRE-FUNDED from testnet.json)`);
+  console.log(`   • Deployer Account: ${deployerAccount.toBase58()}`);
   console.log(`   • zkApp Account: ${zkAppAddress.toBase58()} (NEW - will be created)`);
   console.log(`   • Account Creation Cost: 3 MINA (funded by deployer)`);
   console.log(`   • Transaction Fee: ${Number(deploymentFee.toString()) / 1e9} MINA`);
@@ -155,8 +154,7 @@ export async function executeDeploymentTransactionWithMonitoring(
         const signedTxn = await deployTxn.sign([deployerKey, zkAppKey]).send();
         
         console.log(`📤 Deployment transaction submitted: ${signedTxn.hash}`);
-        console.log(`🔗 Track on Minascan: https://minascan.io/devnet/tx/${signedTxn.hash}`);
-        console.log(`🔗 Track on MinaExplorer: https://devnet.minaexplorer.com/transaction/${signedTxn.hash}`);
+        console.log(`🔗 Track transaction: ${getExplorerUrl('tx', signedTxn.hash)}`);
         
         return signedTxn;
         
