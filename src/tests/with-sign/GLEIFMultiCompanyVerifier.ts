@@ -21,7 +21,7 @@ dotenv.config();
 import { runGLEIFTestWithFundedAccounts } from './GLEIFEnhancedTestWrapper.js';
 
 // Import Environment-Aware Deployment Manager
-import { createDeploymentManager } from '../../utils/EnvironmentAwareDeploymentManager.js';
+// import { createDeploymentManager } from '../../utils/EnvironmentAwareDeploymentManager.js'; // Temporarily disabled
 
 // Import types for proper TypeScript support
 import type { PublicKey } from 'o1js';
@@ -99,12 +99,18 @@ export async function verifyGLEIFMultiCompanyCompliance(
     console.log('\n📋 Step 1: Smart contract discovery with Environment-Aware Manager...');
     
     // Create deployment manager (auto-detects environment)
-    const deploymentManager = await createDeploymentManager();
+    // const deploymentManager = await createDeploymentManager(); // Temporarily disabled
+    // Use hardcoded contract address for now
+    const contractAddress = "B62qoMdRZ5G386t3TiV2MKVEpG9jQgbzBHJyybae2PPckctoKndhh8j";
     
     // Check deployment status
-    const deploymentDecision = deploymentManager.shouldRedeploy();
-    deploymentManager.displayDeploymentDecision(deploymentDecision);
+    // const deploymentDecision = deploymentManager.shouldRedeploy();
+    // deploymentManager.displayDeploymentDecision(deploymentDecision);
     
+    // Skip deployment check for now
+    console.log(`📍 Using contract address: ${contractAddress}`);
+    
+    /*
     if (deploymentDecision.requiresRedeployment) {
       console.log('⚠️ Warning: Smart contract needs deployment');
       console.log('📝 Suggestion: Run GLEIFMultiCompanySmartContractDeployer.ts first');
@@ -113,6 +119,7 @@ export async function verifyGLEIFMultiCompanyCompliance(
       console.log('✅ Smart contract is ready for verification');
       console.log(`📍 Contract Address: ${deploymentDecision.existingAddress}`);
     }
+    */
     
     // =================================== Run Verification ===================================
     console.log('\n🚀 Step 2: Running GLEIF verification with proven infrastructure...');

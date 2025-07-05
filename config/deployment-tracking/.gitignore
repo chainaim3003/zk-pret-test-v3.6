@@ -1,0 +1,7 @@
+# Deployment tracking records (local state)
+*.json
+*-deployments.json
+
+# But keep the directory structure
+!.gitkeep
+!deployment-schema.json
