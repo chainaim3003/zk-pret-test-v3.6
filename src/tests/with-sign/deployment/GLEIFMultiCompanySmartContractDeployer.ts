@@ -48,8 +48,86 @@ import {
 
 
 /**
- * Main deployment function
+ * Environment-aware deployment messaging and links
  */
+function getEnvironmentDisplayInfo(currentEnvironment: string) {
+  switch (currentEnvironment) {
+    case 'LOCAL':
+      return {
+        networkName: 'Local Blockchain',
+        explorerBase: 'local://blockchain',
+        networkDescription: 'Local development blockchain',
+        activationTime: 'Immediate',
+        cost: 'FREE (local testing)'
+      };
+    case 'TESTNET':
+      return {
+        networkName: 'MINA DEVNET',
+        explorerBase: 'https://minascan.io/devnet',
+        networkDescription: 'MINA DEVNET (testnet blockchain)',
+        activationTime: '15-30 minutes',
+        cost: '1.1 MINA'
+      };
+    case 'MAINNET':
+      return {
+        networkName: 'MINA MAINNET',
+        explorerBase: 'https://minascan.io/mainnet',
+        networkDescription: 'MINA MAINNET (production blockchain)',
+        activationTime: '30-60 minutes',
+        cost: '2.2 MINA'
+      };
+    default:
+      return {
+        networkName: 'Unknown Network',
+        explorerBase: 'https://minascan.io',
+        networkDescription: 'Unknown blockchain',
+        activationTime: 'Unknown',
+        cost: 'Unknown'
+      };
+  }
+}
+
+/**
+ * Environment-aware next steps display
+ */
+function displayEnvironmentAwareNextSteps(currentEnvironment: string, contractAddress: string, wasDeployed: boolean) {
+  const envInfo = getEnvironmentDisplayInfo(currentEnvironment);
+  
+  console.log('\n📋 Next Steps:');
+  
+  if (currentEnvironment === 'LOCAL') {
+    console.log('  1. ✅ Contract deployed on local blockchain');
+    console.log('  2. 🔄 Run verification tests immediately');
+    console.log('  3. 🚀 Ready for local development and testing');
+    console.log('  4. 🌐 No external explorer (local blockchain)');
+  } else if (currentEnvironment === 'TESTNET') {
+    if (wasDeployed) {
+      console.log('  1. ⏳ Wait 15-30 minutes for DEVNET zkApp activation');
+      console.log(`  2. 🔍 Check contract: ${envInfo.explorerBase}/account/${contractAddress}`);
+      console.log('  3. ✅ Once activated, run GLEIFMultiCompanyVerifier.ts');
+      console.log('  4. 🌐 Monitor on MinaScan DEVNET explorer');
+      console.log('');
+      console.log('  ⚠️  IMPORTANT: Contract is NOT ready for verification yet!');
+      console.log('  ⚠️  DEVNET requires 15-30 minutes for zkApp activation');
+      console.log('  ⚠️  Running verification now will fail');
+    } else {
+      console.log('  1. ✅ Existing contract verified and active');
+      console.log('  2. 🔄 Run GLEIFMultiCompanyVerifier.ts immediately');
+      console.log(`  3. 🔍 Monitor: ${envInfo.explorerBase}/account/${contractAddress}`);
+    }
+  } else if (currentEnvironment === 'MAINNET') {
+    if (wasDeployed) {
+      console.log('  1. ⏳ Wait 30-60 minutes for MAINNET zkApp activation');
+      console.log(`  2. 🔍 Check contract: ${envInfo.explorerBase}/account/${contractAddress}`);
+      console.log('  3. ⚠️  PRODUCTION CONTRACT - exercise caution!');
+      console.log('  4. ✅ Once activated, run production verification');
+    } else {
+      console.log('  1. ✅ Production contract active and verified');
+      console.log('  2. 🔄 Ready for production verification');
+      console.log(`  3. 🔍 Monitor: ${envInfo.explorerBase}/account/${contractAddress}`);
+    }
+  }
+}
 export async function deployGLEIFMultiCompanySmartContract(
   forceRedeploy: boolean = false
 ): Promise<{
@@ -59,10 +137,18 @@ export async function deployGLEIFMultiCompanySmartContract(
   verificationKey: any;
 }> {
   
+  // Get environment info early for consistent messaging
+  const currentEnvironment = process.env.BUILD_ENV || 'LOCAL';
+  const envInfo = getEnvironmentDisplayInfo(currentEnvironment);
+  
   console.log('\n🚀 GLEIF Multi-Company Smart Contract Deployer');
   console.log('='.repeat(60));
+  console.log(`🌍 Target Network: ${envInfo.networkName}`);
+  console.log(`📋 Environment: ${currentEnvironment}`);
   console.log(`🔧 Force Redeploy: ${forceRedeploy ? 'YES' : 'NO'}`);
-
+  console.log(`💰 Expected Cost: ${envInfo.cost}`);
+  console.log('='.repeat(60));
+  
   try {
     // =================================== Validate BUILD_ENV ===================================
     console.log('\n📋 Step 0: Validating BUILD_ENV configuration...');
@@ -98,6 +184,7 @@ export async function deployGLEIFMultiCompanySmartContract(
 
     // =================================== Setup Blockchain Environment ===================================
     console.log('\n📋 Step 2: Setting up blockchain environment...');
+    console.log(`🌍 Configuring for: ${envInfo.networkName}`);
     
     let deployerAccount: any;
     let deployerKey: any;
@@ -105,6 +192,7 @@ export async function deployGLEIFMultiCompanySmartContract(
     if (currentEnvironment === 'TESTNET' && shouldConnectToDevnet) {
       // DEVNET MODE: Use Oracle Registry funded accounts
       console.log('🌐 DEVNET environment detected - using funded Oracle accounts');
+      console.log(`💰 Expected deployment cost: ${envInfo.cost}`);
       
       // Establish DEVNET connection
       console.log('🔧 Connecting to DEVNET GraphQL endpoint...');
@@ -125,7 +213,7 @@ export async function deployGLEIFMultiCompanySmartContract(
         console.log('✅ Blockchain environment initialized with DEVNET Oracle accounts');
         console.log(`  🎯 GLEIF Deployer: ${deployerAccount.toBase58()}`);
         console.log(`  💰 Balance: ${balance} MINA`);
-        console.log('  🌐 Connected to: MINA DEVNET via Oracle Registry');
+        console.log(`  🌐 Connected to: ${envInfo.networkDescription}`);
         
         if (balance < 2) {
           throw new Error(`Insufficient balance: ${balance} MINA (need at least 2 MINA)`);
@@ -136,9 +224,46 @@ export async function deployGLEIFMultiCompanySmartContract(
         throw new Error(`Oracle Registry not properly initialized for DEVNET: ${oracleError}`);
       }
       
+    } else if (currentEnvironment === 'MAINNET') {
+      // MAINNET MODE: Use production Oracle Registry
+      console.log('🌐 MAINNET environment detected - using production Oracle accounts');
+      console.log('⚠️  PRODUCTION DEPLOYMENT - exercise extreme caution!');
+      console.log(`💰 Expected deployment cost: ${envInfo.cost}`);
+      
+      // Establish MAINNET connection
+      console.log('🔧 Connecting to MAINNET GraphQL endpoint...');
+      const mainnetNetwork = Mina.Network('https://api.minascan.io/node/mainnet/v1/graphql');
+      Mina.setActiveInstance(mainnetNetwork);
+      console.log('✅ MAINNET connection established');
+      
+      // Get production Oracle accounts
+      try {
+        deployerAccount = getDeployerAccount('GLEIF');
+        deployerKey = getDeployerKey('GLEIF');
+        
+        // Verify deployer account
+        await fetchAccount({ publicKey: deployerAccount });
+        const accountInfo = Mina.getAccount(deployerAccount);
+        const balance = Number(accountInfo.balance.toString()) / 1e9;
+        
+        console.log('✅ Blockchain environment initialized with MAINNET Oracle accounts');
+        console.log(`  🎯 GLEIF Deployer: ${deployerAccount.toBase58()}`);
+        console.log(`  💰 Balance: ${balance} MINA`);
+        console.log(`  🌐 Connected to: ${envInfo.networkDescription}`);
+        
+        if (balance < 5) {
+          throw new Error(`Insufficient balance: ${balance} MINA (need at least 5 MINA for MAINNET)`);
+        }
+        
+      } catch (oracleError) {
+        console.error('❌ Failed to get Oracle accounts:', oracleError);
+        throw new Error(`Oracle Registry not properly initialized for MAINNET: ${oracleError}`);
+      }
+      
     } else {
       // LOCAL MODE: Use LocalBlockchain for development
-      console.log(`🔧 ${currentEnvironment} environment - creating LocalBlockchain for development`);
+      console.log(`🔧 LOCAL environment - creating LocalBlockchain for development`);
+      console.log(`💰 Expected deployment cost: ${envInfo.cost}`);
       
       const useProof = false;
       const Local = await Mina.LocalBlockchain({ proofsEnabled: useProof });
@@ -149,7 +274,8 @@ export async function deployGLEIFMultiCompanySmartContract(
 
       console.log('✅ Blockchain environment initialized with LocalBlockchain accounts');
       console.log(`  🔧 Local Deployer: ${deployerAccount.toBase58()}`);
-      console.log('  🏠 Mode: Local development blockchain');
+      console.log(`  🏠 Mode: ${envInfo.networkDescription}`);
+      console.log(`  💰 Balance: Unlimited (local testing)`);
     }
 
     // =================================== Compile Contracts ===================================
@@ -292,13 +418,19 @@ export async function deployGLEIFMultiCompanySmartContract(
     console.log('='.repeat(50));
     console.log(`✅ Status: ${wasDeployed ? 'NEW DEPLOYMENT COMPLETED' : 'EXISTING CONTRACT USED'}`);
     console.log(`🏠 Contract Address: ${contractAddress}`);
+    console.log(`🌍 Network: ${envInfo.networkName}`);
     console.log(`💰 Deployer Account: ${deployerAccount.toBase58()}`);
+    
     if (wasDeployed && transactionHash) {
-      console.log(`🔗 Transaction: https://minascan.io/devnet/tx/${transactionHash}`);
-      console.log(`💰 Total Cost: ${(Number(getTransactionFee(currentEnvironment).toString()) + 1000000000) / 1e9} MINA`);
+      console.log(`🔗 Transaction: ${envInfo.explorerBase}/tx/${transactionHash}`);
+      const actualCost = currentEnvironment === 'LOCAL' ? 0 : (Number(getTransactionFee(currentEnvironment).toString()) + 1000000000) / 1e9;
+      console.log(`💰 Total Cost: ${actualCost} MINA`);
+    } else if (!wasDeployed) {
+      console.log(`💰 Total Cost: FREE (reused existing deployment)`);
     }
-    console.log(`🔗 Account: https://minascan.io/devnet/account/${contractAddress}`);
-    console.log(`✅ Ready for GLEIF verification process`);
+    
+    console.log(`🔗 Contract Explorer: ${envInfo.explorerBase}/account/${contractAddress}`);
+    console.log(`✅ Ready for GLEIF verification process on ${envInfo.networkName}`);
     console.log('='.repeat(50));
 
     return {
@@ -345,9 +477,10 @@ async function main() {
     }
     
     console.log('\n📋 Next Steps:');
-    console.log('  1. ✅ Contract is ready for verification');
-    console.log('  2. 🔄 Run GLEIFMultiCompanyVerifier.ts to verify companies');
-    console.log('  3. 🌐 Check contract on MinaScan or MinaExplorer');
+    
+    // Get environment info for proper next steps
+    const currentEnvironment = process.env.BUILD_ENV || 'LOCAL';
+    displayEnvironmentAwareNextSteps(currentEnvironment, result.contractAddress, result.wasDeployed);
     
     process.exit(0);
     
@@ -357,8 +490,17 @@ async function main() {
   }
 }
 
-// Run if called directly
-if (require.main === module) {
+// Run if called directly - ES Module compatible
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Check if this file is being run directly (ES Module compatible)
+const isMainModule = process.argv[1] === __filename || process.argv[1]?.endsWith('GLEIFMultiCompanySmartContractDeployer.js');
+
+if (isMainModule) {
   main().catch(err => {
     console.error('💥 Fatal Error:', err);
     process.exit(1);

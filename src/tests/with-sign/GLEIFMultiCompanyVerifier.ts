@@ -20,6 +20,9 @@ dotenv.config();
 // Import the WORKING infrastructure wrapper - FIXED: Use .js import for ES modules
 import { runGLEIFTestWithFundedAccounts } from './GLEIFEnhancedTestWrapper.js';
 
+// Import Environment-Aware Deployment Manager
+import { createDeploymentManager } from '../../utils/EnvironmentAwareDeploymentManager.js';
+
 // Import types for proper TypeScript support
 import type { PublicKey } from 'o1js';
 
@@ -78,22 +81,41 @@ interface VerificationResponse {
 }
 
 /**
- * SIMPLIFIED MAIN VERIFICATION FUNCTION
- * Uses the proven working infrastructure instead of reimplementing everything
+ * ENHANCED MAIN VERIFICATION FUNCTION
+ * Uses deployment manager for smart contract discovery and proven working infrastructure
  */
 export async function verifyGLEIFMultiCompanyCompliance(
   companyNames: string[], 
   useExistingContract: boolean = true
 ): Promise<VerificationResponse> {
-  console.log('\n🔍 GLEIF Multi-Company Compliance Verifier (FIXED VERSION)');
+  console.log('\n🔍 GLEIF Multi-Company Compliance Verifier (ENHANCED)');
   console.log('='.repeat(60));
   console.log(`🏢 Companies to verify: ${companyNames.length}`);
   console.log(`📋 Use existing contract: ${useExistingContract ? 'YES' : 'NO'}`);
-  console.log('✅ Using proven working infrastructure wrapper');
+  console.log('✅ Using Environment-Aware Deployment Manager + proven infrastructure');
   
   try {
-    // Use the working infrastructure wrapper that handles all the complex setup
-    console.log('\n🚀 Delegating to proven working infrastructure...');
+    // =================================== Smart Contract Discovery ===================================
+    console.log('\n📋 Step 1: Smart contract discovery with Environment-Aware Manager...');
+    
+    // Create deployment manager (auto-detects environment)
+    const deploymentManager = await createDeploymentManager();
+    
+    // Check deployment status
+    const deploymentDecision = deploymentManager.shouldRedeploy();
+    deploymentManager.displayDeploymentDecision(deploymentDecision);
+    
+    if (deploymentDecision.requiresRedeployment) {
+      console.log('⚠️ Warning: Smart contract needs deployment');
+      console.log('📝 Suggestion: Run GLEIFMultiCompanySmartContractDeployer.ts first');
+      console.log('🎆 Or proceed with verification - the infrastructure wrapper will handle deployment');
+    } else {
+      console.log('✅ Smart contract is ready for verification');
+      console.log(`📍 Contract Address: ${deploymentDecision.existingAddress}`);
+    }
+    
+    // =================================== Run Verification ===================================
+    console.log('\n🚀 Step 2: Running GLEIF verification with proven infrastructure...');
     const result: VerificationResponse = await runGLEIFTestWithFundedAccounts(companyNames);
     
     console.log('\n🎉 VERIFICATION COMPLETED SUCCESSFULLY!');
