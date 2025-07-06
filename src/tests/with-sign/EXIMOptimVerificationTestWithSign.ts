@@ -246,13 +246,13 @@ export async function getEXIMOptimVerification(companyName: string) {
     const zkApp = new EXIMOptimSmartContract(zkAppAddress);
 
     const deployTxn = await Mina.transaction(
-      EXIMdeployerAccount,
+      EXIMdeployerAccount(),
       async () => {
-        AccountUpdate.fundNewAccount(EXIMdeployerAccount);
+        AccountUpdate.fundNewAccount(EXIMdeployerAccount());
         await zkApp.deploy({ verificationKey });
       }
     );
-    await deployTxn.sign([EXIMdeployerKey, zkAppKey]).send();
+    await deployTxn.sign([EXIMdeployerKey(), zkAppKey]).send();
     console.log('✅ Smart contract deployed successfully');
 
     // =================================== Fetch EXIM Data ===================================
@@ -367,14 +367,14 @@ export async function getEXIMOptimVerification(companyName: string) {
     console.log(`  Total Companies Verified: ${zkApp.totalCompaniesVerified.get().toJSON()}`);
 
     const txn = await Mina.transaction(
-      EXIMsenderAccount,
+      EXIMsenderAccount(),
       async () => {
         await zkApp.verifyOptimizedComplianceWithProof(proof);
       }
     );
 
     await txn.prove();
-    await txn.sign([EXIMsenderKey]).send();
+    await txn.sign([EXIMsenderKey()]).send();
 
     console.log('✅ Proof verified on smart contract!');
     console.log('📊 Final smart contract state:');

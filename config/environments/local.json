@@ -1,66 +1,112 @@
 {
   "network": {
-    "environment": "LOCAL",
-    "proofsEnabled": true
+    "environment": "LOCAL", 
+    "proofsEnabled": true,
+    "useLocalBlockchain": true,
+    "testAccounts": {
+      "total": 10,
+      "defaultBalance": "10000000000000"
+    }
   },
   "oracles": {
-    "registry": {
-      "MCA": {
-        "publicKey": "B62qr2Eyh6dpuEHxMtaQTHVUzm87pYdmnSXwxjunpcZnDnA3U9jR2Ei",
-        "privateKey": "EKFTi9tsvXqMR5bbTGY1nCJ3mYPDXu2xse7DRtu9yJnm4bLqyPR6",
-        "role": "MCA_ORACLE",
-        "deployerAccountIndex": 0,
-        "senderAccountIndex": 1
+    "GLEIF": {
+      "role": "GLEIF_ORACLE",
+      "deployer": {
+        "privateKey": "EKDitj9CKJu6QUJrjPdV1DkVm7wZTF6tGp3q6wSPrSJgcXzA5BQQ",
+        "publicKey": "B62qpJThg3Xr7JHC7CQmSdhbBjG5DhJLFJhWVk5YWCNjzkSPWq6zJPF"
       },
-      "GLEIF": {
-        "publicKey": "B62qrgwEFK9Qx7JZ2An3GtDc2RAgSiMQSwFfKYQcEL3bp2v7r6pdM3e",
-        "privateKey": "EKFKfRisVagxAbkynbs1minzPhU2HdByevtCcRxKMNbjhqLBrrWb",
-        "role": "GLEIF_ORACLE",
-        "deployerAccountIndex": 2,
-        "senderAccountIndex": 3
+      "sender": {
+        "privateKey": "EKEFgQTSwK7K7H1F9oj6U2tZzS9u6wLXJqCdgN2X6E3UzPBFgJHB",
+        "publicKey": "B62qmAnxJ9T6pTQQF6BLZHJo8eQP3a7n9DqRBNHp8YUJGDzRHqRULMG"
       },
-      "EXIM": {
-        "publicKey": "B62qj5yRJ3ft7yHjEC9hX72aKSKbVeRByTYCRha5oJtjwDkechmMt3j",
-        "privateKey": "EKFZiawNMQDZZR5n13Y9iVdEh3TcSPLsCG8y3wJvtLQ4LkAFNeFK",
-        "role": "EXIM_ORACLE",
-        "deployerAccountIndex": 4,
-        "senderAccountIndex": 5
+      "deployerAccountIndex": 0,
+      "senderAccountIndex": 1,
+      "description": "GLEIF oracle using Local.testAccounts[0,1]"
+    },
+    "MCA": {
+      "role": "MCA_ORACLE",
+      "deployer": {
+        "privateKey": "EKF5tNGxqLXeCX7B4Sd1FPV9XzQE3QnqhHtFJeQCXpGm9J3RNHK6",
+        "publicKey": "B62qnPNF8zq8LvXR3PJcH1TsG9WnV6fJHjGgV9QVv7k4QqRWJNzxBpY"
       },
-      "BPMN": {
-        "publicKey": "B62qnnc7ztjeum6d979NJhWW3awbLzDDknSTqLhMm8PYBwf3oYiMbq5",
-        "privateKey": "EKErUTZ7sMZbUVHALTWrn3u4997jv6EfLCgLE5pjv1pU1BCPi2HX",
-        "role": "BPMN_ORACLE",
-        "deployerAccountIndex": 6,
-        "senderAccountIndex": 7
+      "sender": {
+        "privateKey": "EKEgUVb2CpA6eQF9tTzExQJYmSdN3wPkVjhM8H6LzKqJ7FgQnBGz",
+        "publicKey": "B62qkHtJpZz3LvBG4Qm9CvNmF8wMgY2kLpWjHV3e5QqRKJzNFxJmG9T"
       },
-      "RISK": {
-        "publicKey": "B62qjzqoSSfCJpRxbLTnzn7BJZh9c3KVjw33ysaQ2m1F3iPF6inUSzN",
-        "privateKey": "EKFJ2aVf393CGDSYCZcRNEMBH7EJ2SYecRa48TRUfGd3xrfsZWfw",
-        "role": "RISK_ORACLE",
-        "deployerAccountIndex": 8,
-        "senderAccountIndex": 9
+      "deployerAccountIndex": 2,
+      "senderAccountIndex": 3,
+      "description": "MCA oracle using Local.testAccounts[2,3]"
+    },
+    "EXIM": {
+      "role": "EXIM_ORACLE",
+      "deployer": {
+        "privateKey": "EKEhKvRQ2bL7PxT3F4gFJmUzNcH9YqWe5VpLg3QJt6R8KxPzGMvB",
+        "publicKey": "B62qm9FzLwP3JtGH2xQ8VkRcE5NbTg4YfJpWv7LqM3ReP6BzKxJqG8T"
       },
-      "BL_REGISTRY": {
-        "publicKey": "B62qnnc7ztjeum6d979NJhWW3awbLzDDknSTqLhMm8PYBwf3oYiMbq5",
-        "privateKey": "EKErUTZ7sMZbUVHALTWrn3u4997jv6EfLCgLE5pjv1pU1BCPi2HX",
-        "role": "BL_REGISTRY_ORACLE",
-        "deployerAccountIndex": 6,
-        "senderAccountIndex": 7
-      }
+      "sender": {
+        "privateKey": "EKF2JqUzK5LwP9YvR3TgFN8mBcE4QtGh7VpLx6JmR2K9PzBnMvG5",
+        "publicKey": "B62qpTgN4wF8LxR2QvB6YkVcJ9mEz3HtGf5LpWq7JrM8ReKxBzPqG5T"
+      },
+      "deployerAccountIndex": 4,
+      "senderAccountIndex": 5,
+      "description": "EXIM oracle using Local.testAccounts[4,5]"
+    },
+    "BPMN": {
+      "role": "BPMN_ORACLE",
+      "deployer": {
+        "privateKey": "EKDzNw5K7LxR3QgT2FvB6YkPcJ9mEz4HtGf6LpWq8JrM1ReKxBzP",
+        "publicKey": "B62qr2FvB8YkVcK1mEz5HtGg7LpWq9JrN2ReKxBzQqH6TgFmPvG9L"
+      },
+      "sender": {
+        "privateKey": "EKE4HtGg8LpWq1JrN3ReKxBzQqH7TgFmPvG2LcK5YkVzM6EtHfJw",
+        "publicKey": "B62qs3ReKyBzRqH8TgFmQvG3LcK6YkVzN7EtHfJwP4LpWr5JsN9RfK"
+      },
+      "deployerAccountIndex": 6,
+      "senderAccountIndex": 7,
+      "description": "BPMN oracle using Local.testAccounts[6,7]"
+    },
+    "RISK": {
+      "role": "RISK_ORACLE",
+      "deployer": {
+        "privateKey": "EKF9RfK8TgFnQvG4LcK7YkVzN8EtHfJwP5LpWr6JsN2RfKxBzRq",
+        "publicKey": "B62qt4LcK8YkVzO9EtHfKwP6LpWr7JsN3RfKxBzSqH1TgFnQvG5M"
+      },
+      "sender": {
+        "privateKey": "EKE5LpWr9JsN4RfKxBzSqH2TgFnRvG6McK1YkVzP7EtHfLwQ8Lp",
+        "publicKey": "B62qu6RfKzBzTqH3TgFnSvG7McK2YkVzQ8EtHfMwR9LpWs4JtN5Sf"
+      },
+      "deployerAccountIndex": 8,
+      "senderAccountIndex": 9,
+      "description": "RISK oracle using Local.testAccounts[8,9]"
     }
   },
-  "deployments": {
-    "contracts": {
-      "GLEIFOptimMultiCompanySmartContract": {
-        "address": "B62qp7ixNx5uuDqC63EshW34xUqdNKvkaUrNnud8cs4xjCSUxGcq95t",
-        "verificationKey": {
-          "data": "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",
-          "hash": "2677836470614559726152113122021807846527241040697322392059470547071196762079"
-        },
-        "deployedAt": "2025-07-04T16:51:01.037Z",
-        "transactionHash": "5JujduvBYXDZV8KXusLNXCWaFFejT6kmWHuFm6SU5idN74WBJDEf"
-      }
+  "deployment": {
+    "autoFundAccounts": true,
+    "accountCreationFee": "1000000000",
+    "fastMode": true,
+    "skipNetworkValidation": true,
+    "enableProofs": true
+  },
+  "gleifApiConfig": {
+    "useLocalCache": false,
+    "mockResponses": false,
+    "timeout": 10000
+  },
+  "deployAliases": {
+    "local-gleif": {
+      "name": "local-gleif",
+      "environment": "LOCAL",
+      "contractName": "GLEIFOptimMultiCompanySmartContract",
+      "oracle": "GLEIF",
+      "description": "LOCAL development GLEIF deployment"
     }
   },
-  "gleifApiConfig": {}
+  "metadata": {
+    "description": "LOCAL development environment using O1JS LocalBlockchain",
+    "accountModel": "testAccounts",
+    "networkType": "simulated",
+    "version": "1.0.0",
+    "o1jsCompliant": true,
+    "sessionPersistence": false
+  }
 }

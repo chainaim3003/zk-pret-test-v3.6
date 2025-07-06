@@ -210,13 +210,13 @@ export async function getCorporateRegistrationOptimVerification(cin: string) {
     const zkApp = new CorporateRegistrationOptimSmartContract(zkAppAddress);
 
     const deployTxn = await Mina.transaction(
-      MCAdeployerAccount,
+      MCAdeployerAccount(),
       async () => {
-        AccountUpdate.fundNewAccount(MCAdeployerAccount);
+        AccountUpdate.fundNewAccount(MCAdeployerAccount());
         await zkApp.deploy({ verificationKey });
       }
     );
-    await deployTxn.sign([MCAdeployerKey, zkAppKey]).send();
+    await deployTxn.sign([MCAdeployerKey(), zkAppKey]).send();
     console.log('✅ Smart contract deployed successfully');
 
     // =================================== Fetch Corporate Registration Data ===================================
@@ -308,14 +308,14 @@ export async function getCorporateRegistrationOptimVerification(cin: string) {
     console.log(`  Total Companies Verified: ${zkApp.totalCompaniesVerified.get().toJSON()}`);
 
     const txn = await Mina.transaction(
-      MCAsenderAccount,
+      MCAsenderAccount(),
       async () => {
         await zkApp.verifyOptimizedComplianceWithProof(proof);
       }
     );
 
     await txn.prove();
-    await txn.sign([MCAsenderKey]).send();
+    await txn.sign([MCAsenderKey()]).send();
 
     console.log('✅ Proof verified on smart contract!');
     console.log('📊 Final smart contract state:');

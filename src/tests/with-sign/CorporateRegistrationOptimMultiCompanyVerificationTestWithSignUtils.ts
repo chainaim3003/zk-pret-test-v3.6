@@ -268,12 +268,13 @@ export async function getCorporateRegistrationOptimMultiCompanyVerificationWithS
     // =================================== Setup Local Blockchain ===================================
     console.log('\n🔧 Setting up local blockchain...');
     const { Local } = await import('../../core/OracleRegistry.js');
-    Mina.setActiveInstance(Local);
+    const localBlockchain = await Local;
+    Mina.setActiveInstance(localBlockchain);
     
-    const deployerAccount = MCAdeployerAccount;
-    const deployerKey = MCAdeployerKey;
-    const senderAccount = MCAsenderAccount;
-    const senderKey = MCAsenderKey;
+    const deployerAccount = MCAdeployerAccount();
+    const deployerKey = MCAdeployerKey();
+    const senderAccount = MCAsenderAccount();
+    const senderKey = MCAsenderKey();
 
     // =================================== Compile Programs ===================================
     console.log('\n📝 Compiling ZK programs...');

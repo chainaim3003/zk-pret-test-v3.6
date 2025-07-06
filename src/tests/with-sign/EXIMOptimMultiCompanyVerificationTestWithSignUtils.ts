@@ -266,12 +266,13 @@ export async function getEXIMOptimMultiCompanyVerificationWithSignUtils(
     // =================================== Setup Local Blockchain ===================================
     console.log('\n🔧 Setting up local blockchain...');
     const { Local } = await import('../../core/OracleRegistry.js');
-    Mina.setActiveInstance(Local);
+    const localBlockchain = await Local;
+    Mina.setActiveInstance(localBlockchain);
     
-    const deployerAccount = EXIMdeployerAccount;
-    const deployerKey = EXIMdeployerKey;
-    const senderAccount = EXIMsenderAccount;
-    const senderKey = EXIMsenderKey;
+    const deployerAccount = EXIMdeployerAccount();
+    const deployerKey = EXIMdeployerKey();
+    const senderAccount = EXIMsenderAccount();
+    const senderKey = EXIMsenderKey();
 
     // =================================== Compile Programs ===================================
     console.log('\n📝 Compiling ZK programs...');

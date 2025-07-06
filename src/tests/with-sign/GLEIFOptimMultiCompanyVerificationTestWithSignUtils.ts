@@ -204,7 +204,8 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
     // =================================== Setup Local Blockchain ===================================
     console.log('\n🔧 Setting up local blockchain...');
     const { Local } = await import('../../core/OracleRegistry.js');
-    Mina.setActiveInstance(Local);
+    const localBlockchain = await Local;
+    Mina.setActiveInstance(localBlockchain);
     
     const deployerAccount = getGleifDeployerAccount();
     const deployerKey = getGleifDeployerKey();
@@ -637,3 +638,54 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
     throw error;
   }
 }
+
+// =================================== Main Execution ===================================
+
+/**
+ * Main execution function when file is run directly
+ */
+async function main() {
+  const args = process.argv.slice(2);
+  
+  // ✅ FIXED: Handle company names with spaces correctly
+  // If single argument with spaces, treat as one company name
+  // If multiple arguments, join them as one company name
+  let companyNames: string[];
+  
+  if (args.length === 0) {
+    companyNames = ['Apple Inc'];
+  } else if (args.length === 1) {
+    // Single argument - could be one company name with spaces
+    companyNames = [args[0]];
+  } else {
+    // Multiple arguments - join them as one company name
+    const fullCompanyName = args.join(' ');
+    companyNames = [fullCompanyName];
+  }
+  
+  // ✅ Clean company names - remove any unwanted characters
+  const cleanedCompanyNames = companyNames.map(name => 
+    name.trim().replace(/[^\w\s\&\.\'\-]/g, '') // Keep only alphanumeric, spaces, &, ., ', -
+  );
+  
+  console.log(`🚀 Starting GLEIF Multi-Company Verification`);
+  console.log(`🏢 Companies: ${cleanedCompanyNames.join(', ')}`);
+  console.log(`📊 Total Companies: ${cleanedCompanyNames.length}`);
+  
+  try {
+    const result = await getGLEIFOptimMultiCompanyVerificationWithSignUtils(cleanedCompanyNames);
+    console.log('\n🎯 Verification completed successfully!');
+    console.log(`📈 Results: ${result.verificationResults.length} companies processed`);
+  } catch (error: any) {
+    console.error('💥 Error:', error);
+    console.error('💥 Error Stack:', error.stack);
+    process.exit(1);
+  }
+}
+
+// Execute main function if this file is run directly
+main().catch(err => {
+  console.error('💥 Fatal Error:', err);
+  console.error('💥 Fatal Error Stack:', err.stack);
+  process.exit(1);
+});

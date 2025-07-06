@@ -151,14 +151,23 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   
-  // Parse company names from comma-separated string or individual arguments
+  // ✅ FIXED: Handle company names with spaces correctly
   if (args.length === 1 && args[0].includes(',')) {
     // Comma-separated format
     companyNames = args[0].split(',').map((name: string) => name.trim()).filter((name: string) => name.length > 0);
+  } else if (args.length === 1) {
+    // Single company name (possibly with spaces)
+    companyNames = [args[0].trim()];
   } else {
-    // Individual arguments
-    companyNames = args;
+    // Multiple arguments - join them as one company name
+    const fullCompanyName = args.join(' ').trim();
+    companyNames = [fullCompanyName];
   }
+  
+  // ✅ Clean company names - remove any problematic characters
+  companyNames = companyNames.map((name: string) => 
+    name.replace(/[^\w\s\&\.\'\-]/g, '') // Keep only safe characters
+  ).filter((name: string) => name.length > 0);
   
   if (companyNames.length === 0) {
     console.error('❌ Error: At least one company name is required');

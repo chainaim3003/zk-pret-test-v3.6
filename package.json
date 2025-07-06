@@ -31,6 +31,12 @@
     "force-precompile": "node scripts/smart-precompile.js force",
     "build-with-precompile": "npm run build && npm run precompile-zk",
     
+    "_comment_local": "=== LOCAL DEVELOPMENT (Windows Compatible) ===",
+    "test:local-complete": "npm run build && node build/scripts/local-deploy-verify.js",
+    "example:local-apple": "npm run build && node build/scripts/local-deploy-verify.js \"APPLE INC\"",
+    "example:local-sree": "npm run build && node build/scripts/local-deploy-verify.js \"SREE PALANI ANDAVAR AGROS PRIVATE LIMITED\"",
+    "example:local-microsoft": "npm run build && node build/scripts/local-deploy-verify.js \"MICROSOFT CORPORATION\"",
+    
     "_comment_deployment": "=== GLEIF DEPLOYMENT SYSTEM ===",
     "deploy": "npm run build && node build/scripts/deploy.js",
     "deploy:local": "npm run deploy local-gleif",

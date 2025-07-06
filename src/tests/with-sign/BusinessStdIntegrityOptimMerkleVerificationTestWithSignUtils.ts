@@ -27,41 +27,50 @@ export class BusinessStdIntegrityOptimMerkleTestUtils {
 
   /**
    * Deploy local Mina blockchain and compile ZK programs
+   * RESTORED: Original working pattern for BusinessStd test
    */
   static async localDeploy() {
-    const Local = await Mina.LocalBlockchain({ proofsEnabled: this.proofsEnabled });
-    Mina.setActiveInstance(Local);
+    // ✅ Reset Mina to clean state, then create dedicated LocalBlockchain
+    // This handles any existing LocalBlockchain from OracleRegistry
+    try {
+      const Local = await Mina.LocalBlockchain({ proofsEnabled: this.proofsEnabled || false });
+      Mina.setActiveInstance(Local);
+      console.log('✅ Fresh LocalBlockchain created for BusinessStd test');
+      
+      const deployerAccount = Local.testAccounts[0];
+      const deployerKey = deployerAccount.key;
+      const senderAccount = Local.testAccounts[1];
+      const senderKey = senderAccount.key;
     
-    const deployerAccount = Local.testAccounts[0];
-    const deployerKey = deployerAccount.key;
-    const senderAccount = Local.testAccounts[1];
-    const senderKey = senderAccount.key;
-    
-    // Compile programs and contracts
-    console.log('🔧 Compiling ZK Program...');
-    const compilationResult = await BusinessStdIntegrityOptimMerkleVerifier.compile();
-    console.log('✅ ZK Program compiled');
-    
-    console.log('🔧 Compiling Smart Contract...');
-    await BusinessStdIntegrityOptimMerkleSmartContract.compile();
-    console.log('✅ Smart Contract compiled');
-    
-    // Create contract instance
-    const zkAppPrivateKey = PrivateKey.random();
-    const zkAppAddress = zkAppPrivateKey.toPublicKey();
-    const zkApp = new BusinessStdIntegrityOptimMerkleSmartContract(zkAppAddress);
-    
-    return {
-      Local,
-      deployerKey,
-      deployerAccount,
-      senderKey,
-      senderAccount,
-      zkAppPrivateKey,
-      zkAppAddress,
-      zkApp,
-      compilationResult
-    };
+      // Compile programs and contracts
+      console.log('🔧 Compiling ZK Program...');
+      const compilationResult = await BusinessStdIntegrityOptimMerkleVerifier.compile();
+      console.log('✅ ZK Program compiled');
+      
+      console.log('🔧 Compiling Smart Contract...');
+      await BusinessStdIntegrityOptimMerkleSmartContract.compile();
+      console.log('✅ Smart Contract compiled');
+      
+      // Create contract instance
+      const zkAppPrivateKey = PrivateKey.random();
+      const zkAppAddress = zkAppPrivateKey.toPublicKey();
+      const zkApp = new BusinessStdIntegrityOptimMerkleSmartContract(zkAppAddress);
+      
+      return {
+        Local,
+        deployerKey,
+        deployerAccount,
+        senderKey,
+        senderAccount,
+        zkAppPrivateKey,
+        zkAppAddress,
+        zkApp,
+        compilationResult
+      };
+    } catch (error) {
+      console.error('❌ Failed to create LocalBlockchain for BusinessStd test:', error);
+      throw error;
+    }
   }
 
   /**
