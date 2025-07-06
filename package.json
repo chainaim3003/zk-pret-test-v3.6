@@ -30,6 +30,15 @@
     "test-complete-standard": "node complete-test-runner.mjs \"APPLE INC\" TESTNET STANDARD",
     "force-precompile": "node scripts/smart-precompile.js force",
     "build-with-precompile": "npm run build && npm run precompile-zk",
+    
+    "_comment_deployment": "=== GLEIF DEPLOYMENT SYSTEM ===",
+    "deploy": "npm run build && node build/scripts/deploy.js",
+    "deploy:local": "npm run deploy local-gleif",
+    "deploy:testnet": "npm run deploy testnet-gleif-dev",
+    "deploy:testnet-stable": "npm run deploy testnet-gleif",
+    "deploy:mainnet": "npm run deploy mainnet-gleif",
+    
+    "_comment_testing": "=== TESTING ===",
     "coverage": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js --coverage",
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js",
