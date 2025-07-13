@@ -9,8 +9,12 @@ async function main(): Promise<void> {
   // Set BUILD_ENV for LOCAL (Windows compatible)
   process.env.BUILD_ENV = 'LOCAL';
   
-  // ✅ FIXED: Handle spaces in company name properly
-  const companyName = process.argv.slice(2).join(' ');
+  // ✅ FIXED: Handle spaces in company name properly + remove Windows shell artifacts
+  const rawCompanyName = process.argv.slice(2).join(' ');
+  const companyName = rawCompanyName
+    .replace(/\^/g, '')              // Remove caret characters (Windows shell artifacts)
+    .replace(/\s+/g, ' ')            // Normalize multiple spaces to single space
+    .trim();                         // Final trim
 
   if (!companyName) {
     console.error('❌ Usage: npm run test:local-complete "COMPANY NAME"');

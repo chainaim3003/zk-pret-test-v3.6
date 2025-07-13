@@ -42,6 +42,7 @@
     "deploy:local": "npm run deploy local-gleif",
     "deploy:testnet": "npm run deploy testnet-gleif-dev",
     "deploy:testnet-stable": "npm run deploy testnet-gleif",
+    "deploy:testnet-force": "npm run deploy testnet-gleif-force",
     "deploy:mainnet": "npm run deploy mainnet-gleif",
     
     "_comment_testing": "=== TESTING ===",

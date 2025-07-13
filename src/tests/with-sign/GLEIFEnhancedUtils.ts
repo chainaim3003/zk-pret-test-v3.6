@@ -29,7 +29,107 @@ export interface GLEIFDataSummary {
 }
 
 /**
- * Fetch company data from GLEIF API with complete JSON printing
+ * ✅ ENHANCED: Two-Stage Lookup Implementation
+ * Fetch company data from GLEIF API with enhanced Stage 1 logging
+ */
+export async function fetchGLEIFDataWithFullLogging(companyName: string): Promise<GLEIFAPIResponse> {
+  console.log(`🔍 STAGE 1: Two-Stage Lookup - Resolving company name to LEI`);
+  console.log(`📋 Company Name: "${companyName}"`);
+  
+  // ✅ Enhanced: Clean the company name first
+  const cleanCompanyName = companyName
+    .trim()
+    .replace(/\^/g, '') // Remove any ^ characters
+    .replace(/[^\w\s\&\.\'\_]/g, '') // Keep only safe characters
+    .replace(/\s+/g, ' '); // Normalize spaces
+    
+  console.log(`🧹 Normalized: "${cleanCompanyName}"`);
+  
+  try {
+    const apiResponse = await fetchGLEIFCompanyDataWithFullDetails(cleanCompanyName);
+    
+    // ✅ Enhanced LEI extraction and validation
+    const lei = extractLEIFromGLEIFResponse(apiResponse);
+    const legalName = apiResponse.data[0].attributes?.entity?.legalName?.name;
+    
+    console.log(`✅ STAGE 1 SUCCESS: Name resolved to LEI`);
+    console.log(`   LEI: ${lei}`);
+    console.log(`   Legal Name: ${legalName}`);
+    console.log(`   Status: ${apiResponse.data[0].attributes?.entity?.status}`);
+    
+    return apiResponse;
+    
+  } catch (error) {
+    console.error(`❌ STAGE 1 FAILED: Could not resolve "${companyName}" to LEI`);
+    // FIXED: Properly handle unknown error type
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Company name resolution failed: ${errorMessage}`);
+  }
+}
+
+/**
+ * ✅ NEW: LEI extraction utility for two-stage lookup
+ */
+export function extractLEIFromGLEIFResponse(apiResponse: GLEIFAPIResponse): string {
+  if (!apiResponse.data || apiResponse.data.length === 0) {
+    throw new Error('No GLEIF data available for LEI extraction');
+  }
+  
+  const lei = apiResponse.data[0].attributes?.lei;
+  if (!lei) {
+    throw new Error('LEI not found in GLEIF response');
+  }
+  
+  // ✅ LEI format validation
+  if (!validateLEI(lei)) {
+    throw new Error(`Invalid LEI format: ${lei}`);
+  }
+  
+  return lei;
+}
+
+/**
+ * ✅ NEW: Enhanced company name normalization
+ */
+export function normalizeCompanyName(companyName: string): string {
+  return companyName
+    .trim()
+    .toUpperCase()
+    .replace(/\b(INC|CORP|LTD|LIMITED|PRIVATE|PVT|LLC|CORPORATION)\b\.?/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * ✅ NEW: LEI validation (ISO 17442 standard)
+ */
+export function validateLEI(lei: string): boolean {
+  // LEI format: 20 alphanumeric characters
+  const leiRegex = /^[A-Z0-9]{20}$/;
+  return leiRegex.test(lei);
+}
+
+/**
+ * ✅ NEW: Check if two company names might refer to same entity
+ */
+export function compareCompanyNames(name1: string, name2: string): number {
+  const normalized1 = normalizeCompanyName(name1);
+  const normalized2 = normalizeCompanyName(name2);
+  
+  if (normalized1 === normalized2) return 100; // Exact match
+  
+  // Simple similarity scoring
+  const words1 = normalized1.split(' ').filter(w => w.length > 2);
+  const words2 = normalized2.split(' ').filter(w => w.length > 2);
+  
+  const commonWords = words1.filter(word => words2.includes(word));
+  const similarity = (commonWords.length * 2) / (words1.length + words2.length) * 100;
+  
+  return Math.round(similarity);
+}
+
+/**
+ * ✅ INTERNAL: Original GLEIF API function (used by enhanced wrapper)
  */
 export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string): Promise<any> {
   let BASEURL;
@@ -391,10 +491,8 @@ async function main() {
 
 /**
  * Missing export aliases for backward compatibility
+ * NOTE: fetchGLEIFDataWithFullLogging is already defined above, removed duplicate
  */
-export async function fetchGLEIFDataWithFullLogging(companyName: string): Promise<GLEIFAPIResponse> {
-  return await fetchGLEIFCompanyDataWithFullDetails(companyName);
-}
 
 export function extractGLEIFSummary(apiResponse: GLEIFAPIResponse): GLEIFDataSummary {
   let firstRecord;

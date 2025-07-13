@@ -254,10 +254,50 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
       console.log(`${'='.repeat(80)}`);
 
       try {
-        // =================================== Fetch GLEIF Data ===================================
-        console.log(`\n📡 Fetching GLEIF data for ${companyName}...`);
+        // =================================== STAGE 1: Off-Chain Name → LEI Resolution ===================================
+        console.log(`\n🔍 STAGE 1: Resolving company name to LEI...`);
         const apiResponse: GLEIFAPIResponse = await fetchGLEIFDataWithFullLogging(companyName);
-        console.log(`✅ GLEIF data fetched successfully for ${companyName}`);
+        
+        // ✅ Extract LEI from API response
+        const companyLei = apiResponse.data[0].attributes.lei;
+        if (!companyLei) {
+          throw new Error(`No LEI found for company: "${companyName}"`);
+        }
+        
+        console.log(`✅ STAGE 1 SUCCESS: "${companyName}" → LEI: ${companyLei}`);
+
+        // =================================== STAGE 2: Check LEI Existence on Blockchain ===================================
+        console.log(`\n🔍 STAGE 2: Checking if LEI exists on blockchain...`);
+        
+        // ✅ TypeScript: Create MerkleMap witness for LEI lookup
+        const leiHashForLookup = CircuitString.fromString(companyLei).hash();
+        const companyKeyForLookup = CompanyKey.create(leiHashForLookup, leiHashForLookup);
+        const companyKeyFieldForLookup = companyKeyForLookup.toField();
+        const mapWitness = companiesMap.getWitness(companyKeyFieldForLookup);
+        
+        // ✅ o1js COMPLIANT: Query blockchain using LEI
+        const existingCompany = await zkApp.getCompanyByLEI(
+          CircuitString.fromString(companyLei),
+          mapWitness
+        );
+        
+        // ✅ TypeScript: Check boolean result properly
+        const companyExistsOnChain = existingCompany.exists.toBoolean();
+        
+        if (companyExistsOnChain) {
+          console.log(`🔄 REPEAT VERIFICATION: LEI ${companyLei} found on blockchain`);
+          console.log(`   Expected behavior: Companies +0, Verifications +1`);
+        } else {
+          console.log(`🆕 NEW COMPANY: LEI ${companyLei} not found on blockchain`);
+          console.log(`   Expected behavior: Companies +1, Verifications +1`);
+        }
+
+        // =================================== State Tracking for Two-Stage Validation ===================================
+        console.log(`\n📊 Blockchain State BEFORE Verification:`);
+        const stateBeforeVerification = zkApp.getGlobalComplianceStats();
+        console.log(`  Total Companies: ${stateBeforeVerification.totalCompanies.toString()}`);
+        console.log(`  Total Verifications: ${stateBeforeVerification.totalVerifications.toString()}`);
+        console.log(`  Compliant Companies: ${stateBeforeVerification.compliantCompanies.toString()}`);
 
         // =================================== Analyze Compliance ===================================
         console.log(`\n🔍 Analyzing compliance for ${companyName}...`);
@@ -451,23 +491,23 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
           throw new Error(`Company record creation failed: ${recordError.message}`);
         }
         
-        const lei = complianceData.lei.toString();
+        const companyLeiString = complianceData.lei.toString();
         
         // =================================== Prepare MerkleMap Witness for Real Storage ===================================
         console.log(`\n🗺️ Preparing MerkleMap witness for company storage...`);
         
         // Create company key for storage
-        const companyKey = CompanyKey.create(
+        const companyKeyForStorage = CompanyKey.create(
           complianceData.lei.hash(),
           complianceData.name.hash()
         );
-        const companyKeyField = companyKey.toField();
+        const companyKeyFieldForStorage = companyKeyForStorage.toField();
         
-        console.log(`  Company Key: ${companyKeyField.toString()}`);
+        console.log(`  Company Key: ${companyKeyFieldForStorage.toString()}`);
         console.log(`  Map Root Before: ${companiesMap.getRoot().toString()}`);
         
         // Add company to registry and get witness
-        const companyWitness = companyRegistry.addOrUpdateCompany(lei, companyRecord, CompanyMerkleWitness, Poseidon);
+        const companyWitness = companyRegistry.addOrUpdateCompany(companyLeiString, companyRecord, CompanyMerkleWitness, Poseidon);
         console.log(`✅ Company added to registry. Total companies: ${companyRegistry.getTotalCompanies()}`);
         
         // Store company in our local MerkleMap (matches what smart contract will do)
@@ -487,13 +527,13 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
           companyRecord.lastFailTime.value
         ]);
         
-        companiesMap.set(companyKeyField, companyRecordHash);
+        companiesMap.set(companyKeyFieldForStorage, companyRecordHash);
         console.log(`  Map Root After Update: ${companiesMap.getRoot().toString()}`);
         console.log(`  Stored Company Record Hash: ${companyRecordHash.toString()}`);
 
         // =================================== Show Contract State Before Verification ===================================
         console.log(`\n📊 Smart Contract State BEFORE Verification:`);
-        const stateBefore = logSmartContractState(zkApp, 'BEFORE');
+        const stateBeforeContract = logSmartContractState(zkApp, 'BEFORE');
         
         // Show compliance field analysis BEFORE verification
         logComplianceFieldAnalysis(complianceData, isCompliant, 'Pre-Verification');
@@ -504,11 +544,11 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
         try {
           // Get witness for this company in the map AFTER storing the company record
           // This ensures the witness corresponds to the updated map state
-          const mapWitness = companiesMap.getWitness(companyKeyField);
-          console.log(`🔍 MerkleMap witness obtained for company key: ${companyKeyField.toString()}`);
+          const mapWitnessForContract = companiesMap.getWitness(companyKeyFieldForStorage);
+          console.log(`🔍 MerkleMap witness obtained for company key: ${companyKeyFieldForStorage.toString()}`);
           
           // Validate mapWitness before using it in transaction
-          if (!mapWitness) {
+          if (!mapWitnessForContract) {
             throw new Error('❌ MerkleMap witness is null or undefined');
           }
           
@@ -516,7 +556,7 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
           const txn = await Mina.transaction(
             senderAccount,
             async () => {
-              await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, mapWitness);
+              await zkApp.verifyOptimizedComplianceWithProof(proof, companyWitness, companyRecord, mapWitnessForContract);
             }
           );
 
@@ -540,8 +580,10 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
         console.log('📊 Contract state after verification:');
         const stateAfter = logSmartContractState(zkApp, 'AFTER');
         
-        // Show state changes
-        logStateChanges(stateBefore, stateAfter);
+        // Show state changes using proper RegistryInfo types
+        const registryStateBefore = zkApp.getRegistryInfo();
+        const registryStateAfter = zkApp.getRegistryInfo();
+        logStateChanges(registryStateBefore, registryStateAfter);
         
         // Show compliance field analysis AFTER
         logComplianceFieldAnalysis(complianceData, isCompliant, 'Post-Verification');
@@ -573,12 +615,12 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
             validLEI: analysis.hasValidLEI,
           },
           stateChanges: {
-            totalCompaniesBefore: stateBefore.totalCompaniesTracked.toString(),
-            totalCompaniesAfter: stateAfter.totalCompaniesTracked.toString(),
-            compliantCompaniesBefore: stateBefore.compliantCompaniesCount.toString(),
-            compliantCompaniesAfter: stateAfter.compliantCompaniesCount.toString(),
-            globalScoreBefore: addCompliancePercentage(stateBefore).compliancePercentage.toString(),
-            globalScoreAfter: addCompliancePercentage(stateAfter).compliancePercentage.toString(),
+            totalCompaniesBefore: registryStateBefore.totalCompaniesTracked.toString(),
+            totalCompaniesAfter: registryStateAfter.totalCompaniesTracked.toString(),
+            compliantCompaniesBefore: registryStateBefore.compliantCompaniesCount.toString(),
+            compliantCompaniesAfter: registryStateAfter.compliantCompaniesCount.toString(),
+            globalScoreBefore: addCompliancePercentage(registryStateBefore).compliancePercentage.toString(),
+            globalScoreAfter: addCompliancePercentage(registryStateAfter).compliancePercentage.toString(),
           }
         });
 

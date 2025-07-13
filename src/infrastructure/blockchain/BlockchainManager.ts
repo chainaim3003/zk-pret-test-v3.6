@@ -16,9 +16,9 @@ export class BlockchainManager {
   /**
    * Ensures LocalBlockchain exists and is set as active instance
    * Following o1js pattern: expensive operations in beforeAll() equivalent
-   * Default to proofsEnabled: false for fast development testing
+   * ✅ FIXED: Default to proofsEnabled: true for proper ZK verification
    */
-  static async ensureLocalBlockchain(proofsEnabled: boolean = false): Promise<any> {
+  static async ensureLocalBlockchain(proofsEnabled: boolean = true): Promise<any> {
     if (!this.localInstance) {
       console.log('🔧 BlockchainManager: Creating shared LocalBlockchain instance...');
       this.localInstance = await Mina.LocalBlockchain({ proofsEnabled });
@@ -78,9 +78,9 @@ export class BlockchainManager {
   /**
    * Gets blockchain instance with lazy initialization
    * Useful for components that need blockchain access
-   * Default to proofsEnabled: false for fast development testing
+   * ✅ FIXED: Default to proofsEnabled: true for proper ZK verification
    */
-  static async getOrCreateLocalBlockchain(proofsEnabled: boolean = false): Promise<any> {
+  static async getOrCreateLocalBlockchain(proofsEnabled: boolean = true): Promise<any> {
     await this.ensureLocalBlockchain(proofsEnabled);
     return this.localInstance;
   }

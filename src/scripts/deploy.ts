@@ -18,6 +18,7 @@ async function main(): Promise<void> {
     console.error('  🧪 Testnet Development:');
     console.error('     npm run deploy testnet-gleif-dev');
     console.error('     npm run deploy testnet-gleif');
+    console.error('     npm run deploy testnet-gleif-force');
     console.error('');
     console.error('  🚀 Production:');
     console.error('     npm run deploy mainnet-gleif');
@@ -25,6 +26,7 @@ async function main(): Promise<void> {
     console.error('Or use convenience scripts:');
     console.error('  npm run deploy:local');
     console.error('  npm run deploy:testnet');
+    console.error('  npm run deploy:testnet-force');
     console.error('  npm run deploy:mainnet');
     process.exit(1);
   }

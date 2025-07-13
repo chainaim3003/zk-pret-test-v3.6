@@ -456,7 +456,7 @@ function shouldCreateLocalBlockchain(): boolean {
 }
 
 export const Local = shouldCreateLocalBlockchain() 
-  ? BlockchainManager.getOrCreateLocalBlockchain(false)
+  ? BlockchainManager.getOrCreateLocalBlockchain(true)  // ✅ FIXED: Enable proofs for LOCAL
   : Promise.resolve(null);
 
 console.log(`✅ Oracle Registry: Clean architecture initialized for ${detectedEnvironment} environment`);

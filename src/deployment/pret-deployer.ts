@@ -275,6 +275,18 @@ export class PRETDeployer {
     console.log(`🔍 Checking for existing deployment...`);
     console.log(`   Environment: ${context.environment.toUpperCase()}`);
     console.log(`   Contract: ${context.contractName}`);
+    console.log(`   Alias: ${context.alias.name}`);
+
+    // ===== FORCE DEPLOYMENT BYPASS =====
+    const isForceDeployment = context.alias.name.includes('-force');
+    if (isForceDeployment) {
+      console.log(`💪 FORCE DEPLOYMENT DETECTED`);
+      console.log(`   ➡️  Bypassing existing deployment check - will always deploy new`);
+      return {
+        shouldReuse: false,
+        reason: 'Force deployment requested - bypassing existing deployment checks'
+      };
+    }
 
     // Environment-specific deployment strategy
     const environmentCheck = this.addMicroStep(step, 'EVALUATE_ENVIRONMENT_STRATEGY', () => {
@@ -949,7 +961,144 @@ export class PRETDeployer {
   }
 
   private static async updateDeploymentRecord(aliasName: string, result: any, verificationKey: any, step: DeploymentStep): Promise<void> {
-    // Implementation matches existing working code
-    console.log('Updating deployment record...');
+    await this.addMicroStepAsync(step, 'UPDATE_CONFIG_FILE', async () => {
+      console.log(`📝 Updating deployment record for alias: ${aliasName}`);
+      
+      // Determine config file path based on alias
+      const configPath = this.getConfigFilePath(aliasName);
+      console.log(`   Config file: ${configPath}`);
+      
+      // Read current config
+      const configContent = await fs.promises.readFile(configPath, 'utf8');
+      const config = JSON.parse(configContent);
+      
+      // Ensure deployments structure exists
+      if (!config.deployments) {
+        config.deployments = {};
+      }
+      if (!config.deployments.contracts) {
+        config.deployments.contracts = {};
+      }
+      
+      // Get contract name from alias definition
+      const aliasConfig = config.deployAliases[aliasName];
+      if (!aliasConfig) {
+        throw new Error(`Alias configuration not found for: ${aliasName}`);
+      }
+      
+      const contractName = aliasConfig.contractName;
+      
+      // Create deployment record
+      const deploymentRecord = {
+        address: result.contractAddress,
+        status: 'DEPLOYED',
+        deployedAt: new Date().toISOString(),
+        transactionHash: result.transactionHash,
+        alias: aliasName,
+        oracle: aliasConfig.oracle,
+        contractName: contractName,
+        zkAppPrivateKey: result.zkAppPrivateKey,
+        verificationKey: {
+          data: verificationKey.data,
+          hash: verificationKey.hash
+        },
+        deploymentMetrics: {
+          proofTime: result.proofTime || 0,
+          broadcastTime: result.broadcastTime || 0,
+          totalDeploymentTime: Date.now() - step.startTime
+        }
+      };
+      
+      const isForceDeployment = aliasName.includes('-force');
+      
+      if (isForceDeployment) {
+        // ===== FORCE DEPLOYMENT: Update main record + create timestamped record =====
+        console.log(`💪 Processing force deployment - will update main contract record`);
+        
+        // 1. Preserve existing main deployment info (Con 1: Address metadata loss)
+        const existingMainRecord = config.deployments.contracts[contractName];
+        if (existingMainRecord) {
+          // Add deployment lineage to preserve original deployment info
+          (deploymentRecord as any).deploymentLineage = {
+            originalAlias: existingMainRecord.alias,
+            originalAddress: existingMainRecord.address,
+            originalDeployedAt: existingMainRecord.deployedAt,
+            promotedFrom: aliasName,
+            promotedAt: new Date().toISOString(),
+            replacedVkHash: existingMainRecord.verificationKey?.hash
+          };
+          console.log(`   📋 Preserving original deployment info from: ${existingMainRecord.alias}`);
+        }
+        
+        // 2. Add deployment scope info (Con 2: Address deployment confusion)
+        (deploymentRecord as any).deploymentScope = {
+          type: 'FORCE_PROMOTED',
+          servingAliases: this.getServingAliases(config, contractName),
+          reason: 'Critical contract update via force deployment',
+          sourceAlias: aliasName
+        };
+        
+        // 3. Update main contract record (this is what other aliases check)
+        config.deployments.contracts[contractName] = deploymentRecord;
+        console.log(`✅ Main deployment record updated: ${contractName}`);
+        console.log(`   📍 New address: ${result.contractAddress}`);
+        console.log(`   🔄 Now serving aliases: ${(deploymentRecord as any).deploymentScope.servingAliases.join(', ')}`);
+        
+        // 4. Also create timestamped force record for audit trail
+        const forceDeploymentKey = `${contractName}_FORCE_${Date.now()}`;
+        config.deployments.contracts[forceDeploymentKey] = {
+          ...deploymentRecord,
+          deploymentScope: {
+            ...(deploymentRecord as any).deploymentScope,
+            type: 'FORCE_AUDIT_RECORD'
+          }
+        };
+        console.log(`📝 Audit record created: ${forceDeploymentKey}`);
+      } else {
+        // ===== REGULAR DEPLOYMENT: Standard main record update =====
+        config.deployments.contracts[contractName] = deploymentRecord;
+        console.log(`✅ Deployment record updated: ${contractName}`);
+        console.log(`   Address: ${result.contractAddress}`);
+        console.log(`   Transaction: ${result.transactionHash}`);
+      }
+      
+      // Write updated config back to file
+      const updatedConfigContent = JSON.stringify(config, null, 2);
+      await fs.promises.writeFile(configPath, updatedConfigContent, 'utf8');
+      
+      return { updated: true, configPath };
+    });
+  }
+  
+  private static getConfigFilePath(aliasName: string): string {
+    // Determine environment from alias name
+    if (aliasName.startsWith('local-')) {
+      return path.resolve(__dirname, '../../config/environments/local.json');
+    } else if (aliasName.startsWith('testnet-')) {
+      return path.resolve(__dirname, '../../config/environments/testnet.json');
+    } else if (aliasName.startsWith('mainnet-')) {
+      return path.resolve(__dirname, '../../config/environments/mainnet.json');
+    } else {
+      throw new Error(`Unable to determine environment from alias: ${aliasName}`);
+    }
+  }
+  
+  /**
+   * Helper method to determine which aliases will be served by a contract deployment
+   * Used for Con 2: Adding clarity about deployment scope
+   */
+  private static getServingAliases(config: any, contractName: string): string[] {
+    const servingAliases: string[] = [];
+    
+    // Find all aliases that use this contract
+    if (config.deployAliases) {
+      for (const [aliasName, aliasConfig] of Object.entries(config.deployAliases)) {
+        if ((aliasConfig as any).contractName === contractName) {
+          servingAliases.push(aliasName);
+        }
+      }
+    }
+    
+    return servingAliases;
   }
 }

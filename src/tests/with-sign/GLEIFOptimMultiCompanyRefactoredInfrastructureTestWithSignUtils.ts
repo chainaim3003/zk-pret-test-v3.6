@@ -21,7 +21,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // Import o1js directly
-import { Field, Mina, PrivateKey, PublicKey, AccountUpdate, CircuitString, Poseidon, Signature, MerkleTree, UInt64, Bool, fetchAccount, Permissions, UInt32 } from 'o1js';
+import { Field, Mina, PrivateKey, PublicKey, AccountUpdate, CircuitString, Poseidon, Signature, MerkleTree, MerkleMap, MerkleMapWitness, UInt64, Bool, fetchAccount, Permissions, UInt32 } from 'o1js';
 
 // =================================== Fee Configuration for DEVNET - O1JS BEST PRACTICES ===================================
 // Optimized fee configuration following o1js recommendations for DEVNET
@@ -112,6 +112,16 @@ import {
 
 // PRACTICAL STATE TRACKER - Auto-discovers contract address, gets real blockchain data
 import { PracticalStateTracker } from './PracticalStateTracker.js';
+
+// ✅ NEW: Direct contract state querying - eliminates local registries
+import { 
+  checkCompanyExistsOnChain,
+  createContractStateBasedWitness,
+  logContractState,
+  validateContractAccess,
+  type CompanyExistenceResult,
+  type WitnessCreationResult
+} from '../../utils/contract/ContractStateQueries.js';
 
 // =================================== PHASE 1: O1JS BEST PRACTICES IMPORTS ===================================
 import { createHash } from 'crypto';
@@ -1470,11 +1480,27 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         console.log(`✅ ZK proof generated successfully for ${companyName}`);
         proofs.push(proof);
 
-        // =================================== Add Company to Registry ===================================
-        console.log(`\n📋 Adding ${companyName} to company registry...`);
+        // =================================== 🔧 CRITICAL FIX: Create MerkleMapWitness BEFORE Adding Company ===================================
+        console.log(`\n🔧 CRITICAL FIX: Creating MerkleMapWitness BEFORE adding company to registry...`);
         const isCompliant = proof.publicOutput.isGLEIFCompliant;
         const companyRecord = createCompanyRecord(complianceData, isCompliant, currentTimestamp, true);
         const lei = complianceData.lei.toString();
+        
+        // Create proper MerkleMapWitness for the companies map
+        // For a new company, we need a witness that proves the company doesn't exist yet
+        const companiesMap = new MerkleMap();
+        
+        // Create company key for the map
+        const companyLEIHash = complianceData.lei.hash();
+        const companyNameHash = complianceData.name.hash();
+        const companyKeyField = Poseidon.hash([companyLEIHash, companyNameHash]);
+        
+        // Get witness for the company key (should prove non-existence for new company)
+        const companiesMapWitness = companiesMap.getWitness(companyKeyField);
+        console.log(`✅ MerkleMapWitness created from empty map (for non-existence proof)`);
+        
+        // =================================== Add Company to Registry ===================================
+        console.log(`\n📋 Adding ${companyName} to company registry...`);
         
         // Add company to registry and get witness
         const companyWitness = companyRegistry.addOrUpdateCompany(lei, companyRecord);
@@ -1531,18 +1557,7 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         console.log(`\n⚡ Executing smart contract verification transaction...`);
         console.log(`🔐 Submitting ZK proof to blockchain...`);
 
-        // Create proper MerkleMapWitness for the companies map
-        // For a new company, we need a witness that proves the company doesn't exist yet
-        const { MerkleMap, MerkleMapWitness } = await import('o1js');
-        const companiesMap = new MerkleMap();
-        
-        // Create company key for the map
-        const companyLEIHash = complianceData.lei.hash();
-        const companyNameHash = complianceData.name.hash();
-        const companyKeyField = Poseidon.hash([companyLEIHash, companyNameHash]);
-        
-        // Get witness for the company key (should prove non-existence for new company)
-        const companiesMapWitness = companiesMap.getWitness(companyKeyField);
+        // 🔧 FIXED: MerkleMapWitness now created before adding company to registry (above)
 
         // Get appropriate fee for current environment
         const verificationFee = getTransactionFee(currentEnvironment);
