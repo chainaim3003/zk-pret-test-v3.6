@@ -1,12 +1,12 @@
 /**
- * FIXED: Network Oracle Registry for DEVNET + testnet.json accounts
- * 🎯 CORE FIX: Connect to DEVNET but use pre-funded accounts from testnet.json
+ * FIXED: Network Oracle Registry for DEVNET + config/environments/testnet.json accounts
+ * 🎯 CORE FIX: Connect to DEVNET but use pre-funded accounts from config/environments/testnet.json
  * 
  * CRITICAL CHANGES:
  * 1. ✅ Connects to DEVNET with networkId: 'testnet' 
- * 2. ✅ Uses pre-funded DEVNET accounts from testnet.json
+ * 2. ✅ Uses pre-funded DEVNET accounts from config/environments/testnet.json
  * 3. ✅ Verifies actual DEVNET connection
- * 4. ✅ Maps testnet.json roles to oracle types
+ * 4. ✅ Maps testnet.json oracle registry roles to oracle types
  */
 
 import { Mina, PrivateKey, PublicKey, fetchAccount } from 'o1js';
@@ -125,23 +125,44 @@ export class NetworkOracleRegistry implements OracleRegistry {
   }
 
   /**
-   * 🎯 Load pre-funded DEVNET accounts from testnet.json
+   * 🎯 Load pre-funded DEVNET accounts from config/environments/testnet.json
    */
   private async loadTestnetAccountsForDevnet(): Promise<void> {
-    console.log(`📋 Loading pre-funded DEVNET accounts from testnet.json...`);
+    console.log(`📋 Loading pre-funded DEVNET accounts from config/environments/testnet.json...`);
     
     try {
       const projectRoot = process.cwd();
-      const testnetAccountsPath = path.join(projectRoot, 'testnet-accounts-2025-07-01T17-54-01-694Z.json');
+      const testnetConfigPath = path.join(projectRoot, 'config/environments/testnet.json');
       
-      if (!fs.existsSync(testnetAccountsPath)) {
-        throw new Error(`testnet.json not found: ${testnetAccountsPath}`);
+      if (!fs.existsSync(testnetConfigPath)) {
+        throw new Error(`testnet.json not found: ${testnetConfigPath}`);
       }
 
-      const accountsData = fs.readFileSync(testnetAccountsPath, 'utf8');
-      this.testnetAccounts = JSON.parse(accountsData);
+      const configData = fs.readFileSync(testnetConfigPath, 'utf8');
+      const config = JSON.parse(configData);
       
-      console.log(`📁 Found ${this.testnetAccounts.length} account groups in testnet.json`);
+      // Navigate to oracles.registry
+      const oracleRegistry = config.oracles?.registry;
+      if (!oracleRegistry) {
+        throw new Error('No oracles.registry found in testnet.json');
+      }
+      
+      // Transform the nested object structure to the expected array format
+      this.testnetAccounts = [];
+      for (const [role, oracleData] of Object.entries(oracleRegistry)) {
+        if (oracleData && typeof oracleData === 'object') {
+          const data = oracleData as any;
+          if (data.deployer && data.sender) {
+            this.testnetAccounts.push({
+              role,
+              deployer: data.deployer,
+              sender: data.sender
+            });
+          }
+        }
+      }
+      
+      console.log(`📁 Found ${this.testnetAccounts.length} account groups in config/environments/testnet.json`);
       
       // Load accounts into registries
       for (const accountGroup of this.testnetAccounts) {
@@ -157,7 +178,7 @@ export class NetworkOracleRegistry implements OracleRegistry {
         console.warn(`⚠️ Missing essential roles: ${missingRoles.join(', ')}`);
       }
 
-      console.log(`✅ Loaded ${this.deployerRegistry.size} deployer accounts from testnet.json`);
+      console.log(`✅ Loaded ${this.deployerRegistry.size} deployer accounts from config/environments/testnet.json`);
       console.log(`📋 Available roles: ${loadedRoles.join(', ')}`);
       
     } catch (error) {
@@ -167,7 +188,7 @@ export class NetworkOracleRegistry implements OracleRegistry {
   }
 
   /**
-   * Load individual account group from testnet.json
+   * Load individual account group from config/environments/testnet.json
    */
   private async loadAccountGroup(accountGroup: TestnetAccount): Promise<void> {
     try {
@@ -322,7 +343,7 @@ export class NetworkOracleRegistry implements OracleRegistry {
     return Array.from(this.deployerRegistry.keys());
   }
 
-  // 🎯 Deployer and Sender Account Methods (using testnet.json accounts)
+  // 🎯 Deployer and Sender Account Methods (using config/environments/testnet.json accounts)
   
   getDeployerAccount(oracleType: string): PublicKey {
     this.ensureInitialized();
