@@ -1027,8 +1027,32 @@ export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificat
         senderKey = getSenderKey('GLEIF');
         
         console.log('✅ Blockchain environment initialized with DEVNET Oracle accounts');
-        console.log(`  🎯 GLEIF Deployer: ${deployerAccount.toBase58()} (Funded: ~297.9 MINA)`);
-        console.log(`  🎯 GLEIF Sender: ${senderAccount.toBase58()}`);
+        
+        // Fetch and display real-time balances for both accounts
+        try {
+          const deployerBalance = await fetchAccount({ publicKey: deployerAccount });
+          const deployerActualBalance = Number(deployerBalance.account?.balance?.toString() || '0') / 1e9;
+          console.log(`  🎯 GLEIF Deployer Account: ${deployerAccount.toBase58()}`);
+          console.log(`  💰 Current Balance: ${deployerActualBalance.toFixed(3)} MINA (Real-time from TESTNET)`);
+          console.log(`  📋 Role: Contract deployment and management`);
+        } catch (deployerBalanceError) {
+          console.log(`  🎯 GLEIF Deployer Account: ${deployerAccount.toBase58()}`);
+          console.log(`  💰 Balance: Unable to fetch (will be verified during deployment)`);
+          console.log(`  📋 Role: Contract deployment and management`);
+        }
+        
+        try {
+          const senderBalance = await fetchAccount({ publicKey: senderAccount });
+          const senderActualBalance = Number(senderBalance.account?.balance?.toString() || '0') / 1e9;
+          console.log(`  🎯 GLEIF Sender Account: ${senderAccount.toBase58()}`);
+          console.log(`  💰 Current Balance: ${senderActualBalance.toFixed(3)} MINA (Real-time from TESTNET)`);
+          console.log(`  📋 Role: Transaction fees and signatures`);
+        } catch (senderBalanceError) {
+          console.log(`  🎯 GLEIF Sender Account: ${senderAccount.toBase58()}`);
+          console.log(`  💰 Balance: Unable to fetch (will be verified during deployment)`);
+          console.log(`  📋 Role: Transaction fees and signatures`);
+        }
+        
         console.log('  🌐 Connected to: MINA DEVNET via Oracle Registry');
         console.log('  📍 Transactions will appear in DEVNET explorer');
         

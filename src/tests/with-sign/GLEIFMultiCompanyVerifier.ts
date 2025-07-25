@@ -88,7 +88,7 @@ export async function verifyGLEIFMultiCompanyCompliance(
   companyNames: string[], 
   useExistingContract: boolean = true
 ): Promise<VerificationResponse> {
-  console.log('\n🔍 GLEIF Multi-Company Compliance Verifier (ENHANCED)');
+  console.log('\n🔍 GLEIF Multi-Company Compliance Verifier');
   console.log('='.repeat(60));
   console.log(`🏢 Companies to verify: ${companyNames.length}`);
   console.log(`📋 Use existing contract: ${useExistingContract ? 'YES' : 'NO'}`);
@@ -98,17 +98,9 @@ export async function verifyGLEIFMultiCompanyCompliance(
     // =================================== Smart Contract Discovery ===================================
     console.log('\n📋 Step 1: Smart contract discovery with Environment-Aware Manager...');
     
-    // Create deployment manager (auto-detects environment)
-    // const deploymentManager = await createDeploymentManager(); // Temporarily disabled
-    // Use hardcoded contract address for now
-    const contractAddress = "B62qoMdRZ5G386t3TiV2MKVEpG9jQgbzBHJyybae2PPckctoKndhh8j";
-    
-    // Check deployment status
-    // const deploymentDecision = deploymentManager.shouldRedeploy();
-    // deploymentManager.displayDeploymentDecision(deploymentDecision);
-    
-    // Skip deployment check for now
-    console.log(`📍 Using contract address: ${contractAddress}`);
+    // Contract address will be determined by infrastructure during verification
+    console.log('📍 Contract address: Loaded dynamically from environment configuration');
+    console.log('✅ Using environment-aware contract discovery');
     
     /*
     if (deploymentDecision.requiresRedeployment) {
@@ -179,7 +171,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   
-  console.log('🔍 GLEIF Multi-Company Compliance Verifier (FIXED)');
+  console.log('🔍 GLEIF Multi-Company Compliance Verifier');
   console.log('='.repeat(60));
   console.log(`🏢 Companies to verify: ${companyNames.join(', ')}`);
   console.log(`📊 Total Companies: ${companyNames.length}`);
@@ -187,41 +179,8 @@ async function main(): Promise<void> {
   try {
     const result: VerificationResponse = await verifyGLEIFMultiCompanyCompliance(companyNames, true);
     
-    console.log('\n🎉 VERIFICATION PROCESS COMPLETED SUCCESSFULLY!');
-    console.log(`🏢 Total Companies Verified: ${result.verificationResults.length}`);
-    
-    const successfulCount: number = result.verificationResults.filter((r: VerificationResult) => !r.error).length;
-    const compliantCount: number = result.verificationResults.filter((r: VerificationResult) => r.isCompliant && !r.error).length;
-    
-    console.log(`✅ Successfully Processed: ${successfulCount}`);
-    console.log(`✅ Compliant Companies: ${compliantCount}`);
-    
-    if (successfulCount > 0) {
-      const complianceRate: number = Math.round((compliantCount / successfulCount) * 100);
-      console.log(`📊 Overall Compliance Rate: ${complianceRate}%`);
-    }
-    
-    // Detailed results
-    console.log('\n📋 Detailed Results:');
-    result.verificationResults.forEach((company: VerificationResult, index: number) => {
-      const status: string = company.error ? '❌ ERROR' : (company.isCompliant ? '✅ COMPLIANT' : '⚠️ NON-COMPLIANT');
-      console.log(`\n  ${index + 1}. ${company.companyName}: ${status}`);
-      
-      if (!company.error) {
-        console.log(`     📄 LEI: ${company.lei}`);
-        console.log(`     📊 Score: ${company.complianceScore}%`);
-        console.log(`     🕒 Verified: ${new Date(Number(company.verificationTime)).toISOString()}`);
-        
-        if (company.complianceFields) {
-          console.log(`     🏢 Entity Status: "${company.complianceFields.entityStatus}" ${company.businessRules?.entityActive ? '✅' : '❌'}`);
-          console.log(`     📋 Registration Status: "${company.complianceFields.registrationStatus}" ${company.businessRules?.registrationIssued ? '✅' : '❌'}`);
-          console.log(`     🔍 Conformity Flag: "${company.complianceFields.conformityFlag}" ${company.businessRules?.conformityOk ? '✅' : '❌'}`);
-        }
-      } else {
-        console.log(`     ❌ Error: ${company.error}`);
-      }
-    });
-    
+    // Simple completion message - detailed results are shown by the infrastructure layer above
+    console.log('\n✅ VERIFICATION COMPLETED - See detailed results above');
     console.log('\n📋 Next Steps:');
     console.log('  1. ✅ Companies verified and recorded on blockchain');
     console.log('  2. 🌐 Check contract state on MinaScan or MinaExplorer');

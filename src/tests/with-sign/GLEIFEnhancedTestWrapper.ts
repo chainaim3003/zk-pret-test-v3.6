@@ -6,6 +6,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+import { fetchAccount } from 'o1js';
 import { 
   initializeOracleRegistry,
   getDeployerAccount,
@@ -13,6 +14,7 @@ import {
   environmentManager,
   deploymentManager
 } from '../../infrastructure/index.js';
+import { getEnvironmentDisplayName } from './GLEIFEnvironmentAwareUtils.js';
 
 import { 
   getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificationWithSignUtils 
@@ -49,7 +51,19 @@ export async function runGLEIFTestWithFundedAccounts(companyNames: string[]) {
         const gleifDeployerKey = getDeployerKey('GLEIF');
         
         console.log(`🎯 GLEIF Deployer Account: ${gleifDeployer.toBase58()}`);
-        console.log(`💰 Expected to have ~297.9 MINA available`);
+        console.log(`📋 Role: Contract deployment and management`);
+        console.log(`🌐 Network: ${getEnvironmentDisplayName()}`);
+        
+        // Fetch actual balance dynamically
+        try {
+          const deployerBalance = await fetchAccount({ publicKey: gleifDeployer });
+          const actualBalance = Number(deployerBalance.account?.balance?.toString() || '0') / 1e9;
+          console.log(`💰 Current Balance: ${actualBalance.toFixed(3)} MINA (Real-time from TESTNET)`);
+        } catch (balanceError) {
+          console.log(`💰 Balance: Unable to fetch (will be verified during deployment)`);
+          console.log(`💡 This is normal if the account is not yet deployed on the network`);
+        }
+        
         console.log('✅ DEVNET Oracle accounts accessible');
         
       } catch (accountError) {

@@ -363,7 +363,8 @@ function analyzeGLEIFStructureForZK(record: any): void {
   }
 
   // Generate ZK optimization recommendations
-  generateZKOptimizationRecommendations(zkOptimizationSuggestions);
+  //generateZKOptimizationRecommendations(zkOptimizationSuggestions);
+
 }
 
 /**
