@@ -580,10 +580,8 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
         console.log('📊 Contract state after verification:');
         const stateAfter = logSmartContractState(zkApp, 'AFTER');
         
-        // Show state changes using proper RegistryInfo types
-        const registryStateBefore = zkApp.getRegistryInfo();
-        const registryStateAfter = zkApp.getRegistryInfo();
-        logStateChanges(registryStateBefore, registryStateAfter);
+        // ✅ FIXED: Use actual before and after states for meaningful state changes
+        logStateChanges(stateBeforeContract, stateAfter);
         
         // Show compliance field analysis AFTER
         logComplianceFieldAnalysis(complianceData, isCompliant, 'Post-Verification');
@@ -615,12 +613,12 @@ export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
             validLEI: analysis.hasValidLEI,
           },
           stateChanges: {
-            totalCompaniesBefore: registryStateBefore.totalCompaniesTracked.toString(),
-            totalCompaniesAfter: registryStateAfter.totalCompaniesTracked.toString(),
-            compliantCompaniesBefore: registryStateBefore.compliantCompaniesCount.toString(),
-            compliantCompaniesAfter: registryStateAfter.compliantCompaniesCount.toString(),
-            globalScoreBefore: addCompliancePercentage(registryStateBefore).compliancePercentage.toString(),
-            globalScoreAfter: addCompliancePercentage(registryStateAfter).compliancePercentage.toString(),
+            totalCompaniesBefore: stateBeforeContract.totalCompaniesTracked.toString(),
+            totalCompaniesAfter: stateAfter.totalCompaniesTracked.toString(),
+            compliantCompaniesBefore: stateBeforeContract.compliantCompaniesCount.toString(),
+            compliantCompaniesAfter: stateAfter.compliantCompaniesCount.toString(),
+            globalScoreBefore: addCompliancePercentage(stateBeforeContract).compliancePercentage.toString(),
+            globalScoreAfter: addCompliancePercentage(stateAfter).compliancePercentage.toString(),
           }
         });
 
