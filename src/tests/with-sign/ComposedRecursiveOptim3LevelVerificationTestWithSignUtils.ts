@@ -8,7 +8,9 @@ import { ComposedOptimComplianceVerifierSC } from './ComposedRecursiveOptim3Leve
 // Import individual Optim service utilities
 import { getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils } from './CorporateRegistrationOptimSingleCompanyVerificationTestWithSignUtils.js';
 import { getEXIMOptimSingleCompanyVerificationWithSignUtils } from './EXIMOptimSingleCompanyVerificationTestWithSignUtils.js';
-import { getGLEIFOptimMultiCompanyVerificationWithSignUtils } from './GLEIFOptimMultiCompanyVerificationTestWithSignUtils.js';
+//import { getGLEIFOptimMultiCompanyVerificationWithSignUtils } from './GLEIFOptimMultiCompanyVerificationTestWithSignUtils.js';
+import { getGLEIFMultiCompanyVerifierLocalUtils} from './GLEIFMultiCompanyVerifierLocalUtils.js';
+
 
 import { MCAdeployerAccount, MCAsenderAccount, MCAdeployerKey, MCAsenderKey } from '../../core/OracleRegistry.js';
 
@@ -324,7 +326,7 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
         
         // GLEIF Proof - Use Company Name
         console.log(`🌍 Generating GLEIF proof with Company Name: ${companyName}...`);
-        const gleifResult = await getGLEIFOptimMultiCompanyVerificationWithSignUtils(
+        const gleifResult = await getGLEIFMultiCompanyVerifierLocalUtils(
           [companyName] // Use Company Name for GLEIF (wrapped in array for multi-company function)
         );
         const gleifProof = gleifResult.proofs[0]; // Get first proof from multi-company result

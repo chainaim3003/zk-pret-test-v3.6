@@ -36,7 +36,7 @@ async function main(): Promise<void> {
     
     return new Promise((resolve, reject) => {
       const verifyProcess = spawn('node', [
-        './build/tests/with-sign/GLEIFOptimMultiCompanyVerificationTestWithSignUtils.js',
+        './build/tests/with-sign/GLEIFMultiCompanyVerifierLocalUtils.js',
         companyName  // Pass as single argument
       ], {
         stdio: 'inherit',
