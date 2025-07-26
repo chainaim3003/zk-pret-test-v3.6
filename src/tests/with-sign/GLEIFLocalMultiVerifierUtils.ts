@@ -39,7 +39,7 @@ import {
   createComprehensiveGLEIFMerkleTree,
   createOptimizedGLEIFComplianceData,
   createCompanyRecord
-} from './GLEIFEnhancedUtils.js';
+} from './GLEIFCoreAPIUtils.js';
 import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
 
 // =================================== Compliance Analysis Functions ===================================
@@ -194,7 +194,7 @@ export function logStateChanges(stateBefore: RegistryInfo, stateAfter: RegistryI
 // =================================== Main Multi-Company Verification Function ===================================
 
 //export async function getGLEIFOptimMultiCompanyVerificationWithSignUtils(
-export async function getGLEIFMultiCompanyVerifierLocalUtils(
+export async function getGLEIFLocalMultiVerifierUtils(
   companyNames: string[], 
 ) {
   console.log(`\n🚀 GLEIF Multi-Company Verification Test Started`);
@@ -714,7 +714,7 @@ async function main() {
   console.log(`📊 Total Companies: ${cleanedCompanyNames.length}`);
   
   try {
-    const result = await getGLEIFMultiCompanyVerifierLocalUtils(cleanedCompanyNames);
+    const result = await getGLEIFLocalMultiVerifierUtils(cleanedCompanyNames);
     console.log('\n🎯 Verification completed successfully!');
     console.log(`📈 Results: ${result.verificationResults.length} companies processed`);
   } catch (error: any) {

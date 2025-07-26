@@ -78,7 +78,7 @@ import {
   createComprehensiveGLEIFMerkleTree as enhancedCreateComprehensiveGLEIFMerkleTree,
   createOptimizedGLEIFComplianceData as enhancedCreateOptimizedGLEIFComplianceData,
   createCompanyRecord as enhancedCreateCompanyRecord
-} from './GLEIFEnhancedUtils.js';
+} from './GLEIFCoreAPIUtils.js';
 import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
 
 // Import for oracle key management (new semantic approach)
@@ -964,7 +964,7 @@ async function safeContractCompilationWithValidation(
 // =================================== Main Multi-Company Verification Function with Infrastructure ===================================
 
 //export async function getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificationWithSignUtils(
-export async function getGLEIFMultiCompanyVerifierUtils(
+export async function getGLEIFNetworkMultiVerifierUtils(
   companyNames: string[], 
 ) {
   console.log(`\n🚀 GLEIF Multi-Company Refactored Infrastructure Verification Test Started`);

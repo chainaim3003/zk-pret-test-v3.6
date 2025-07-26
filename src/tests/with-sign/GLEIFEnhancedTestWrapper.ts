@@ -20,7 +20,8 @@ import { getEnvironmentDisplayName } from './GLEIFEnvironmentAwareUtils.js';
 //  getGLEIFOptimMultiCompanyRefactoredInfrastructureVerificationWithSignUtils 
 //} from './GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.js';
 
-import { getGLEIFMultiCompanyVerifierUtils} from './GLEIFMultiCompanyVerifierUtils.js';
+//import { getGLEIFMultiCompanyVerifierUtils} from './GLEIFNetworkMultiVerifierUtils.js';
+import { getGLEIFNetworkMultiVerifierUtils} from './GLEIFNetworkMultiVerifierUtils.js';
 
 /**
  * Enhanced GLEIF verification with proper account management
@@ -86,7 +87,7 @@ export async function runGLEIFTestWithFundedAccounts(companyNames: string[]) {
     console.log('🚀 Starting GLEIF Multi-Company verification...');
     console.log('🎯 Oracle Registry initialized - utils will use environment-aware accounts');
     
-    const result = await getGLEIFMultiCompanyVerifierUtils(companyNames);
+    const result = await getGLEIFNetworkMultiVerifierUtils(companyNames);
     
     console.log('\n✅ ENHANCED GLEIF TEST COMPLETED SUCCESSFULLY!');
     
