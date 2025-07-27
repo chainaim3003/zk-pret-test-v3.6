@@ -75,6 +75,7 @@ import {
   GLEIFAPIResponse,
   extractGLEIFSummary,
   analyzeGLEIFCompliance,
+  CompanyRegistry,
   createComprehensiveGLEIFMerkleTree,
   createOptimizedGLEIFComplianceData,
   createCompanyRecord
@@ -330,105 +331,8 @@ function logComplianceFieldAnalysis(
 }
 
 // =================================== Multi-Company Registry Management ===================================
-// Using local implementation since the enhanced version needs parameterized imports
-
-/**
- * Local Company registry for managing multiple companies in merkle tree
- * Using local implementation to avoid import conflicts
- */
-class LocalCompanyRegistry {
-  public companiesTree: MerkleTree;
-  public companyRecords: Map<string, { record: GLEIFCompanyRecord; index: number }>;
-  public nextIndex: number;
-
-  constructor() {
-    this.companiesTree = new MerkleTree(COMPANY_MERKLE_HEIGHT);
-    this.companyRecords = new Map();
-    this.nextIndex = 0;
-  }
-
-  /**
-   * Add or update a company in the registry
-   */
-  addOrUpdateCompany(lei: string, companyRecord: GLEIFCompanyRecord): CompanyMerkleWitness {
-    let index: number;
-    
-    if (this.companyRecords.has(lei)) {
-      // Update existing company
-      index = this.companyRecords.get(lei)!.index;
-      console.log(`📝 Updating existing company at index ${index}: ${lei}`);
-    } else {
-      // Add new company
-      index = this.nextIndex++;
-      console.log(`➕ Adding new company at index ${index}: ${lei}`);
-    }
-    
-    // Calculate company record hash using the same method as the smart contract (enhanced)
-    const companyHash = Poseidon.hash([
-      companyRecord.leiHash,
-      companyRecord.legalNameHash,
-      companyRecord.jurisdictionHash,
-      companyRecord.isCompliant.toField(),
-      companyRecord.complianceScore,
-      companyRecord.totalVerifications,
-      companyRecord.passedVerifications,
-      companyRecord.failedVerifications,
-      companyRecord.consecutiveFailures,
-      companyRecord.lastVerificationTime.value,
-      companyRecord.firstVerificationTime.value,
-      companyRecord.lastPassTime.value,
-      companyRecord.lastFailTime.value
-    ]);
-    
-    // Update merkle tree
-    this.companiesTree.setLeaf(BigInt(index), companyHash);
-    
-    // Store company record
-    this.companyRecords.set(lei, { record: companyRecord, index });
-    
-    // Return witness for this company
-    return new CompanyMerkleWitness(this.companiesTree.getWitness(BigInt(index)));
-  }
-
-  /**
-   * Get merkle witness for a company
-   */
-  getCompanyWitness(lei: string): CompanyMerkleWitness | null {
-    const entry = this.companyRecords.get(lei);
-    if (!entry) return null;
-    
-    return new CompanyMerkleWitness(this.companiesTree.getWitness(BigInt(entry.index)));
-  }
-
-  /**
-   * Get company record
-   */
-  getCompanyRecord(lei: string): GLEIFCompanyRecord | null {
-    const entry = this.companyRecords.get(lei);
-    return entry ? entry.record : null;
-  }
-
-  /**
-   * Get merkle root of companies tree
-   */
-  getRoot(): Field {
-    return this.companiesTree.getRoot();
-  }
-
-  /**
-   * Get all tracked companies
-   */
-  getAllCompanies(): string[] {
-    return Array.from(this.companyRecords.keys());
-  }
-
-  /**
-   * Get total number of companies
-   */
-  getTotalCompanies(): number {
-    return this.companyRecords.size;
-  }
-}
+// ✅ CONSOLIDATION COMPLETE: Now using centralized CompanyRegistry from GLEIFCoreAPIUtils.js
+// Local LocalCompanyRegistry class removed to prevent duplication
 
 // =================================== GLEIF Data Processing Functions ===================================
 // ✅ CONSOLIDATION COMPLETE: Now using centralized functions from GLEIFCoreAPIUtils.js
@@ -1246,7 +1150,8 @@ export async function getGLEIFNetworkMultiVerifierUtils(
     console.log('='.repeat(50));
 
     // =================================== Initialize Company Registry ===================================
-    const companyRegistry = new LocalCompanyRegistry();
+    const companyRegistry = new CompanyRegistry(COMPANY_MERKLE_HEIGHT);
+    companyRegistry.initializeMerkleTree(MerkleTree);
     const proofs = [];
     const verificationResults = [];
 
@@ -1410,7 +1315,7 @@ export async function getGLEIFNetworkMultiVerifierUtils(
         console.log(`\n📋 Adding ${companyName} to company registry...`);
         
         // Add company to registry and get witness
-        const companyWitness = companyRegistry.addOrUpdateCompany(lei, companyRecord);
+        const companyWitness = companyRegistry.addOrUpdateCompany(lei, companyRecord, CompanyMerkleWitness, Poseidon);
         
         if (companyExists) {
           console.log(`🔄 Updating existing company verification`);
@@ -1731,7 +1636,6 @@ export async function getGLEIFNetworkMultiVerifierUtils(
 export { 
   safeGetGlobalComplianceStats,
   addCompliancePercentage,
-  LocalCompanyRegistry,
   MerkleWitness8,
   analyzeComplianceFields,
   logComplianceFieldAnalysis
