@@ -75,10 +75,12 @@ import {
   GLEIFAPIResponse,
   extractGLEIFSummary,
   analyzeGLEIFCompliance,
-  createComprehensiveGLEIFMerkleTree as enhancedCreateComprehensiveGLEIFMerkleTree,
-  createOptimizedGLEIFComplianceData as enhancedCreateOptimizedGLEIFComplianceData,
-  createCompanyRecord as enhancedCreateCompanyRecord
+  createComprehensiveGLEIFMerkleTree,
+  createOptimizedGLEIFComplianceData,
+  createCompanyRecord
 } from './GLEIFCoreAPIUtils.js';
+
+
 import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
 
 // Import for oracle key management (new semantic approach)
@@ -429,190 +431,10 @@ class LocalCompanyRegistry {
 }
 
 // =================================== GLEIF Data Processing Functions ===================================
-// Using local implementations for functions that need specific imports
+// ✅ CONSOLIDATION COMPLETE: Now using centralized functions from GLEIFCoreAPIUtils.js
+// Local duplicate implementations below are commented out to prevent conflicts
 
-/**
-* Create a comprehensive merkle tree from GLEIF API response
- */
-function createComprehensiveGLEIFMerkleTree(
-  apiResponse: GLEIFAPIResponse,
-): {
-tree: MerkleTree,
-extractedData: any,
-  fieldCount: number
-} {
-console.log('🌳 Creating comprehensive GLEIF Merkle tree...');
-
-const tree = new MerkleTree(MERKLE_TREE_HEIGHT);
-let fieldCount = 0;
-  const extractedData: any = {};
-
-// Helper function to safely set field in tree
-function setTreeField(fieldName: string, value: string | undefined | any[] | null, index: number) {
-let safeValue: string;
-
-// Handle different data types from GLEIF API
-if (value === null || value === undefined) {
-  safeValue = '';
-} else if (Array.isArray(value)) {
-// Handle arrays (like bic, mic codes) by joining them
-  safeValue = value.filter(v => v != null).join(',');
-} else if (typeof value === 'object') {
-// Handle objects by converting to string representation
-  safeValue = JSON.stringify(value);
-} else {
-// Handle strings and primitives
-  safeValue = String(value);
-}
-
-try {
-const circuitValue = CircuitString.fromString(safeValue);
-const hash = circuitValue.hash();
-tree.setLeaf(BigInt(index), hash);
-extractedData[fieldName] = circuitValue;
-fieldCount++;
-  console.log(`  Set field ${fieldName} (${index}): "${safeValue.substring(0, 50)}${safeValue.length > 50 ? '...' : ''}"`);
-} catch (error) {
-console.error(`❌ Error setting field ${fieldName}:`, error);
-// Set empty value as fallback
-const fallbackValue = CircuitString.fromString('');
-const hash = fallbackValue.hash();
-tree.setLeaf(BigInt(index), hash);
-extractedData[fieldName] = fallbackValue;
-fieldCount++;
-  console.log(`  Set field ${fieldName} (${index}) with fallback: ""`);
-  }
-  }
-
-try {
-console.log('📋 Processing live GLEIF API structure...');
-const firstRecord = apiResponse.data && apiResponse.data[0] ? apiResponse.data[0] : null;
-if (!firstRecord) {
-  throw new Error('No GLEIF records found in API response');
-}
-
-const attributes = firstRecord.attributes || {};
-const entity = attributes.entity || {};
-const registration = attributes.registration || {};
-
-// Core compliance fields (indices 0-9) - Fixed mapping
-setTreeField('legalName', entity.legalName?.name, GLEIF_FIELD_INDICES.legalName);
-setTreeField('lei', attributes.lei, GLEIF_FIELD_INDICES.lei);
-setTreeField('entityStatus', entity.status, GLEIF_FIELD_INDICES.entityStatus);
-setTreeField('legalForm', entity.legalForm?.id, GLEIF_FIELD_INDICES.legalForm);
-setTreeField('jurisdiction', entity.jurisdiction, GLEIF_FIELD_INDICES.jurisdiction);
-setTreeField('legalAddress', entity.legalAddress?.addressLines?.[0], GLEIF_FIELD_INDICES.legalAddress);
-setTreeField('legalCity', entity.legalAddress?.city, GLEIF_FIELD_INDICES.legalCity);
-setTreeField('legalCountry', entity.legalAddress?.country, GLEIF_FIELD_INDICES.legalCountry);
-setTreeField('registrationAuthority', entity.registeredAt?.id, GLEIF_FIELD_INDICES.registrationAuthority);
-setTreeField('entityCategory', entity.category, GLEIF_FIELD_INDICES.entityCategory);
-
-// Additional GLEIF fields
-if (GLEIF_FIELD_INDICES.businessRegisterEntityId !== undefined) {
-  setTreeField('businessRegisterEntityId', entity.registeredAs, GLEIF_FIELD_INDICES.businessRegisterEntityId);
-}
-if (GLEIF_FIELD_INDICES.leiStatus !== undefined) {
-  setTreeField('leiStatus', registration.status, GLEIF_FIELD_INDICES.leiStatus);
-}
-if (GLEIF_FIELD_INDICES.initialRegistrationDate !== undefined) {
-  setTreeField('initialRegistrationDate', registration.initialRegistrationDate, GLEIF_FIELD_INDICES.initialRegistrationDate);
-}
-if (GLEIF_FIELD_INDICES.lastUpdateDate !== undefined) {
-  setTreeField('lastUpdateDate', registration.lastUpdateDate, GLEIF_FIELD_INDICES.lastUpdateDate);
-}
-if (GLEIF_FIELD_INDICES.nextRenewalDate !== undefined) {
-  setTreeField('nextRenewalDate', registration.nextRenewalDate, GLEIF_FIELD_INDICES.nextRenewalDate);
-}
-
-// Required fields for ZK program witnesses (must be present even if empty)
-if (GLEIF_FIELD_INDICES.registration_status !== undefined) {
-  setTreeField('registration_status', registration.status, GLEIF_FIELD_INDICES.registration_status);
-}
-if (GLEIF_FIELD_INDICES.bic_codes !== undefined) {
-  setTreeField('bic_codes', attributes.bic, GLEIF_FIELD_INDICES.bic_codes);
-}
-if (GLEIF_FIELD_INDICES.mic_codes !== undefined) {
-  setTreeField('mic_codes', attributes.mic, GLEIF_FIELD_INDICES.mic_codes);
-}
-
-// Additional fields from attributes
-if (GLEIF_FIELD_INDICES.conformityFlag !== undefined) {
-  setTreeField('conformityFlag', attributes.conformityFlag, GLEIF_FIELD_INDICES.conformityFlag);
-}
-if (GLEIF_FIELD_INDICES.managingLou !== undefined) {
-  setTreeField('managingLou', registration.managingLou, GLEIF_FIELD_INDICES.managingLou);
-    }
-
-console.log(`✅ Created Merkle tree with ${fieldCount} fields`);
-console.log(`🌳 Merkle root: ${tree.getRoot().toString()}`);
-
-return { tree, extractedData, fieldCount };
-  
-} catch (error) {
-console.error('❌ Error creating Merkle tree:', error);
-  throw error;
-  }
-}
-
-/**
-* Create optimized compliance data from extracted fields
- */
-function createOptimizedGLEIFComplianceData(
-extractedData: any,
-  merkleRoot: Field
-): GLEIFOptimComplianceData {
-return new GLEIFOptimComplianceData({
-lei: extractedData.lei || CircuitString.fromString(''),
-name: extractedData.legalName || CircuitString.fromString(''),
-entity_status: extractedData.entityStatus || CircuitString.fromString(''),
-registration_status: extractedData.registration_status || CircuitString.fromString(''),
-conformity_flag: extractedData.conformityFlag || CircuitString.fromString(''),
-initialRegistrationDate: extractedData.initialRegistrationDate || CircuitString.fromString(''),
-lastUpdateDate: extractedData.lastUpdateDate || CircuitString.fromString(''),
-nextRenewalDate: extractedData.nextRenewalDate || CircuitString.fromString(''),
-bic_codes: extractedData.bic_codes || CircuitString.fromString(''),
-mic_codes: extractedData.mic_codes || CircuitString.fromString(''),
-managing_lou: extractedData.managingLou || CircuitString.fromString(''),
-  merkle_root: merkleRoot,
-  });
-}
-
-/**
-* Create a company record from GLEIF compliance data and verification info (Enhanced)
- * Fixed: Use JavaScript conditional to prevent both pass and fail times being set
- */
-function createCompanyRecord(
-complianceData: GLEIFOptimComplianceData,
-isCompliant: Bool,
-verificationTimestamp: UInt64,
-  isFirstVerification: boolean = true
-): GLEIFCompanyRecord {
-const currentTime = verificationTimestamp;
-const zeroTime = UInt64.from(0);
-
-// Simple JavaScript conditional for test utils (not in circuit)
-// The conditional logic should work correctly as originally written
-const lastPassTime = isCompliant.toJSON() ? currentTime : zeroTime;
-const lastFailTime = !isCompliant.toJSON() ? currentTime : zeroTime;
-
-return new GLEIFCompanyRecord({
-leiHash: complianceData.lei.hash(),
-legalNameHash: complianceData.name.hash(),
-jurisdictionHash: CircuitString.fromString('Global').hash(), // GLEIF is global
-isCompliant: isCompliant,
-complianceScore: isCompliant.toField().mul(100), // 100 if compliant, 0 if not
-totalVerifications: Field(1), // This will be updated if company already exists
-passedVerifications: isCompliant.toField(), // 1 if passed, 0 if failed
-failedVerifications: isCompliant.not().toField(), // 1 if failed, 0 if passed
-consecutiveFailures: isCompliant.not().toField(), // 1 if this verification failed, 0 if passed
-lastVerificationTime: currentTime,
-firstVerificationTime: currentTime, // Set to current time for new verifications
-// Fixed: Use simple JavaScript conditional for test utils
-lastPassTime: lastPassTime,
-lastFailTime: lastFailTime,
-  });
-}
-
+// The three GLEIF functions are now imported from GLEIFCoreAPIUtils.js and used with proper parameters
 // =================================== PHASE 1: O1JS BEST PRACTICES VK VALIDATION FUNCTIONS ===================================
 
 /**
@@ -1506,7 +1328,9 @@ export async function getGLEIFNetworkMultiVerifierUtils(
 
         // =================================== Create Comprehensive Merkle Tree ===================================
         console.log(`\n🌳 Creating comprehensive Merkle tree for ${companyName}...`);
-        const { tree, extractedData, fieldCount } = createComprehensiveGLEIFMerkleTree(apiResponse);
+        const { tree, extractedData, fieldCount } = createComprehensiveGLEIFMerkleTree(
+          apiResponse, MerkleTree, CircuitString, MERKLE_TREE_HEIGHT, GLEIF_FIELD_INDICES
+        );
         console.log(`✅ Merkle tree created with ${fieldCount} fields`);
 
         // =================================== Prepare ZK Proof Data ===================================
@@ -1515,7 +1339,9 @@ export async function getGLEIFNetworkMultiVerifierUtils(
         const currentTimestamp = UInt64.from(Date.now());
         
         // Create optimized compliance data
-        const complianceData = createOptimizedGLEIFComplianceData(extractedData, merkleRoot);
+        const complianceData = createOptimizedGLEIFComplianceData(
+          extractedData, merkleRoot, CircuitString, GLEIFOptimComplianceData
+        );
         
         // Generate merkle witnesses for the 8 compliance fields (matching ZK program)
         const entityStatusWitness = new MerkleWitness8(tree.getWitness(BigInt(GLEIF_FIELD_INDICES.entity_status)));
@@ -1558,7 +1384,9 @@ export async function getGLEIFNetworkMultiVerifierUtils(
         // =================================== 🔧 CRITICAL FIX: Create MerkleMapWitness BEFORE Adding Company ===================================
         console.log(`\n🔧 Creating MerkleMapWitness for company verification...`);
         const isCompliant = proof.publicOutput.isGLEIFCompliant;
-        const companyRecord = createCompanyRecord(complianceData, isCompliant, currentTimestamp, true);
+        const companyRecord = createCompanyRecord(
+          complianceData, isCompliant, currentTimestamp, CircuitString, GLEIFCompanyRecord, Field, true
+        );
         const lei = complianceData.lei.toString();
         
         // Create proper MerkleMapWitness for the companies map
