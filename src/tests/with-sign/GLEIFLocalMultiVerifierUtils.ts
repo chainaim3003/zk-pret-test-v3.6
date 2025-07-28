@@ -38,9 +38,11 @@ import {
   CompanyRegistry,
   createComprehensiveGLEIFMerkleTree,
   createOptimizedGLEIFComplianceData,
-  createCompanyRecord
+  createCompanyRecord,
+  GLEIF_FIELD_INDICES
 } from './GLEIFCoreAPIUtils.js';
-import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
+
+//import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
 
 // =================================== Compliance Analysis Functions ===================================
 

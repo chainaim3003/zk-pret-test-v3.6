@@ -78,11 +78,11 @@ import {
   CompanyRegistry,
   createComprehensiveGLEIFMerkleTree,
   createOptimizedGLEIFComplianceData,
-  createCompanyRecord
+  createCompanyRecord,
+  GLEIF_FIELD_INDICES
 } from './GLEIFCoreAPIUtils.js';
 
-
-import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
+//import { GLEIF_FIELD_INDICES } from './GLEIFFieldIndices.js';
 
 // Import for oracle key management (new semantic approach)
 import { getGleifSignerKey } from '../../core/OracleRegistry.js';
