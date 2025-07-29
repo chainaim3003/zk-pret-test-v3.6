@@ -12,7 +12,7 @@ import {
   CompanyMerkleWitness 
 } from '../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
 import { GLEIFOptimComplianceData } from '../../zk-programs/with-sign/GLEIFOptimZKProgram.js';
-import { getExplorerUrl } from '../../tests/with-sign/GLEIFEnvironmentAwareUtils.js';
+import { BaseVerificationCore } from '../../tests/with-sign/base/BaseVerificationCore.js';
 
 /**
  * Enhanced verification transaction with comprehensive monitoring
@@ -71,7 +71,8 @@ export async function executeVerificationTransactionWithMonitoring(
       const signedTxn = await txn.sign([senderKey]).send();
       
       console.log(`📤 Transaction submitted: ${signedTxn.hash}`);
-      console.log(`🔗 Track transaction: ${getExplorerUrl('tx', signedTxn.hash)}`);
+      const baseCore = new BaseVerificationCore();
+      console.log(`🔗 Track transaction: ${baseCore.getExplorerUrl('tx', signedTxn.hash)}`);
       
       return signedTxn;
     },
@@ -154,7 +155,8 @@ export async function executeDeploymentTransactionWithMonitoring(
         const signedTxn = await deployTxn.sign([deployerKey, zkAppKey]).send();
         
         console.log(`📤 Deployment transaction submitted: ${signedTxn.hash}`);
-        console.log(`🔗 Track transaction: ${getExplorerUrl('tx', signedTxn.hash)}`);
+        const baseCore = new BaseVerificationCore();
+        console.log(`🔗 Track transaction: ${baseCore.getExplorerUrl('tx', signedTxn.hash)}`);
         
         return signedTxn;
         

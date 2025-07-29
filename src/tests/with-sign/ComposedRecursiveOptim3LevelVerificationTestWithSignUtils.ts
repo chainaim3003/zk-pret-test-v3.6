@@ -9,7 +9,7 @@ import { ComposedOptimComplianceVerifierSC } from './ComposedRecursiveOptim3Leve
 import { getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils } from './CorporateRegistrationOptimSingleCompanyVerificationTestWithSignUtils.js';
 import { getEXIMOptimSingleCompanyVerificationWithSignUtils } from './EXIMOptimSingleCompanyVerificationTestWithSignUtils.js';
 //import { getGLEIFOptimMultiCompanyVerificationWithSignUtils } from './GLEIFOptimMultiCompanyVerificationTestWithSignUtils.js';
-import { getGLEIFLocalMultiVerifierUtils} from './GLEIFLocalMultiVerifierUtils.js';
+import { getGLEIFLocalMultiVerifierUtils} from './local/GLEIFLocalMultiVerifierUtils.js';
 
 
 import { MCAdeployerAccount, MCAsenderAccount, MCAdeployerKey, MCAsenderKey } from '../../core/OracleRegistry.js';

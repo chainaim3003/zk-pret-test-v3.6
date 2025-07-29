@@ -368,82 +368,6 @@ function analyzeGLEIFStructureForZK(record: any): void {
 }
 
 /**
- * Generate specific ZK optimization recommendations
- */
-function generateZKOptimizationRecommendations(suggestions: any): void {
-  console.log('\n🎯 ZK CIRCUIT OPTIMIZATION RECOMMENDATIONS:');
-  console.log('='.repeat(80));
-  
-  // Calculate totals
-  const tier1Count = suggestions.tier1Individual.length;
-  const tier2Count = Object.values(suggestions.tier2Grouped).flat().length;
-  const tier3Count = suggestions.tier3Metadata.length;
-  const totalExtractable = tier1Count + tier2Count + tier3Count;
-  
-  console.log('\n✅ TIER 1 - Individual Fields (High Privacy, Core Compliance):');
-  console.log('   💡 Use these for: Basic KYC, Core compliance verification');
-  console.log('   🔒 Privacy Level: Maximum (selective disclosure)');
-  console.log('   ⚡ Constraint Cost: 960 + 1046 = 2,006 per field');
-  suggestions.tier1Individual.forEach((field: string, index: number) => {
-    console.log(`   ${index + 1}. ${field}`);
-  });
-  
-  console.log('\n✅ TIER 2 - Grouped Bundles (Efficiency Optimization):');
-  console.log('   💡 Use these for: Enhanced KYC, Address verification');
-  console.log('   🔒 Privacy Level: Medium (bundle revelation)');
-  console.log('   ⚡ Constraint Cost: 960 + 1046 = 2,006 per bundle');
-  Object.entries(suggestions.tier2Grouped).forEach(([bundleName, fields], index: number) => {
-    const fieldArray = fields as string[];
-    console.log(`   ${index + 1}. ${bundleName} (${fieldArray.length} fields):`);
-    fieldArray.forEach(field => {
-      console.log(`      - ${field}`);
-    });
-  });
-  
-  console.log('\n✅ TIER 3 - Metadata (Occasional Use):');
-  console.log('   💡 Use these for: Audit trails, Regulatory reporting');
-  console.log('   🔒 Privacy Level: Low impact');
-  console.log('   ⚡ Constraint Cost: 960 + 1046 = 2,006 per field');
-  suggestions.tier3Metadata.forEach((field: string, index: number) => {
-    console.log(`   ${index + 1}. ${field}`);
-  });
-  
-  console.log('\n✅ RELATIONSHIPS (Advanced Features):');
-  console.log('   💡 Use these for: Corporate structure, Complex verifications');
-  suggestions.relationshipData.forEach((rel: string, index: number) => {
-    console.log(`   ${index + 1}. ${rel}`);
-  });
-
-  // Usage scenarios
-  console.log('\n📊 OPTIMIZATION SCENARIOS:');
-  console.log('─'.repeat(60));
-  
-  console.log('\n🎯 Scenario 1 - Basic KYC (90% of use cases):');
-  console.log('   Fields: name, lei, status (3 individual fields)');
-  console.log('   Constraint cost: 3 × 2,006 = 6,018 constraints');
-  console.log('   Privacy: Maximum');
-  
-  console.log('\n🎯 Scenario 2 - Enhanced KYC (8% of use cases):');
-  console.log('   Fields: name, lei, status + legal_address_bundle (4 fields)');
-  console.log('   Constraint cost: 4 × 2,006 = 8,024 constraints');
-  console.log('   Privacy: Good (reveals address components)');
-  
-  console.log('\n🎯 Scenario 3 - Full Compliance (2% of use cases):');
-  console.log('   Fields: All tier 1 + 2 bundles + key tier 3 (8+ fields)');
-  console.log('   Constraint cost: 8 × 2,006 = 16,048 constraints');
-  console.log('   Privacy: Comprehensive disclosure');
-
-  console.log('\n📈 OPTIMIZATION IMPACT:');
-  console.log('─'.repeat(60));
-  console.log(`📊 Total extractable fields: ${totalExtractable}`);
-  console.log(`📊 Current implementation: 5 fields`);
-  console.log(`📊 Expansion potential: ${totalExtractable - 5} additional fields`);
-  console.log(`📊 Data richness increase: ${Math.round((totalExtractable / 5) * 100)}% more comprehensive`);
-  console.log(`⚡ Constraint efficiency: Support ${totalExtractable}x more data with same ZK framework`);
-  console.log(`🔒 Privacy benefit: Selective disclosure from ${totalExtractable} total fields`);
-}
-
-/**
  * Standard GLEIF API functions (existing compatibility)
  */
 export async function fetchGLEIFCompanyData(companyName: string): Promise<any> {
@@ -490,11 +414,6 @@ async function main() {
   }
 }
 
-/**
- * Missing export aliases for backward compatibility
- * NOTE: fetchGLEIFDataWithFullLogging is already defined above, removed duplicate
- */
-
 export function extractGLEIFSummary(apiResponse: GLEIFAPIResponse): GLEIFDataSummary {
   let firstRecord;
   if (Array.isArray(apiResponse.data)) {
@@ -538,11 +457,9 @@ export function analyzeGLEIFCompliance(apiResponse: GLEIFAPIResponse, typeOfNet?
 }
 
 // =================================== MULTI-COMPANY UTILITIES (CONSOLIDATION) ===================================
-// These utilities were moved from test utils files to eliminate redundancy
 
 /**
  * Company registry for managing multiple companies in merkle tree
- * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
  */
 export class CompanyRegistry {
   private companiesTree: any; // MerkleTree imported from o1js in actual usage
@@ -645,7 +562,7 @@ export class CompanyRegistry {
 
 /**
  * Create a comprehensive merkle tree from GLEIF API response
- * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
+ * FIXED: Restored from working version with correct field indices mapping
  */
 export function createComprehensiveGLEIFMerkleTree(
   apiResponse: GLEIFAPIResponse,
@@ -712,7 +629,7 @@ export function createComprehensiveGLEIFMerkleTree(
     const entity = attributes.entity || {};
     const registration = attributes.registration || {};
     
-    // Core compliance fields - Fixed mapping
+    // Core compliance fields - FIXED mapping with correct sequential indices
     setTreeField('legalName', entity.legalName?.name, GLEIF_FIELD_INDICES.legalName);
     setTreeField('lei', attributes.lei, GLEIF_FIELD_INDICES.lei);
     setTreeField('entityStatus', entity.status, GLEIF_FIELD_INDICES.entityStatus);
@@ -773,7 +690,6 @@ export function createComprehensiveGLEIFMerkleTree(
 
 /**
  * Create optimized compliance data from extracted fields
- * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
  */
 export function createOptimizedGLEIFComplianceData(
   extractedData: any,
@@ -799,7 +715,6 @@ export function createOptimizedGLEIFComplianceData(
 
 /**
  * Create a company record from GLEIF compliance data and verification info
- * Moved from GLEIFOptimMultiCompanyVerificationTestWithSignUtils.ts and GLEIFOptimMultiCompanyRefactoredInfrastructureTestWithSignUtils.ts
  */
 export function createCompanyRecord(
   complianceData: any,
@@ -937,17 +852,13 @@ export function createCompanyRecord(
   }
 }
 
-// =================================== END MULTI-COMPANY UTILITIES ===================================
-
-// =================================== GLEIF Field Indices (Migrated) ===================================
+// =================================== GLEIF Field Indices (FIXED) ===================================
 /**
  * GLEIF Field Indices for Merkle Tree Structure
- * This defines the standardized field positions for GLEIF data in merkle trees
- * 
- * MIGRATED FROM: GLEIFFieldIndices.ts for better organization
+ * FIXED: Restored correct sequential mapping from working version
  */
 export const GLEIF_FIELD_INDICES = {
-  // Core compliance fields (0-9)
+  // Core compliance fields (0-9) - CORRECT SEQUENTIAL ORDER
   legalName: 0,
   lei: 1,
   entityStatus: 2,

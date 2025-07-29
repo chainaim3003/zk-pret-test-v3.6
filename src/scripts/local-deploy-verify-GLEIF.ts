@@ -1,6 +1,7 @@
 /**
  * Local Deploy + Verify - O1JS Best Practices
  * Fixed: Uses shared LocalBlockchain to avoid conflicts
+ * UPDATED: Points to new consolidated local handler location
  */
 
 import { spawn } from 'child_process';
@@ -30,13 +31,12 @@ async function main(): Promise<void> {
     console.log('🏠 LOCAL Deploy + Verify Pipeline (O1JS Best Practices)');
     console.log('=======================================================');
     
-    // ✅ FIXED: Skip separate deployment, directly use working verifier
-    // The GLEIFOptimMultiCompanyVerificationTestWithSignUtils already handles deployment
-    console.log(`\n🔍 Verifying company "${companyName}" using integrated approach...`);
+    // ✅ UPDATED: Point to new consolidated local handler location
+    console.log(`\n🔍 Verifying company "${companyName}" using consolidated local handler...`);
     
     return new Promise((resolve, reject) => {
       const verifyProcess = spawn('node', [
-        './build/tests/with-sign/GLEIFLocalMultiVerifierUtils.js',
+        './build/tests/with-sign/local/GLEIFLocalMultiVerifierUtils.js',  // ← UPDATED: New location
         companyName  // Pass as single argument
       ], {
         stdio: 'inherit',
@@ -47,7 +47,8 @@ async function main(): Promise<void> {
         if (code === 0) {
           console.log('\n🎉 LOCAL Deploy + Verify completed successfully!');
           console.log('✅ O1JS Best Practices followed');
-          console.log('✅ Single LocalBlockchain used throughout');
+          console.log('✅ Consolidated local handler used');
+          console.log('✅ Composition pattern for shared compliance logic');
           console.log('✅ No deployment conflicts');
           resolve();
         } else {

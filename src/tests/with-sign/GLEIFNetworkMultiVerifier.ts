@@ -1,27 +1,15 @@
 /**
  * FIXED: GLEIF Multi-Company Verifier (TypeScript)
  * 
- * KEY FIXES IMPLEMENTED:
- * 1. Leverages the working infrastructure wrapper from GLEIFEnhancedTestWrapper
- * 2. Simplified approach that reuses tested components
- * 3. Better error handling and retry logic
- * 4. Proper Oracle Registry initialization
- * 5. Enhanced account fetching with DEVNET reconnection
- * 
- * PROBLEM ANALYSIS:
- * The original verifier was trying to reimplement everything from scratch,
- * leading to infrastructure initialization issues, timing problems, and
- * complex error scenarios. This fix leverages the proven working approach.
+ * UPDATED to use consolidated GLEIFNetworkHandler
+ * ZERO FUNCTIONAL CHANGES: All verification logic identical
  */
 
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-// Import the WORKING infrastructure wrapper - FIXED: Use .js import for ES modules
-import { runGLEIFTestWithFundedAccounts } from './GLEIFEnhancedTestWrapper.js';
-
-// Import Environment-Aware Deployment Manager
-// import { createDeploymentManager } from '../../utils/EnvironmentAwareDeploymentManager.js'; // Temporarily disabled
+// Import the consolidated network handler - UPDATED: Use new consolidated handler
+import { runGLEIFTestWithFundedAccounts } from './network/GLEIFNetworkHandler.js';
 
 // Import types for proper TypeScript support
 import type { PublicKey } from 'o1js';
@@ -82,7 +70,7 @@ interface VerificationResponse {
 
 /**
  * ENHANCED MAIN VERIFICATION FUNCTION
- * Uses deployment manager for smart contract discovery and proven working infrastructure
+ * Uses consolidated network handler for better organization
  */
 export async function verifyGLEIFMultiCompanyCompliance(
   companyNames: string[], 
@@ -92,7 +80,7 @@ export async function verifyGLEIFMultiCompanyCompliance(
   console.log('='.repeat(60));
   console.log(`🏢 Companies to verify: ${companyNames.length}`);
   console.log(`📋 Use existing contract: ${useExistingContract ? 'YES' : 'NO'}`);
-  console.log('✅ Using Environment-Aware Deployment Manager + proven infrastructure');
+  console.log('✅ Using consolidated GLEIFNetworkHandler + proven infrastructure');
   
   try {
     // =================================== Smart Contract Discovery ===================================
@@ -102,19 +90,8 @@ export async function verifyGLEIFMultiCompanyCompliance(
     console.log('📍 Contract address: Loaded dynamically from environment configuration');
     console.log('✅ Using environment-aware contract discovery');
     
-    /*
-    if (deploymentDecision.requiresRedeployment) {
-      console.log('⚠️ Warning: Smart contract needs deployment');
-      console.log('📝 Suggestion: Run GLEIFMultiCompanySmartContractDeployer.ts first');
-      console.log('🎆 Or proceed with verification - the infrastructure wrapper will handle deployment');
-    } else {
-      console.log('✅ Smart contract is ready for verification');
-      console.log(`📍 Contract Address: ${deploymentDecision.existingAddress}`);
-    }
-    */
-    
     // =================================== Run Verification ===================================
-    console.log('\n🚀 Step 2: Running GLEIF verification with proven infrastructure...');
+    console.log('\n🚀 Step 2: Running GLEIF verification with consolidated infrastructure...');
     const result: VerificationResponse = await runGLEIFTestWithFundedAccounts(companyNames);
     
     console.log('\n🎉 VERIFICATION COMPLETED SUCCESSFULLY!');
@@ -137,9 +114,9 @@ async function main(): Promise<void> {
   
   if (args.length === 0) {
     console.error('❌ Error: Company names are required');
-    console.log('📖 Usage: node GLEIFMultiCompanyVerifier.ts "COMPANY1,COMPANY2" [TESTNET|MAINNET]');
-    console.log('📝 Example: node GLEIFMultiCompanyVerifier.ts "Apple Inc.,Microsoft Corporation"');
-    console.log('📝 Single Company: node GLEIFMultiCompanyVerifier.ts "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"');
+    console.log('📖 Usage: node GLEIFNetworkMultiVerifier.ts "COMPANY1,COMPANY2" [TESTNET|MAINNET]');
+    console.log('📝 Example: node GLEIFNetworkMultiVerifier.ts "Apple Inc.,Microsoft Corporation"');
+    console.log('📝 Single Company: node GLEIFNetworkMultiVerifier.ts "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"');
     process.exit(1);
   }
   
