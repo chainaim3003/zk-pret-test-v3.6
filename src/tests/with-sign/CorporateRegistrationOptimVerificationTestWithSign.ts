@@ -16,7 +16,7 @@ import {
   CorporateRegistrationAPIResponse,
   extractCorporateRegistrationSummary,
   analyzeCorporateRegistrationCompliance
-} from './CorporateRegistrationEnhancedUtils.js';
+} from './CorporateRegistrationCoreAPIUtils.js';
 
 // =================================== Merkle Tree Creation Functions ===================================
 

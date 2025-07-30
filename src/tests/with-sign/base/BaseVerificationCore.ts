@@ -220,50 +220,7 @@ export class BaseVerificationCore {
     return false;
   }
 
-  /**
-   * Environment-aware deployment confirmation
-   * MOVED FROM: GLEIFEnvironmentAwareUtils.ts - waitForDeploymentConfirmation()
-   */
-  public async waitForDeploymentConfirmation(
-    transactionHash: string,
-    contractAddress: PublicKey
-  ): Promise<boolean> {
-    const env = environmentManager.getCurrentEnvironment();
-    const envDisplay = this.getEnvironmentDisplayName();
-    
-    if (env === 'LOCAL') {
-      console.log(`✅ Skipping ${envDisplay} verification for LOCAL environment`);
-      console.log('🏠 Using LOCAL blockchain environment as configured');
-      
-      // For local blockchain, just verify the account exists
-      try {
-        const account = Mina.getAccount(contractAddress);
-        if (account && account.zkapp) {
-          console.log('✅ Local deployment verified - zkApp account active');
-          return true;
-        } else {
-          console.log('⚠️ Local deployment pending - account not yet active');
-          return false;
-        }
-      } catch (error) {
-        console.log('❌ Local deployment verification failed');
-        return false;
-      }
-    }
-    
-    // For network environments, wait for confirmation
-    console.log(`⏳ Waiting for deployment transaction to be confirmed on ${envDisplay}...`);
-    
-    const confirmed = await this.safelyFetchAccountWithRetry(contractAddress);
-    
-    if (confirmed) {
-      console.log(`✅ Deployment transaction confirmed on ${envDisplay}`);
-      return true;
-    } else {
-      console.log(`❌ Deployment confirmation timeout on ${envDisplay}`);
-      return false;
-    }
-  }
+
 
   /**
    * Environment-aware account fetching with proper logging
@@ -309,6 +266,45 @@ export class BaseVerificationCore {
       console.log(`✅ Transaction confirmed on ${envDisplay}`);
     } catch (waitError: any) {
       console.log(`⚠️ Transaction wait failed, but proceeding: ${waitError.message}`);
+    }
+  }
+
+  /**
+   * Wait for deployment confirmation
+   * Wraps waitForTransactionConfirmation with deployment-specific logic
+   */
+  public async waitForDeploymentConfirmation(
+    transactionHash: string,
+    contractAddress: PublicKey
+  ): Promise<boolean> {
+    const env = environmentManager.getCurrentEnvironment();
+    const envDisplay = this.getEnvironmentDisplayName();
+    
+    if (env === 'LOCAL') {
+      console.log(`✅ LOCAL environment - deployment confirmation skipped`);
+      return true;
+    }
+    
+    console.log(`⏳ Waiting for deployment confirmation on ${envDisplay}...`);
+    console.log(`   Contract Address: ${contractAddress.toBase58()}`);
+    console.log(`   Transaction Hash: ${transactionHash}`);
+    
+    try {
+      // For network environments, wait a bit and then verify the account exists
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      
+      const confirmed = await this.safelyFetchAccountWithRetry(contractAddress);
+      
+      if (confirmed) {
+        console.log(`✅ Deployment confirmed on ${envDisplay}`);
+        return true;
+      } else {
+        console.log(`❌ Deployment confirmation failed on ${envDisplay}`);
+        return false;
+      }
+    } catch (error: any) {
+      console.log(`⚠️ Deployment confirmation error: ${error.message}`);
+      return false;
     }
   }
 

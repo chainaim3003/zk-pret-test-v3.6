@@ -161,96 +161,96 @@ export const Registry = new Map<string, {
 
 // Lazy initialization for LOCAL environment accounts
 let legacyAccountsInitialized = false;
-let MCAdeployerAccount: any, MCAdeployerKey: any, MCAsenderAccount: any, MCAsenderKey: any;
-let GLEIFdeployerAccount: any, GLEIFdeployerKey: any, GLEIFsenderAccount: any, GLEIFsenderKey: any;
-let EXIMdeployerAccount: any, EXIMdeployerKey: any, EXIMsenderAccount: any, EXIMsenderKey: any;
-let BusinessProverdeployerAccount: any, BusinessProverdeployerKey: any, BusinessProversenderAccount: any, BusinessProversenderKey: any;
-let RiskProverdeployerAccount: any, RiskProverdeployerKey: any, RiskProversenderAccount: any, RiskProversenderKey: any;
+let mcaDeployerAccount: any, mcaDeployerKey: any, mcaSenderAccount: any, mcaSenderKey: any;
+let gleifDeployerAccount: any, gleifDeployerKey: any, gleifSenderAccount: any, gleifSenderKey: any;
+let eximDeployerAccount: any, eximDeployerKey: any, eximSenderAccount: any, eximSenderKey: any;
+let businessProverDeployerAccount: any, businessProverDeployerKey: any, businessProverSenderAccount: any, businessProverSenderKey: any;
+let riskProverDeployerAccount: any, riskProverDeployerKey: any, riskProverSenderAccount: any, riskProverSenderKey: any;
 
 function initializeLegacyAccounts() {
   if (legacyAccountsInitialized) return;
   
   if (detectedEnvironment === 'LOCAL') {
     // Use the new clean account management
-    MCAdeployerAccount = getLocalOraclePublicKey('MCA');
-    MCAdeployerKey = getLocalOraclePrivateKey('MCA');
-    MCAsenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
+    mcaDeployerAccount = getLocalOraclePublicKey('MCA');
+    mcaDeployerKey = getLocalOraclePrivateKey('MCA');
+    mcaSenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.MCA.sender) : 
       getLocalOraclePublicKey('MCA'); // Fallback
-    MCAsenderKey = BlockchainManager.isLocalBlockchainReady() ? 
+    mcaSenderKey = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.MCA.sender).key : 
       getLocalOraclePrivateKey('MCA'); // Fallback
 
-    GLEIFdeployerAccount = getLocalOraclePublicKey('GLEIF');
-    GLEIFdeployerKey = getLocalOraclePrivateKey('GLEIF');
-    GLEIFsenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
+    gleifDeployerAccount = getLocalOraclePublicKey('GLEIF');
+    gleifDeployerKey = getLocalOraclePrivateKey('GLEIF');
+    gleifSenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.GLEIF.sender) : 
       getLocalOraclePublicKey('GLEIF');
-    GLEIFsenderKey = BlockchainManager.isLocalBlockchainReady() ? 
+    gleifSenderKey = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.GLEIF.sender).key : 
       getLocalOraclePrivateKey('GLEIF');
 
-    EXIMdeployerAccount = getLocalOraclePublicKey('EXIM');
-    EXIMdeployerKey = getLocalOraclePrivateKey('EXIM');
-    EXIMsenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
+    eximDeployerAccount = getLocalOraclePublicKey('EXIM');
+    eximDeployerKey = getLocalOraclePrivateKey('EXIM');
+    eximSenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.EXIM.sender) : 
       getLocalOraclePublicKey('EXIM');
-    EXIMsenderKey = BlockchainManager.isLocalBlockchainReady() ? 
+    eximSenderKey = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.EXIM.sender).key : 
       getLocalOraclePrivateKey('EXIM');
 
-    BusinessProverdeployerAccount = getLocalOraclePublicKey('BPMN');
-    BusinessProverdeployerKey = getLocalOraclePrivateKey('BPMN');
-    BusinessProversenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
+    businessProverDeployerAccount = getLocalOraclePublicKey('BPMN');
+    businessProverDeployerKey = getLocalOraclePrivateKey('BPMN');
+    businessProverSenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.BPMN.sender) : 
       getLocalOraclePublicKey('BPMN');
-    BusinessProversenderKey = BlockchainManager.isLocalBlockchainReady() ? 
+    businessProverSenderKey = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.BPMN.sender).key : 
       getLocalOraclePrivateKey('BPMN');
 
-    RiskProverdeployerAccount = getLocalOraclePublicKey('RISK');
-    RiskProverdeployerKey = getLocalOraclePrivateKey('RISK');
-    RiskProversenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
+    riskProverDeployerAccount = getLocalOraclePublicKey('RISK');
+    riskProverDeployerKey = getLocalOraclePrivateKey('RISK');
+    riskProverSenderAccount = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.RISK.sender) : 
       getLocalOraclePublicKey('RISK');
-    RiskProversenderKey = BlockchainManager.isLocalBlockchainReady() ? 
+    riskProverSenderKey = BlockchainManager.isLocalBlockchainReady() ? 
       BlockchainManager.getTestAccount(LOCAL_ORACLE_MAPPING.RISK.sender).key : 
       getLocalOraclePrivateKey('RISK');
   } else {
     // For TESTNET/MAINNET, use network oracle keys
     try {
-      MCAdeployerAccount = getNetworkOraclePublicKey('MCA');
-      MCAdeployerKey = getNetworkOraclePrivateKey('MCA');
-      MCAsenderAccount = getNetworkOraclePublicKey('MCA'); // Same for network
-      MCAsenderKey = getNetworkOraclePrivateKey('MCA');
+      mcaDeployerAccount = getNetworkOraclePublicKey('MCA');
+      mcaDeployerKey = getNetworkOraclePrivateKey('MCA');
+      mcaSenderAccount = getNetworkOraclePublicKey('MCA'); // Same for network
+      mcaSenderKey = getNetworkOraclePrivateKey('MCA');
 
-      GLEIFdeployerAccount = getNetworkOraclePublicKey('GLEIF');
-      GLEIFdeployerKey = getNetworkOraclePrivateKey('GLEIF');
-      GLEIFsenderAccount = getNetworkOraclePublicKey('GLEIF');
-      GLEIFsenderKey = getNetworkOraclePrivateKey('GLEIF');
+      gleifDeployerAccount = getNetworkOraclePublicKey('GLEIF');
+      gleifDeployerKey = getNetworkOraclePrivateKey('GLEIF');
+      gleifSenderAccount = getNetworkOraclePublicKey('GLEIF');
+      gleifSenderKey = getNetworkOraclePrivateKey('GLEIF');
 
-      EXIMdeployerAccount = getNetworkOraclePublicKey('EXIM');
-      EXIMdeployerKey = getNetworkOraclePrivateKey('EXIM');
-      EXIMsenderAccount = getNetworkOraclePublicKey('EXIM');
-      EXIMsenderKey = getNetworkOraclePrivateKey('EXIM');
+      eximDeployerAccount = getNetworkOraclePublicKey('EXIM');
+      eximDeployerKey = getNetworkOraclePrivateKey('EXIM');
+      eximSenderAccount = getNetworkOraclePublicKey('EXIM');
+      eximSenderKey = getNetworkOraclePrivateKey('EXIM');
 
-      BusinessProverdeployerAccount = getNetworkOraclePublicKey('BPMN');
-      BusinessProverdeployerKey = getNetworkOraclePrivateKey('BPMN');
-      BusinessProversenderAccount = getNetworkOraclePublicKey('BPMN');
-      BusinessProversenderKey = getNetworkOraclePrivateKey('BPMN');
+      businessProverDeployerAccount = getNetworkOraclePublicKey('BPMN');
+      businessProverDeployerKey = getNetworkOraclePrivateKey('BPMN');
+      businessProverSenderAccount = getNetworkOraclePublicKey('BPMN');
+      businessProverSenderKey = getNetworkOraclePrivateKey('BPMN');
 
-      RiskProverdeployerAccount = getNetworkOraclePublicKey('RISK');
-      RiskProverdeployerKey = getNetworkOraclePrivateKey('RISK');
-      RiskProversenderAccount = getNetworkOraclePublicKey('RISK');
-      RiskProversenderKey = getNetworkOraclePrivateKey('RISK');
+      riskProverDeployerAccount = getNetworkOraclePublicKey('RISK');
+      riskProverDeployerKey = getNetworkOraclePrivateKey('RISK');
+      riskProverSenderAccount = getNetworkOraclePublicKey('RISK');
+      riskProverSenderKey = getNetworkOraclePrivateKey('RISK');
     } catch (error) {
       console.warn(`Failed to initialize network oracle accounts: ${error}`);
       // Set to null for safety
-      MCAdeployerAccount = null; MCAdeployerKey = null; MCAsenderAccount = null; MCAsenderKey = null;
-      GLEIFdeployerAccount = null; GLEIFdeployerKey = null; GLEIFsenderAccount = null; GLEIFsenderKey = null;
-      EXIMdeployerAccount = null; EXIMdeployerKey = null; EXIMsenderAccount = null; EXIMsenderKey = null;
-      BusinessProverdeployerAccount = null; BusinessProverdeployerKey = null; BusinessProversenderAccount = null; BusinessProversenderKey = null;
-      RiskProverdeployerAccount = null; RiskProverdeployerKey = null; RiskProversenderAccount = null; RiskProversenderKey = null;
+      mcaDeployerAccount = null; mcaDeployerKey = null; mcaSenderAccount = null; mcaSenderKey = null;
+      gleifDeployerAccount = null; gleifDeployerKey = null; gleifSenderAccount = null; gleifSenderKey = null;
+      eximDeployerAccount = null; eximDeployerKey = null; eximSenderAccount = null; eximSenderKey = null;
+      businessProverDeployerAccount = null; businessProverDeployerKey = null; businessProverSenderAccount = null; businessProverSenderKey = null;
+      riskProverDeployerAccount = null; riskProverDeployerKey = null; riskProverSenderAccount = null; riskProverSenderKey = null;
     }
   }
   
@@ -258,30 +258,28 @@ function initializeLegacyAccounts() {
 }
 
 // Getter functions for lazy initialization
-function getMCAdeployerAccount() { initializeLegacyAccounts(); return MCAdeployerAccount; }
-function getMCAdeployerKey() { initializeLegacyAccounts(); return MCAdeployerKey; }
-function getMCAsenderAccount() { initializeLegacyAccounts(); return MCAsenderAccount; }
-function getMCAsenderKey() { initializeLegacyAccounts(); return MCAsenderKey; }
-function getGLEIFdeployerAccount() { initializeLegacyAccounts(); return GLEIFdeployerAccount; }
-function getGLEIFdeployerKey() { initializeLegacyAccounts(); return GLEIFdeployerKey; }
-function getGLEIFsenderAccount() { initializeLegacyAccounts(); return GLEIFsenderAccount; }
-function getGLEIFsenderKey() { initializeLegacyAccounts(); return GLEIFsenderKey; }
-function getEXIMdeployerAccount() { initializeLegacyAccounts(); return EXIMdeployerAccount; }
-function getEXIMdeployerKey() { initializeLegacyAccounts(); return EXIMdeployerKey; }
-function getEXIMsenderAccount() { initializeLegacyAccounts(); return EXIMsenderAccount; }
-function getEXIMsenderKey() { initializeLegacyAccounts(); return EXIMsenderKey; }
-function getBusinessProverdeployerAccount() { initializeLegacyAccounts(); return BusinessProverdeployerAccount; }
-function getBusinessProverdeployerKey() { initializeLegacyAccounts(); return BusinessProverdeployerKey; }
-function getBusinessProversenderAccount() { initializeLegacyAccounts(); return BusinessProversenderAccount; }
-function getBusinessProversenderKey() { initializeLegacyAccounts(); return BusinessProversenderKey; }
-function getRiskProverdeployerAccount() { initializeLegacyAccounts(); return RiskProverdeployerAccount; }
-function getRiskProverdeployerKey() { initializeLegacyAccounts(); return RiskProverdeployerKey; }
-function getRiskProversenderAccount() { initializeLegacyAccounts(); return RiskProversenderAccount; }
-function getRiskProversenderKey() { initializeLegacyAccounts(); return RiskProversenderKey; }
+function getMCAdeployerAccount() { initializeLegacyAccounts(); return mcaDeployerAccount; }
+function getMCAdeployerKey() { initializeLegacyAccounts(); return mcaDeployerKey; }
+function getMCAsenderAccount() { initializeLegacyAccounts(); return mcaSenderAccount; }
+function getMCAsenderKey() { initializeLegacyAccounts(); return mcaSenderKey; }
+function getGLEIFdeployerAccount() { initializeLegacyAccounts(); return gleifDeployerAccount; }
+function getGLEIFdeployerKey() { initializeLegacyAccounts(); return gleifDeployerKey; }
+function getGLEIFsenderAccount() { initializeLegacyAccounts(); return gleifSenderAccount; }
+function getGLEIFsenderKey() { initializeLegacyAccounts(); return gleifSenderKey; }
+function getEXIMdeployerAccount() { initializeLegacyAccounts(); return eximDeployerAccount; }
+function getEXIMdeployerKey() { initializeLegacyAccounts(); return eximDeployerKey; }
+function getEXIMsenderAccount() { initializeLegacyAccounts(); return eximSenderAccount; }
+function getEXIMsenderKey() { initializeLegacyAccounts(); return eximSenderKey; }
+function getBusinessProverdeployerAccount() { initializeLegacyAccounts(); return businessProverDeployerAccount; }
+function getBusinessProverdeployerKey() { initializeLegacyAccounts(); return businessProverDeployerKey; }
+function getBusinessProversenderAccount() { initializeLegacyAccounts(); return businessProverSenderAccount; }
+function getBusinessProversenderKey() { initializeLegacyAccounts(); return businessProverSenderKey; }
+function getRiskProverdeployerAccount() { initializeLegacyAccounts(); return riskProverDeployerAccount; }
+function getRiskProverdeployerKey() { initializeLegacyAccounts(); return riskProverDeployerKey; }
+function getRiskProversenderAccount() { initializeLegacyAccounts(); return riskProverSenderAccount; }
+function getRiskProversenderKey() { initializeLegacyAccounts(); return riskProverSenderKey; }
 
-// Export with original names for backward compatibility
-export { getMCAdeployerAccount as MCAdeployerAccount, getMCAdeployerKey as MCAdeployerKey };
-export { getMCAsenderAccount as MCAsenderAccount, getMCAsenderKey as MCAsenderKey };
+// Export with original names for backward compatibility (removed to avoid conflicts)
 export { getGLEIFdeployerAccount as GLEIFdeployerAccount, getGLEIFdeployerKey as GLEIFdeployerKey };
 export { getGLEIFsenderAccount as GLEIFsenderAccount, getGLEIFsenderKey as GLEIFsenderKey };
 export { getEXIMdeployerAccount as EXIMdeployerAccount, getEXIMdeployerKey as EXIMdeployerKey };
@@ -387,12 +385,73 @@ export function getCorpRegAccount(role: string = 'DEPLOYER'): PublicKey {
   return getPublicKeyFor('MCA');
 }
 
+// ===== JURISDICTION-AWARE CORPORATE REGISTRATION ORACLE =====
+export interface JurisdictionOracleConfig {
+  role: string;
+  jurisdiction: string;
+  authority: string;
+  deployer: {
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  };
+  sender: {
+    publicKey: PublicKey;
+    privateKey: PrivateKey;
+  };
+  publicKey: PublicKey;
+  privateKey: PrivateKey;
+}
+
+export function getCorporateRegistrationOracle(jurisdiction: string = 'IN'): JurisdictionOracleConfig {
+  if (jurisdiction === 'IN') {
+    // Use existing MCA oracle for India
+    return {
+      role: 'CORPORATE_REGISTRATION',
+      jurisdiction: 'IN',
+      authority: 'MCA_INDIA',
+      deployer: {
+        publicKey: MCAdeployerAccount(),
+        privateKey: MCAdeployerKey()
+      },
+      sender: {
+        publicKey: MCAsenderAccount(),
+        privateKey: MCAsenderKey()
+      },
+      publicKey: MCAdeployerAccount(),
+      privateKey: MCAdeployerKey()
+    };
+  }
+  
+  // For future jurisdictions, we would add additional logic here
+  // For now, throw an error for unsupported jurisdictions
+  throw new Error(`Corporate Registration oracle not yet configured for jurisdiction: ${jurisdiction}. Currently supported: IN`);
+}
+
 export function getGleifKey(role: string = 'SIGNER'): PrivateKey {
   return getPrivateKeyFor('GLEIF');
 }
 
 export function getGleifAccount(role: string = 'DEPLOYER'): PublicKey {
   return getPublicKeyFor('GLEIF');
+}
+
+// ===== GLEIF ORACLE (JURISDICTION-AGNOSTIC) =====
+export function getGLEIFOracle(): JurisdictionOracleConfig {
+  return {
+    role: 'GLEIF',
+    jurisdiction: 'GLOBAL',
+    authority: 'GLEIF_GLOBAL',
+    deployer: {
+      publicKey: getGleifDeployerAccount(),
+      privateKey: getGleifDeployerKey()
+    },
+    sender: {
+      publicKey: getGleifSenderAccount(),
+      privateKey: getGleifSenderKey()
+    },
+    publicKey: getGleifDeployerAccount(),
+    privateKey: getGleifDeployerKey()
+  };
 }
 
 export function getEximKey(role: string = 'SIGNER'): PrivateKey {
@@ -409,6 +468,27 @@ export function getRiskKey(role: string = 'SIGNER'): PrivateKey {
 
 export function getRiskAccount(role: string = 'DEPLOYER'): PublicKey {
   return getPublicKeyFor('RISK');
+}
+
+// ===== MCA ORACLE FUNCTIONS =====
+export function MCASignerKey(): PrivateKey {
+  return getPrivateKeyFor('MCA');
+}
+
+export function MCAdeployerKey(): PrivateKey {
+  return getPrivateKeyFor('MCA');
+}
+
+export function MCAsenderKey(): PrivateKey {
+  return getPrivateKeyFor('MCA');
+}
+
+export function MCAdeployerAccount(): PublicKey {
+  return getPublicKeyFor('MCA');
+}
+
+export function MCAsenderAccount(): PublicKey {
+  return getPublicKeyFor('MCA');
 }
 
 // ===== LOCAL BLOCKCHAIN ACCESS (For backward compatibility) =====

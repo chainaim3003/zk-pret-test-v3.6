@@ -1,6 +1,8 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 import axios from 'axios';
+import { Field, CircuitString, Poseidon, MerkleTree } from 'o1js';
+import { CORP_REG_FIELD_INDICES } from '../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js';
 
 // =================================== Corporate Registration API Response Interface ===================================
 interface CorporateRegistrationAPIResponse {
@@ -228,9 +230,11 @@ export function printCorporateRegistrationResponse(
 /**
  * Enhanced fetch function with comprehensive response printing
  * Compatible with existing fetchCorporateRegistrationData function
+ * Enhanced to support jurisdiction parameter for multi-jurisdiction support
  */
 export async function fetchCorporateRegistrationDataWithFullLogging(
-  cin: string, 
+  cin: string,
+  jurisdiction: string = 'IN'
 ): Promise<CorporateRegistrationAPIResponse> {
   console.log(`\n🚀 Starting Corporate Registration Data Fetch`);
   console.log(`🔍 CIN: ${cin}`);
@@ -310,7 +314,7 @@ export function analyzeCorporateRegistrationCompliance(
 ): {
   isCompliant: boolean;
   complianceScore: number;
-  issues: string[];
+  issues: Array<{type: string; message: string; field?: string; severity?: number}>;
   businessRuleResults: {
     cinNotEmpty: boolean;
     registrationNumberNotEmpty: boolean;
@@ -320,7 +324,7 @@ export function analyzeCorporateRegistrationCompliance(
   };
 } {
   const summary = extractCorporateRegistrationSummary(response);
-  const issues: string[] = [];
+  const issues: Array<{type: string; message: string; field?: string; severity?: number}> = [];
   
   // Business rule checks
   const businessRuleResults = {
@@ -331,21 +335,21 @@ export function analyzeCorporateRegistrationCompliance(
     companyStatusActive: summary.status.toLowerCase() === 'active'
   };
   
-  // Collect issues
+  // Collect issues with proper typing
   if (!businessRuleResults.cinNotEmpty) {
-    issues.push('CIN is empty or missing');
+    issues.push({type: 'error', message: 'CIN is empty or missing', field: 'cin', severity: 10});
   }
   if (!businessRuleResults.registrationNumberNotEmpty) {
-    issues.push('Registration number is empty or missing');
+    issues.push({type: 'warning', message: 'Registration number is empty or missing', field: 'registrationNumber', severity: 7});
   }
   if (!businessRuleResults.companyNameNotEmpty) {
-    issues.push('Company name is empty or missing');
+    issues.push({type: 'error', message: 'Company name is empty or missing', field: 'companyName', severity: 10});
   }
   if (!businessRuleResults.dateOfIncorporationValid) {
-    issues.push('Date of incorporation is invalid or missing');
+    issues.push({type: 'warning', message: 'Date of incorporation is invalid or missing', field: 'dateOfIncorporation', severity: 5});
   }
   if (!businessRuleResults.companyStatusActive) {
-    issues.push(`Company status is not "Active": ${summary.status}`);
+    issues.push({type: 'error', message: `Company status is not "Active": ${summary.status}`, field: 'status', severity: 9});
   }
   
   // Calculate compliance score
@@ -380,6 +384,103 @@ export function isCompanyCorporateRegistrationCompliant(
     const analysis = analyzeCorporateRegistrationCompliance(companyDataOrCin);
     return analysis.isCompliant;
   }
+}
+
+/**
+ * Create comprehensive Corporate Registration Merkle tree
+ * Parallels GLEIFCoreAPIUtils createComprehensiveGLEIFMerkleTree function
+ */
+export function createComprehensiveCorporateRegistrationMerkleTree(
+  apiResponse: CorporateRegistrationAPIResponse
+): {
+  tree: MerkleTree;
+  extractedData: any;
+  fieldCount: number;
+} {
+  console.log('🌳 Creating comprehensive Corporate Registration Merkle tree...');
+  
+  const masterData = apiResponse.data?.company_master_data || {};
+  
+  // Create Merkle tree with height 8
+  const tree = new MerkleTree(8);
+  
+  // Extract and hash all fields
+  const extractedData: any = {
+    // Core fields
+    companyName: CircuitString.fromString(masterData.company_name || 'UNKNOWN'),
+    CIN: CircuitString.fromString(masterData.cin || 'UNKNOWN'),
+    category: CircuitString.fromString(masterData.company_category || 'UNKNOWN'),
+    classOfCompany: CircuitString.fromString(masterData.class_of_company || 'UNKNOWN'),
+    registrationNumber: CircuitString.fromString(masterData.registration_number || 'UNKNOWN'),
+    listed: CircuitString.fromString(masterData.whether_listed_or_not || 'UNKNOWN'),
+    suspended: CircuitString.fromString(masterData.suspended_at_stock_exchange || 'UNKNOWN'),
+    companyStatus: CircuitString.fromString(masterData.company_status || masterData['company_status(for_efiling)'] || 'UNKNOWN'),
+    dateOfIncorporation: CircuitString.fromString(masterData.date_of_incorporation || 'UNKNOWN'),
+    numberOfPartners: CircuitString.fromString(masterData.number_of_partners || '0'),
+    
+    // Additional fields
+    companyType: CircuitString.fromString(masterData.company_type || 'UNKNOWN'),
+    companySubcategory: CircuitString.fromString(masterData.company_subcategory || 'UNKNOWN'),
+    rocCode: CircuitString.fromString(masterData.roc_code || 'UNKNOWN'),
+    registrarOfCompanies: CircuitString.fromString(masterData.registrar_of_companies || 'UNKNOWN'),
+    email: CircuitString.fromString(masterData.email || 'UNKNOWN'),
+    phone: CircuitString.fromString(masterData.phone || 'UNKNOWN'),
+    website: CircuitString.fromString(masterData.website || 'UNKNOWN'),
+    activityDescription: CircuitString.fromString(masterData.activity_description || 'UNKNOWN'),
+    companyActivityCode: CircuitString.fromString(masterData.company_activity_code || 'UNKNOWN'),
+    industrialClass: CircuitString.fromString(masterData.industrial_class || 'UNKNOWN'),
+    mcaId: CircuitString.fromString(masterData.mca_id || 'UNKNOWN'),
+    jurisdiction: CircuitString.fromString(masterData.jurisdiction || 'IN'),
+    legalForm: CircuitString.fromString(masterData.legal_form || 'UNKNOWN'),
+    llpinDetails: CircuitString.fromString(masterData.llpin_details || 'UNKNOWN'),
+    foreignCompanyDetails: CircuitString.fromString(masterData.foreign_company_details || 'UNKNOWN'),
+  };
+  
+  // Set fields in Merkle tree using CORP_REG_FIELD_INDICES
+  const setFieldInTree = (fieldName: keyof typeof CORP_REG_FIELD_INDICES, value: CircuitString) => {
+    const index = CORP_REG_FIELD_INDICES[fieldName];
+    if (index !== undefined && index < 256) { // Height 8 = max 256 leaves
+      tree.setLeaf(BigInt(index), value.hash());
+    }
+  };
+  
+  // Set all fields in the tree
+  setFieldInTree('companyName', extractedData.companyName);
+  setFieldInTree('CIN', extractedData.CIN);
+  setFieldInTree('category', extractedData.category);
+  setFieldInTree('classOfCompany', extractedData.classOfCompany);
+  setFieldInTree('registrationNumber', extractedData.registrationNumber);
+  setFieldInTree('listed', extractedData.listed);
+  setFieldInTree('suspended', extractedData.suspended);
+  setFieldInTree('companyStatus', extractedData.companyStatus);
+  setFieldInTree('dateOfIncorporation', extractedData.dateOfIncorporation);
+  setFieldInTree('numberOfPartners', extractedData.numberOfPartners);
+  setFieldInTree('companyType', extractedData.companyType);
+  setFieldInTree('companySubcategory', extractedData.companySubcategory);
+  setFieldInTree('rocCode', extractedData.rocCode);
+  setFieldInTree('registrarOfCompanies', extractedData.registrarOfCompanies);
+  setFieldInTree('email', extractedData.email);
+  setFieldInTree('phone', extractedData.phone);
+  setFieldInTree('website', extractedData.website);
+  setFieldInTree('activityDescription', extractedData.activityDescription);
+  setFieldInTree('companyActivityCode', extractedData.companyActivityCode);
+  setFieldInTree('industrialClass', extractedData.industrialClass);
+  setFieldInTree('mcaId', extractedData.mcaId);
+  setFieldInTree('jurisdiction', extractedData.jurisdiction);
+  setFieldInTree('legalForm', extractedData.legalForm);
+  setFieldInTree('llpinDetails', extractedData.llpinDetails);
+  
+  // Add merkle root to extracted data
+  extractedData.merkle_root = tree.getRoot();
+  extractedData.fieldCount = Object.keys(extractedData).length - 1; // Exclude merkle_root from count
+  
+  console.log(`✅ Corporate Registration Merkle tree created with ${extractedData.fieldCount} fields`);
+  
+  return {
+    tree,
+    extractedData,
+    fieldCount: extractedData.fieldCount
+  };
 }
 
 export type { CorporateRegistrationAPIResponse };

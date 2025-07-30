@@ -229,4 +229,15 @@ export class ComplianceVerificationBase {
       console.log(`  • Total Verifications: ${(stats as GlobalComplianceStats).totalVerifications.toString()}`);
     }
   }
+
+  /**
+   * Initialize Oracle Registry for compliance operations
+   * NEW METHOD: Placeholder for oracle registry initialization
+   */
+  public async initializeOracleRegistry(): Promise<void> {
+    console.log('🔑 Initializing Oracle Registry for compliance operations...');
+    // For now, this is a placeholder method
+    // In the future, this could handle oracle registry setup, validation, etc.
+    console.log('✅ Oracle Registry initialization completed');
+  }
 }

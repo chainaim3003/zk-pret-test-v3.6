@@ -21,7 +21,7 @@ import {
   CorporateRegistrationAPIResponse,
   extractCorporateRegistrationSummary,
   analyzeCorporateRegistrationCompliance
-} from './CorporateRegistrationEnhancedUtils.js';
+} from './CorporateRegistrationCoreAPIUtils.js';
 
 // =================================== Multi-Company Registry Management ===================================
 
