@@ -125,7 +125,8 @@ async function fetchMasterData(
         };
 
         const requestHeaders = {
-            'Authorization': `Bearer ${accessToken}`,
+            //'Authorization': `Bearer ${accessToken}`,
+            'Authorization': accessToken,
             'x-api-key': process.env.API_KEY || '',
             'x-api-version': process.env.API_VERSION || 'v3',
             'Content-Type': 'application/json'
@@ -135,7 +136,8 @@ async function fetchMasterData(
         console.log('🌐 Making API request to:', apiUrl);
         console.log('📋 Request Method: POST');
         console.log('🔐 Request Headers:', JSON.stringify({
-            'Authorization': `Bearer ${accessToken.substring(0, 20)}...`,
+            //'Authorization': `Bearer ${accessToken.substring(0, 20)}...`,
+            'Authorization':accessToken,
             'x-api-key': process.env.API_KEY?.substring(0, 10) + '...',
             'x-api-version': requestHeaders['x-api-version'],
             'Content-Type': requestHeaders['Content-Type']
