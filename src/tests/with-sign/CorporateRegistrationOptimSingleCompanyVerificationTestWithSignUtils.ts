@@ -136,7 +136,6 @@ function createOptimizedComplianceData(
 export async function getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils(cin: string) {
   console.log(`\n🚀 Corporate Registration Single Company Verification Test Started`);
   console.log(`🏢 CIN: ${cin}`);
-  //console.log(`🌐 Network: ${typeOfNet}`);
   console.log(`📡 Using LIVE API for all environments`);
 
   try {

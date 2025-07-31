@@ -29,14 +29,13 @@ export interface GLEIFDataSummary {
 }
 
 /**
- * ✅ ENHANCED: Two-Stage Lookup Implementation
  * Fetch company data from GLEIF API with enhanced Stage 1 logging
  */
 export async function fetchGLEIFDataWithFullLogging(companyName: string): Promise<GLEIFAPIResponse> {
   console.log(`🔍 STAGE 1: Two-Stage Lookup - Resolving company name to LEI`);
   console.log(`📋 Company Name: "${companyName}"`);
   
-  // ✅ Enhanced: Clean the company name first
+  // Enhanced: Clean the company name first
   const cleanCompanyName = companyName
     .trim()
     .replace(/\^/g, '') // Remove any ^ characters
@@ -48,7 +47,7 @@ export async function fetchGLEIFDataWithFullLogging(companyName: string): Promis
   try {
     const apiResponse = await fetchGLEIFCompanyDataWithFullDetails(cleanCompanyName);
     
-    // ✅ Enhanced LEI extraction and validation
+    // Enhanced LEI extraction and validation
     const lei = extractLEIFromGLEIFResponse(apiResponse);
     const legalName = apiResponse.data[0].attributes?.entity?.legalName?.name;
     
@@ -61,14 +60,13 @@ export async function fetchGLEIFDataWithFullLogging(companyName: string): Promis
     
   } catch (error) {
     console.error(`❌ STAGE 1 FAILED: Could not resolve "${companyName}" to LEI`);
-    // FIXED: Properly handle unknown error type
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`Company name resolution failed: ${errorMessage}`);
   }
 }
 
 /**
- * ✅ NEW: LEI extraction utility for two-stage lookup
+ * LEI extraction utility for two-stage lookup
  */
 export function extractLEIFromGLEIFResponse(apiResponse: GLEIFAPIResponse): string {
   if (!apiResponse.data || apiResponse.data.length === 0) {
@@ -80,7 +78,6 @@ export function extractLEIFromGLEIFResponse(apiResponse: GLEIFAPIResponse): stri
     throw new Error('LEI not found in GLEIF response');
   }
   
-  // ✅ LEI format validation
   if (!validateLEI(lei)) {
     throw new Error(`Invalid LEI format: ${lei}`);
   }
@@ -89,53 +86,21 @@ export function extractLEIFromGLEIFResponse(apiResponse: GLEIFAPIResponse): stri
 }
 
 /**
- * ✅ NEW: Enhanced company name normalization
- */
-export function normalizeCompanyName(companyName: string): string {
-  return companyName
-    .trim()
-    .toUpperCase()
-    .replace(/\b(INC|CORP|LTD|LIMITED|PRIVATE|PVT|LLC|CORPORATION)\b\.?/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/**
- * ✅ NEW: LEI validation (ISO 17442 standard)
+ * LEI validation (ISO 17442 standard)
  */
 export function validateLEI(lei: string): boolean {
-  // LEI format: 20 alphanumeric characters
   const leiRegex = /^[A-Z0-9]{20}$/;
   return leiRegex.test(lei);
 }
 
 /**
- * ✅ NEW: Check if two company names might refer to same entity
- */
-export function compareCompanyNames(name1: string, name2: string): number {
-  const normalized1 = normalizeCompanyName(name1);
-  const normalized2 = normalizeCompanyName(name2);
-  
-  if (normalized1 === normalized2) return 100; // Exact match
-  
-  // Simple similarity scoring
-  const words1 = normalized1.split(' ').filter(w => w.length > 2);
-  const words2 = normalized2.split(' ').filter(w => w.length > 2);
-  
-  const commonWords = words1.filter(word => words2.includes(word));
-  const similarity = (commonWords.length * 2) / (words1.length + words2.length) * 100;
-  
-  return Math.round(similarity);
-}
-
-/**
- * ✅ INTERNAL: Original GLEIF API function (used by enhanced wrapper)
+ * Original GLEIF API function (used by enhanced wrapper)
  */
 export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string): Promise<any> {
   let BASEURL;
   let url;
 
-  let typeOfNet = process.env.BUILD_ENV; // Use environment variable for network type
+  let typeOfNet = process.env.BUILD_ENV;
   if (!typeOfNet) {
     typeOfNet = 'TESTNET';
   }
@@ -150,8 +115,8 @@ export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string):
   } 
   else if (typeOfNet === 'LOCAL') {
     console.log('------------------------------------------------using live GLEIF API--------------------------------------------------');
-    BASEURL = process.env.GLEIF_URL_MOCK; // Use live GLEIF API for LOCAL too
-    url = `${BASEURL}/${encodeURIComponent(companyName)}`; // Assuming mock API uses company name directly
+    BASEURL = process.env.GLEIF_URL_MOCK; 
+    url = `${BASEURL}?filter[entity.legalName]=${encodeURIComponent(companyName)}`;
   } 
   else {
     console.log('///////////////////////////////////////////////in prod//////////////////////////////////////////////');
@@ -169,12 +134,10 @@ export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string):
   const response = await axios.get(url);
   const parsedData = response.data;
 
-  // ✅ SOLUTION 1: Print complete JSON with unlimited depth
   console.log('\n🔍 COMPLETE GLEIF API RESPONSE:');
   console.log('='.repeat(100));
-  console.log(JSON.stringify(parsedData, null, 2)); // Full JSON with proper formatting
+  console.log(JSON.stringify(parsedData, null, 2));
 
-  // ✅ SOLUTION 2: Print specific sections with enhanced detail
   if (parsedData.data && parsedData.data.length > 0) {
     const record = parsedData.data[0];
     
@@ -197,12 +160,10 @@ export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string):
     console.log('─'.repeat(80));
     console.log(JSON.stringify(record.links, null, 2));
 
-    // ✅ SOLUTION 3: ZK Circuit optimization analysis
     console.log('\n🎯 ZK CIRCUIT OPTIMIZATION ANALYSIS:');
     console.log('='.repeat(100));
     analyzeGLEIFStructureForZK(record);
 
-    // ✅ SOLUTION 4: Show company compliance status  
     console.log('\n✅ COMPLIANCE STATUS:');
     console.log('─'.repeat(50));
     const status = record.attributes?.entity?.status;
@@ -211,7 +172,6 @@ export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string):
     console.log(`Is company "${companyName}" GLEIF compliant? ${isCompliant}`);
   }
 
-  // Check for data existence and non-empty array/object
   if (
     !parsedData.data ||
     (Array.isArray(parsedData.data) && parsedData.data.length === 0)
@@ -223,240 +183,274 @@ export async function fetchGLEIFCompanyDataWithFullDetails(companyName: string):
 }
 
 /**
- * Analyze GLEIF structure for ZK circuit optimization
+ * Analyze GLEIF compliance based on API response
  */
+export function analyzeGLEIFCompliance(apiResponse: GLEIFAPIResponse): GLEIFComplianceAnalysis {
+  if (!apiResponse.data || apiResponse.data.length === 0) {
+    return {
+      isCompliant: false,
+      complianceScore: 0,
+      issues: ['No GLEIF data available'],
+      summary: 'Company not found in GLEIF database'
+    };
+  }
+
+  const record = apiResponse.data[0];
+  const entity = record.attributes?.entity;
+  const registration = record.attributes?.registration;
+  
+  const issues: string[] = [];
+  let complianceScore = 0;
+
+  // Check 1: Entity status
+  if (entity?.status === 'ACTIVE') {
+    complianceScore += 20;
+  } else {
+    issues.push(`Entity status is not ACTIVE: ${entity?.status}`);
+  }
+
+  // Check 2: Registration status
+  if (registration?.status === 'ISSUED') {
+    complianceScore += 20;
+  } else {
+    issues.push(`Registration status is not ISSUED: ${registration?.status}`);
+  }
+
+  // Check 3: LEI format validation
+  const lei = record.attributes?.lei;
+  if (lei && validateLEI(lei)) {
+    complianceScore += 20;
+  } else {
+    issues.push(`Invalid LEI format: ${lei}`);
+  }
+
+  // Check 4: Required fields present
+  if (entity?.legalName?.name && entity?.jurisdiction) {
+    complianceScore += 20;
+  } else {
+    issues.push('Missing required entity information');
+  }
+
+  // Check 5: Registration dates valid
+  if (registration?.nextRenewalDate) {
+    const renewalDate = new Date(registration.nextRenewalDate);
+    if (renewalDate > new Date()) {
+      complianceScore += 20;
+    } else {
+      issues.push('LEI registration has expired');
+    }
+  } else {
+    issues.push('Missing renewal date information');
+  }
+
+  const isCompliant = complianceScore >= 80;
+  const summary = isCompliant ? 'Company meets GLEIF compliance requirements' : `Company has compliance issues: ${issues.join(', ')}`;
+
+  return {
+    isCompliant,
+    complianceScore,
+    issues,
+    summary
+  };
+}
+
+/**
+ * Create comprehensive GLEIF Merkle tree from API response
+ */
+export function createComprehensiveGLEIFMerkleTree(
+  apiResponse: GLEIFAPIResponse,
+  MerkleTreeClass: any,
+  CircuitStringClass: any,
+  height: number,
+  fieldIndices: typeof GLEIF_FIELD_INDICES
+): { tree: any; extractedData: Record<string, any> } {
+  console.log('🌳 Creating comprehensive GLEIF Merkle tree...');
+  console.log('📋 Processing live GLEIF API structure...');
+
+  if (!apiResponse.data || apiResponse.data.length === 0) {
+    throw new Error('No GLEIF data available for Merkle tree creation');
+  }
+
+  const record = apiResponse.data[0];
+  const attributes = record.attributes;
+  const entity = attributes?.entity;
+  const registration = attributes?.registration;
+
+  const tree = new MerkleTreeClass(height);
+  const extractedData: Record<string, any> = {};
+
+  const setField = (fieldName: string, index: number, value: string) => {
+    const truncatedValue = value.length > 50 ? value.substring(0, 47) + '...' : value;
+    console.log(`  Set field ${fieldName} (${index}): "${truncatedValue}"`);
+    const circuitValue = CircuitStringClass.fromString(value);
+    const hash = circuitValue.hash();
+    tree.setLeaf(BigInt(index), hash);
+    extractedData[fieldName] = value;
+  };
+
+  // Set core fields
+  setField('legalName', fieldIndices.legalName, entity?.legalName?.name || '');
+  setField('lei', fieldIndices.lei, attributes?.lei || '');
+  setField('entityStatus', fieldIndices.entityStatus, entity?.status || '');
+  setField('legalForm', fieldIndices.legalForm, entity?.legalForm?.id || '');
+  setField('jurisdiction', fieldIndices.jurisdiction, entity?.jurisdiction || '');
+  
+  // Address fields
+  const addressLine = entity?.legalAddress?.addressLines?.[0] || '';
+  setField('legalAddress', fieldIndices.legalAddress, addressLine);
+  setField('legalCity', fieldIndices.legalCity, entity?.legalAddress?.city || '');
+  setField('legalCountry', fieldIndices.legalCountry, entity?.legalAddress?.country || '');
+  
+  // Registration fields
+  setField('registrationAuthority', fieldIndices.registrationAuthority, entity?.registeredAt?.id || '');
+  setField('entityCategory', fieldIndices.entityCategory, entity?.category || '');
+  setField('businessRegisterEntityId', fieldIndices.businessRegisterEntityId, entity?.registeredAs || '');
+  setField('leiStatus', fieldIndices.leiStatus, registration?.status || '');
+  setField('initialRegistrationDate', fieldIndices.initialRegistrationDate, registration?.initialRegistrationDate || '');
+  setField('lastUpdateDate', fieldIndices.lastUpdateDate, registration?.lastUpdateDate || '');
+  setField('nextRenewalDate', fieldIndices.nextRenewalDate, registration?.nextRenewalDate || '');
+  setField('registration_status', fieldIndices.registration_status, registration?.status || '');
+  setField('bic_codes', fieldIndices.bic_codes, attributes?.bic || '');
+  setField('mic_codes', fieldIndices.mic_codes, attributes?.mic || '');
+  setField('conformityFlag', fieldIndices.conformityFlag, attributes?.conformityFlag || '');
+  setField('managingLou', fieldIndices.managingLou, registration?.managingLou || '');
+
+  const fieldCount = Object.keys(extractedData).length;
+  console.log(`✅ Created Merkle tree with ${fieldCount} fields`);
+  console.log(`🌳 Merkle root: ${tree.getRoot()}`);
+
+  return { tree, extractedData };
+}
+
+/**
+ * Create optimized GLEIF compliance data for ZK proofs
+ */
+export function createOptimizedGLEIFComplianceData(
+  extractedData: Record<string, any>,
+  merkleRoot: any,
+  CircuitStringClass: any,
+  GLEIFOptimComplianceDataClass: any
+): any {
+  console.log('🔐 Preparing ZK proof data...');
+  
+  try {
+    const complianceData = new GLEIFOptimComplianceDataClass({
+      legalName: CircuitStringClass.fromString(extractedData.legalName || ''),
+      lei: CircuitStringClass.fromString(extractedData.lei || ''),
+      entityStatus: CircuitStringClass.fromString(extractedData.entityStatus || ''),
+      legalForm: CircuitStringClass.fromString(extractedData.legalForm || ''),
+      jurisdiction: CircuitStringClass.fromString(extractedData.jurisdiction || ''),
+      legalAddress: CircuitStringClass.fromString(extractedData.legalAddress || ''),
+      legalCity: CircuitStringClass.fromString(extractedData.legalCity || ''),
+      legalCountry: CircuitStringClass.fromString(extractedData.legalCountry || ''),
+      registrationAuthority: CircuitStringClass.fromString(extractedData.registrationAuthority || ''),
+      entityCategory: CircuitStringClass.fromString(extractedData.entityCategory || ''),
+      businessRegisterEntityId: CircuitStringClass.fromString(extractedData.businessRegisterEntityId || ''),
+      leiStatus: CircuitStringClass.fromString(extractedData.leiStatus || ''),
+      initialRegistrationDate: CircuitStringClass.fromString(extractedData.initialRegistrationDate || ''),
+      lastUpdateDate: CircuitStringClass.fromString(extractedData.lastUpdateDate || ''),
+      nextRenewalDate: CircuitStringClass.fromString(extractedData.nextRenewalDate || ''),
+      registrationStatus: CircuitStringClass.fromString(extractedData.registration_status || ''),
+      conformityFlag: CircuitStringClass.fromString(extractedData.conformityFlag || ''),
+      bicCodes: CircuitStringClass.fromString(extractedData.bic_codes || ''),
+      micCodes: CircuitStringClass.fromString(extractedData.mic_codes || ''),
+      managingLou: CircuitStringClass.fromString(extractedData.managingLou || ''),
+      merkleRoot: merkleRoot
+    });
+
+    console.log('✅ All MerkleWitness8 instances created successfully');
+    return complianceData;
+  } catch (error) {
+    console.error('❌ Error creating compliance data:', error);
+    throw error;
+  }
+}
+
 function analyzeGLEIFStructureForZK(record: any): void {
   console.log('🔬 ANALYZING DATA STRUCTURE FOR ZK OPTIMIZATION...\n');
   
-  const zkOptimizationSuggestions = {
-    tier1Individual: [] as string[],
-    tier2Grouped: {} as Record<string, string[]>,
-    tier3Metadata: [] as string[],
-    relationshipData: [] as string[],
-    totalFields: 0
-  };
-
-  // Analyze attributes structure
   if (record.attributes) {
     console.log('📊 ATTRIBUTES STRUCTURE ANALYSIS:');
     
-    // Core LEI information
     if (record.attributes.lei) {
-      zkOptimizationSuggestions.tier1Individual.push('attributes.lei');
       console.log(`  ✅ LEI: ${record.attributes.lei}`);
     }
 
-    // Entity information analysis
     if (record.attributes.entity) {
       console.log('\n🏢 ENTITY DATA STRUCTURE:');
       const entity = record.attributes.entity;
       
-      // High-priority individual fields
       if (entity.legalName?.name) {
-        zkOptimizationSuggestions.tier1Individual.push('entity.legalName.name');
         console.log(`  ✅ Legal Name: ${entity.legalName.name}`);
       }
       
       if (entity.status) {
-        zkOptimizationSuggestions.tier1Individual.push('entity.status');
         console.log(`  ✅ Status: ${entity.status}`);
       }
 
       if (entity.jurisdiction) {
-        zkOptimizationSuggestions.tier1Individual.push('entity.jurisdiction');
         console.log(`  ✅ Jurisdiction: ${entity.jurisdiction}`);
       }
 
-      // Legal address grouping
       if (entity.legalAddress) {
-        const addressFields = [];
         console.log('\n  📍 LEGAL ADDRESS DATA:');
         console.log(JSON.stringify(entity.legalAddress, null, 4));
-        
-        if (entity.legalAddress.addressLines) addressFields.push('entity.legalAddress.addressLines');
-        if (entity.legalAddress.city) addressFields.push('entity.legalAddress.city');
-        if (entity.legalAddress.region) addressFields.push('entity.legalAddress.region');
-        if (entity.legalAddress.country) addressFields.push('entity.legalAddress.country');
-        if (entity.legalAddress.postalCode) addressFields.push('entity.legalAddress.postalCode');
-        
-        if (addressFields.length > 0) {
-          zkOptimizationSuggestions.tier2Grouped['legal_address_bundle'] = addressFields;
-        }
       }
 
-      // Headquarters address grouping
       if (entity.headquartersAddress) {
-        const hqFields = [];
         console.log('\n  🏢 HEADQUARTERS ADDRESS DATA:');
         console.log(JSON.stringify(entity.headquartersAddress, null, 4));
-        
-        if (entity.headquartersAddress.addressLines) hqFields.push('entity.headquartersAddress.addressLines');
-        if (entity.headquartersAddress.city) hqFields.push('entity.headquartersAddress.city');
-        if (entity.headquartersAddress.region) hqFields.push('entity.headquartersAddress.region');
-        if (entity.headquartersAddress.country) hqFields.push('entity.headquartersAddress.country');
-        if (entity.headquartersAddress.postalCode) hqFields.push('entity.headquartersAddress.postalCode');
-        
-        if (hqFields.length > 0) {
-          zkOptimizationSuggestions.tier2Grouped['headquarters_address_bundle'] = hqFields;
-        }
       }
-
-      // Business information bundle
-      const businessFields = [];
+      
       if (entity.legalForm?.id) {
-        businessFields.push('entity.legalForm.id');
         console.log(`  ✅ Legal Form: ${entity.legalForm.id}`);
       }
       if (entity.category) {
-        businessFields.push('entity.category');
         console.log(`  ✅ Category: ${entity.category}`);
-      }
-      if (entity.subCategory) {
-        businessFields.push('entity.subCategory');
-        console.log(`  ✅ Sub Category: ${entity.subCategory}`);
-      }
-      
-      if (businessFields.length > 0) {
-        zkOptimizationSuggestions.tier2Grouped['business_info_bundle'] = businessFields;
-      }
-
-      // Other names grouping
-      if (entity.otherNames && entity.otherNames.length > 0) {
-        console.log('\n  📝 OTHER NAMES:');
-        console.log(JSON.stringify(entity.otherNames, null, 4));
-        zkOptimizationSuggestions.tier2Grouped['other_names_bundle'] = ['entity.otherNames'];
       }
     }
     
-    // Registration information analysis
     if (record.attributes.registration) {
       console.log('\n📝 REGISTRATION DATA STRUCTURE:');
       console.log(JSON.stringify(record.attributes.registration, null, 2));
-      
-      const registration = record.attributes.registration;
-      const regFields = [];
-      
-      if (registration.initialRegistrationDate) regFields.push('registration.initialRegistrationDate');
-      if (registration.lastUpdateDate) regFields.push('registration.lastUpdateDate');
-      if (registration.nextRenewalDate) regFields.push('registration.nextRenewalDate');
-      if (registration.managingLou) regFields.push('registration.managingLou');
-      if (registration.corroborationLevel) regFields.push('registration.corroborationLevel');
-      
-      zkOptimizationSuggestions.tier3Metadata.push(...regFields);
     }
   }
 
-  // Analyze relationships structure
   if (record.relationships) {
     console.log('\n🔗 RELATIONSHIPS STRUCTURE ANALYSIS:');
     console.log(JSON.stringify(record.relationships, null, 2));
     
     Object.keys(record.relationships).forEach(key => {
-      zkOptimizationSuggestions.relationshipData.push(`relationships.${key}`);
       console.log(`  📊 Relationship type: ${key}`);
-      if (record.relationships[key]?.data) {
-        const dataType = Array.isArray(record.relationships[key].data) ? 'Array' : 'Object';
-        const dataLength = Array.isArray(record.relationships[key].data) ? record.relationships[key].data.length : 1;
-        console.log(`    └─ Data: ${dataType} (${dataLength} items)`);
-      }
     });
   }
-
-  // Generate ZK optimization recommendations
-  //generateZKOptimizationRecommendations(zkOptimizationSuggestions);
-
 }
 
-/**
- * Standard GLEIF API functions (existing compatibility)
- */
-export async function fetchGLEIFCompanyData(companyName: string): Promise<any> {
-  // Keep existing function for backward compatibility
-  return await fetchGLEIFCompanyDataWithFullDetails(companyName);
-}
-
-export async function isCompanyGLEIFCompliant(companyName: string): Promise<boolean> {
-  const res = await fetchGLEIFCompanyData(companyName);
-
-  let firstRecord;
-  if (Array.isArray(res.data)) {
-    firstRecord = res.data[0];
-  } else if (res.data) {
-    firstRecord = res.data;
-  }
-
-  const status = firstRecord?.attributes?.entity?.status;
-  console.log('Company Status:', status);
-
-  return !!status && status === 'ACTIVE';
-}
-
-// Main execution for testing
-async function main() {
-  const companyName = process.argv[2];
-  //let typeOfNet = process.argv[3] || 'TESTNET';
-
-  if (!companyName) {
-    console.error('❌ Please provide a company name');
-    console.log('Usage: node GLEIFEnhancedUtils.js "Company Name" [TESTNET|LOCAL|PROD]');
-    process.exit(1);
-  }
-
-  console.log('\n🌟 ENHANCED GLEIF API DATA ANALYSIS');
-  console.log('='.repeat(100));
-
-  try {
-    await fetchGLEIFCompanyDataWithFullDetails(companyName);
-    console.log('\n✅ Complete analysis finished successfully!');
-  } catch (error) {
-    console.error('❌ Analysis failed:', error);
-    process.exit(1);
-  }
-}
-
-export function extractGLEIFSummary(apiResponse: GLEIFAPIResponse): GLEIFDataSummary {
-  let firstRecord;
-  if (Array.isArray(apiResponse.data)) {
-    firstRecord = apiResponse.data[0];
-  } else if (apiResponse.data) {
-    firstRecord = apiResponse.data;
-  }
-
-  const attributes = firstRecord?.attributes;
-  const entity = attributes?.entity;
-  
-  return {
-    legalName: entity?.legalName?.name || '',
-    lei: attributes?.lei || firstRecord?.id || '',
-    entityStatus: entity?.status || '',
-    jurisdiction: entity?.jurisdiction || '',
-    legalForm: entity?.legalForm?.id || '',
-    complianceScore: entity?.status === 'ACTIVE' ? 100 : 0
-  };
-}
-
-export function analyzeGLEIFCompliance(apiResponse: GLEIFAPIResponse, typeOfNet?: string): GLEIFComplianceAnalysis {
-  const summary = extractGLEIFSummary(apiResponse);
-  const issues: string[] = [];
-  
-  // Check compliance criteria
-  if (!summary.legalName) issues.push('Missing legal name');
-  if (!summary.lei) issues.push('Missing LEI');
-  if (summary.entityStatus !== 'ACTIVE') issues.push('Entity status is not ACTIVE');
-  if (!summary.jurisdiction) issues.push('Missing jurisdiction');
-  
-  const isCompliant = issues.length === 0;
-  const complianceScore = isCompliant ? 100 : Math.max(0, 100 - (issues.length * 25));
-  
-  return {
-    isCompliant,
-    complianceScore,
-    issues,
-    summary: `Company ${summary.legalName} has ${isCompliant ? 'passed' : 'failed'} GLEIF compliance check`
-  };
-}
-
-// =================================== MULTI-COMPANY UTILITIES (CONSOLIDATION) ===================================
+// GLEIF Field Indices for Merkle Tree Structure
+export const GLEIF_FIELD_INDICES = {
+  legalName: 0,
+  lei: 1,
+  entityStatus: 2,
+  entity_status: 2,
+  legalForm: 3,
+  jurisdiction: 4,
+  legalAddress: 5,
+  legalCity: 6,
+  legalCountry: 7,
+  registrationAuthority: 8,
+  entityCategory: 9,
+  businessRegisterEntityId: 10,
+  leiStatus: 11,
+  initialRegistrationDate: 12,
+  lastUpdateDate: 13,
+  nextRenewalDate: 14,
+  registration_status: 15,
+  conformity_flag: 16,
+  conformityFlag: 16,
+  bic_codes: 17,
+  mic_codes: 18,
+  managingLou: 19,
+} as const;
 
 /**
  * Company registry for managing multiple companies in merkle tree
@@ -506,8 +500,8 @@ export class CompanyRegistry {
       companyRecord.isCompliant.toField(),
       companyRecord.complianceScore,
       companyRecord.totalVerifications,
-      companyRecord.lastVerificationTime.value,
-      companyRecord.firstVerificationTime.value
+      companyRecord.lastVerificationTime,
+      companyRecord.firstVerificationTime
     ]);
     
     // Update merkle tree
@@ -558,159 +552,6 @@ export class CompanyRegistry {
   getTotalCompanies(): number {
     return this.companyRecords.size;
   }
-}
-
-/**
- * Create a comprehensive merkle tree from GLEIF API response
- * FIXED: Restored from working version with correct field indices mapping
- */
-export function createComprehensiveGLEIFMerkleTree(
-  apiResponse: GLEIFAPIResponse,
-  MerkleTreeClass: any,
-  CircuitStringClass: any,
-  MERKLE_TREE_HEIGHT: number,
-  GLEIF_FIELD_INDICES: any
-): {
-  tree: any,
-  extractedData: any,
-  fieldCount: number
-} {
-  console.log('🌳 Creating comprehensive GLEIF Merkle tree...');
-  
-  const tree = new MerkleTreeClass(MERKLE_TREE_HEIGHT);
-  let fieldCount = 0;
-  const extractedData: any = {};
-
-  // Helper function to safely set field in tree
-  function setTreeField(fieldName: string, value: string | undefined | any[] | null, index: number) {
-    let safeValue: string;
-    
-    // Handle different data types from GLEIF API
-    if (value === null || value === undefined) {
-      safeValue = '';
-    } else if (Array.isArray(value)) {
-      // Handle arrays (like bic, mic codes) by joining them
-      safeValue = value.filter(v => v != null).join(',');
-    } else if (typeof value === 'object') {
-      // Handle objects by converting to string representation
-      safeValue = JSON.stringify(value);
-    } else {
-      // Handle strings and primitives
-      safeValue = String(value);
-    }
-    
-    try {
-      const circuitValue = CircuitStringClass.fromString(safeValue);
-      const hash = circuitValue.hash();
-      tree.setLeaf(BigInt(index), hash);
-      extractedData[fieldName] = circuitValue;
-      fieldCount++;
-      console.log(`  Set field ${fieldName} (${index}): "${safeValue.substring(0, 50)}${safeValue.length > 50 ? '...' : ''}"`);
-    } catch (error) {
-      console.error(`❌ Error setting field ${fieldName}:`, error);
-      // Set empty value as fallback
-      const fallbackValue = CircuitStringClass.fromString('');
-      const hash = fallbackValue.hash();
-      tree.setLeaf(BigInt(index), hash);
-      extractedData[fieldName] = fallbackValue;
-      fieldCount++;
-      console.log(`  Set field ${fieldName} (${index}) with fallback: ""`);
-    }
-  }
-
-  try {
-    console.log('📋 Processing live GLEIF API structure...');
-    const firstRecord = apiResponse.data && apiResponse.data[0] ? apiResponse.data[0] : null;
-    if (!firstRecord) {
-      throw new Error('No GLEIF records found in API response');
-    }
-    
-    const attributes = firstRecord.attributes || {};
-    const entity = attributes.entity || {};
-    const registration = attributes.registration || {};
-    
-    // Core compliance fields - FIXED mapping with correct sequential indices
-    setTreeField('legalName', entity.legalName?.name, GLEIF_FIELD_INDICES.legalName);
-    setTreeField('lei', attributes.lei, GLEIF_FIELD_INDICES.lei);
-    setTreeField('entityStatus', entity.status, GLEIF_FIELD_INDICES.entityStatus);
-    setTreeField('legalForm', entity.legalForm?.id, GLEIF_FIELD_INDICES.legalForm);
-    setTreeField('jurisdiction', entity.jurisdiction, GLEIF_FIELD_INDICES.jurisdiction);
-    setTreeField('legalAddress', entity.legalAddress?.addressLines?.[0], GLEIF_FIELD_INDICES.legalAddress);
-    setTreeField('legalCity', entity.legalAddress?.city, GLEIF_FIELD_INDICES.legalCity);
-    setTreeField('legalCountry', entity.legalAddress?.country, GLEIF_FIELD_INDICES.legalCountry);
-    setTreeField('registrationAuthority', entity.registeredAt?.id, GLEIF_FIELD_INDICES.registrationAuthority);
-    setTreeField('entityCategory', entity.category, GLEIF_FIELD_INDICES.entityCategory);
-    
-    // Additional GLEIF fields
-    if (GLEIF_FIELD_INDICES.businessRegisterEntityId !== undefined) {
-      setTreeField('businessRegisterEntityId', entity.registeredAs, GLEIF_FIELD_INDICES.businessRegisterEntityId);
-    }
-    if (GLEIF_FIELD_INDICES.leiStatus !== undefined) {
-      setTreeField('leiStatus', registration.status, GLEIF_FIELD_INDICES.leiStatus);
-    }
-    if (GLEIF_FIELD_INDICES.initialRegistrationDate !== undefined) {
-      setTreeField('initialRegistrationDate', registration.initialRegistrationDate, GLEIF_FIELD_INDICES.initialRegistrationDate);
-    }
-    if (GLEIF_FIELD_INDICES.lastUpdateDate !== undefined) {
-      setTreeField('lastUpdateDate', registration.lastUpdateDate, GLEIF_FIELD_INDICES.lastUpdateDate);
-    }
-    if (GLEIF_FIELD_INDICES.nextRenewalDate !== undefined) {
-      setTreeField('nextRenewalDate', registration.nextRenewalDate, GLEIF_FIELD_INDICES.nextRenewalDate);
-    }
-    
-    // Required fields for ZK program witnesses (must be present even if empty)
-    if (GLEIF_FIELD_INDICES.registration_status !== undefined) {
-      setTreeField('registration_status', registration.status, GLEIF_FIELD_INDICES.registration_status);
-    }
-    if (GLEIF_FIELD_INDICES.bic_codes !== undefined) {
-      setTreeField('bic_codes', attributes.bic, GLEIF_FIELD_INDICES.bic_codes);
-    }
-    if (GLEIF_FIELD_INDICES.mic_codes !== undefined) {
-      setTreeField('mic_codes', attributes.mic, GLEIF_FIELD_INDICES.mic_codes);
-    }
-    
-    // Additional fields from attributes
-    if (GLEIF_FIELD_INDICES.conformityFlag !== undefined) {
-      setTreeField('conformityFlag', attributes.conformityFlag, GLEIF_FIELD_INDICES.conformityFlag);
-    }
-    if (GLEIF_FIELD_INDICES.managingLou !== undefined) {
-      setTreeField('managingLou', registration.managingLou, GLEIF_FIELD_INDICES.managingLou);
-    }
-
-    console.log(`✅ Created Merkle tree with ${fieldCount} fields`);
-    console.log(`🌳 Merkle root: ${tree.getRoot().toString()}`);
-    
-    return { tree, extractedData, fieldCount };
-    
-  } catch (error) {
-    console.error('❌ Error creating Merkle tree:', error);
-    throw error;
-  }
-}
-
-/**
- * Create optimized compliance data from extracted fields
- */
-export function createOptimizedGLEIFComplianceData(
-  extractedData: any,
-  merkleRoot: any,
-  CircuitStringClass: any,
-  GLEIFOptimComplianceDataClass: any
-): any {
-  return new GLEIFOptimComplianceDataClass({
-    lei: extractedData.lei || CircuitStringClass.fromString(''),
-    name: extractedData.legalName || CircuitStringClass.fromString(''),
-    entity_status: extractedData.entityStatus || CircuitStringClass.fromString(''),
-    registration_status: extractedData.registration_status || CircuitStringClass.fromString(''),
-    conformity_flag: extractedData.conformityFlag || CircuitStringClass.fromString(''),
-    initialRegistrationDate: extractedData.initialRegistrationDate || CircuitStringClass.fromString(''),
-    lastUpdateDate: extractedData.lastUpdateDate || CircuitStringClass.fromString(''),
-    nextRenewalDate: extractedData.nextRenewalDate || CircuitStringClass.fromString(''),
-    bic_codes: extractedData.bic_codes || CircuitStringClass.fromString(''),
-    mic_codes: extractedData.mic_codes || CircuitStringClass.fromString(''),
-    managing_lou: extractedData.managingLou || CircuitStringClass.fromString(''),
-    merkle_root: merkleRoot,
-  });
 }
 
 /**
@@ -852,78 +693,4 @@ export function createCompanyRecord(
   }
 }
 
-// =================================== GLEIF Field Indices (FIXED) ===================================
-/**
- * GLEIF Field Indices for Merkle Tree Structure
- * FIXED: Restored correct sequential mapping from working version
- */
-export const GLEIF_FIELD_INDICES = {
-  // Core compliance fields (0-9) - CORRECT SEQUENTIAL ORDER
-  legalName: 0,
-  lei: 1,
-  entityStatus: 2,
-  entity_status: 2, // alias for consistency
-  legalForm: 3,
-  jurisdiction: 4,
-  legalAddress: 5,
-  legalCity: 6,
-  legalCountry: 7,
-  registrationAuthority: 8,
-  entityCategory: 9,
-  
-  // Extended GLEIF fields (10-19)
-  businessRegisterEntityId: 10,
-  leiStatus: 11,
-  initialRegistrationDate: 12,
-  lastUpdateDate: 13,
-  nextRenewalDate: 14,
-  registration_status: 15,
-  conformity_flag: 16,
-  conformityFlag: 16, // alias for camelCase consistency
-  bic_codes: 17,
-  mic_codes: 18,
-  managingLou: 19,
-  
-  // Additional fields for extended verification (20-29)
-  headquartersAddress: 20,
-  headquartersCity: 21,
-  headquartersCountry: 22,
-  otherNames: 23,
-  subCategory: 24,
-  corroborationLevel: 25,
-  validationSources: 26,
-  
-  // Reserved for future use (27-255)
-  reserved_27: 27,
-  reserved_28: 28,
-  reserved_29: 29
-} as const;
-
-// Type for field indices
-export type GLEIFFieldIndex = typeof GLEIF_FIELD_INDICES[keyof typeof GLEIF_FIELD_INDICES];
-
-/**
- * Validation function for GLEIF field indices
- */
-export function isValidGLEIFFieldIndex(index: number): boolean {
-  return Object.values(GLEIF_FIELD_INDICES).includes(index as GLEIFFieldIndex);
-}
-
-/**
- * Helper function to get field name by index
- */
-export function getGLEIFFieldName(index: number): string | undefined {
-  const entry = Object.entries(GLEIF_FIELD_INDICES).find(([_, value]) => value === index);
-  return entry ? entry[0] : undefined;
-}
-
-// Maintain backward compatibility - export as default as well
 export default GLEIF_FIELD_INDICES;
-
-// Only run main if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch(err => {
-    console.error('Error:', err);
-    process.exit(1);
-  });
-}

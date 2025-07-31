@@ -5,46 +5,34 @@ import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signat
 import { ComposedOptimCompliance, ComposedOptimProof, ComposedOptimCompliancePublicOutput } from './ComposedRecursiveOptim3LevelZKProgramWithSign.js';
 import { ComposedOptimComplianceVerifierSC } from './ComposedRecursiveOptim3LevelSmartContractWithSign.js';
 
+// Import ZK Compilation Manager
+import { zkCompilationManager } from './utils/ZKCompilationManager.js';
+
 // Import individual Optim service utilities
 import { getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils } from './CorporateRegistrationOptimSingleCompanyVerificationTestWithSignUtils.js';
 import { getEXIMOptimSingleCompanyVerificationWithSignUtils } from './EXIMOptimSingleCompanyVerificationTestWithSignUtils.js';
-//import { getGLEIFOptimMultiCompanyVerificationWithSignUtils } from './GLEIFOptimMultiCompanyVerificationTestWithSignUtils.js';
 import { getGLEIFLocalMultiVerifierUtils} from './local/GLEIFLocalMultiVerifierUtils.js';
-
 
 import { MCAdeployerAccount, MCAsenderAccount, MCAdeployerKey, MCAsenderKey } from '../../core/OracleRegistry.js';
 
 // =================================== Proof Storage and Lineage Management ===================================
 
-/**
- * Represents a complete proof lineage showing all underlying proofs
- */
 export interface ProofLineage {
   companyName: string;
   companyIdentifier: string;
   iteration: number;
   timestamp: number;
-  
-  // Final composed proof
   composedProofHash: string;
   composedProof: ComposedOptimProof;
-  
-  // Level-by-level proof hashes
   level1ProofHash: string;
   level2ProofHash: string;
   level3ProofHash: string;
-  
-  // Underlying service proofs
   corpRegProofHash: string;
   eximProofHash: string;
   gleifProofHash: string;
-  
-  // Service-specific data
   corpRegProof: any;
   eximProof: any;
   gleifProof: any;
-  
-  // Compliance information
   overallComplianceScore: number;
   corpRegComplianceScore: number;
   eximComplianceScore: number;
@@ -52,36 +40,26 @@ export interface ProofLineage {
   isFullyCompliant: boolean;
 }
 
-/**
- * Manages storage and retrieval of composed proofs with full lineage
- */
 class ComposedProofRegistry {
-  private proofs: Map<string, ProofLineage[]>; // companyId -> array of proof lineages
+  private proofs: Map<string, ProofLineage[]>;
   private proofsTree: MerkleTree;
   private nextIndex: number;
 
   constructor() {
     this.proofs = new Map();
-    this.proofsTree = new MerkleTree(16); // Support up to 65k proofs
+    this.proofsTree = new MerkleTree(16);
     this.nextIndex = 0;
   }
 
-  /**
-   * Store a composed proof with full lineage
-   */
   storeProofWithLineage(lineage: ProofLineage): { index: number, witness: any } {
     const companyId = lineage.companyIdentifier;
     
-    // Get or create company proof array
     if (!this.proofs.has(companyId)) {
       this.proofs.set(companyId, []);
     }
     const companyProofs = this.proofs.get(companyId)!;
-    
-    // Add to company's proof history
     companyProofs.push(lineage);
     
-    // Add to global merkle tree
     const proofHash = Poseidon.hash([
       CircuitString.fromString(lineage.composedProofHash).hash(),
       Field(lineage.timestamp),
@@ -90,83 +68,54 @@ class ComposedProofRegistry {
     
     const index = this.nextIndex++;
     this.proofsTree.setLeaf(BigInt(index), proofHash);
-    
     const witness = this.proofsTree.getWitness(BigInt(index));
     
     console.log(`📋 Stored proof for ${lineage.companyName} (iteration ${lineage.iteration}) at index ${index}`);
-    
     return { index, witness };
   }
 
-  /**
-   * Get all proofs for a company
-   */
   getCompanyProofs(companyId: string): ProofLineage[] {
     return this.proofs.get(companyId) || [];
   }
 
-  /**
-   * Get specific proof by company and iteration
-   */
   getProofByIteration(companyId: string, iteration: number): ProofLineage | null {
     const companyProofs = this.proofs.get(companyId);
     if (!companyProofs) return null;
-    
     return companyProofs.find(proof => proof.iteration === iteration) || null;
   }
 
-  /**
-   * Get latest proof for a company
-   */
   getLatestProof(companyId: string): ProofLineage | null {
     const companyProofs = this.proofs.get(companyId);
     if (!companyProofs || companyProofs.length === 0) return null;
-    
     return companyProofs[companyProofs.length - 1];
   }
 
-  /**
-   * Get proof lineage examples for reporting
-   */
   getProofLineageExamples(maxExamples: number = 3): ProofLineage[] {
     const examples: ProofLineage[] = [];
     let count = 0;
     
     for (const [companyId, proofs] of this.proofs.entries()) {
       if (count >= maxExamples) break;
-      
       if (proofs.length > 0) {
-        examples.push(proofs[0]); // First proof for each company
+        examples.push(proofs[0]);
         count++;
       }
     }
-    
     return examples;
   }
 
-  /**
-   * Get merkle root of all stored proofs
-   */
   getRoot(): Field {
     return this.proofsTree.getRoot();
   }
 
-  /**
-   * Get total number of proofs stored
-   */
   getTotalProofs(): number {
     return this.nextIndex;
   }
 
-  /**
-   * Get all tracked companies
-   */
   getAllCompanies(): string[] {
     return Array.from(this.proofs.keys());
   }
 }
-
-// =================================== Company Result Tracking ===================================
 
 export interface CompanyIteration {
   iteration: number;
@@ -184,7 +133,7 @@ export interface CompanyResult {
   successfulProofs: number;
   failedProofs: number;
   latestComplianceScore: number;
-  complianceTrend: string; // 'improving', 'stable', 'declining'
+  complianceTrend: string;
 }
 
 // =================================== Main Verification Function ===================================
@@ -194,10 +143,9 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
   companyCIN: string,
   testIterations: number = 1
 ) {
-  console.log(`\n🚀 Composed Recursive Optim 3-Level Verification Started`);
+  console.log(`\\n🚀 Composed Recursive Optim 3-Level Verification Started`);
   console.log(`🏢 Company: ${companyName}`);
   console.log(`🆔 CIN: ${companyCIN}`);
-  //console.log(`🌐 Network: ${typeOfNet}`);
   console.log(`🔄 Iterations: ${testIterations}`);
   console.log(`📝 API Usage:`);
   console.log(`  - Corporate Registration: Uses CIN (${companyCIN})`);
@@ -208,7 +156,7 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
 
   try {
     // =================================== Setup Local Blockchain ===================================
-    console.log('\n🔧 Setting up local blockchain...');
+    console.log('\\n🔧 Setting up local blockchain...');
     const { Local } = await import('../../core/OracleRegistry.js');
     const localBlockchain = await Local;
     Mina.setActiveInstance(localBlockchain);
@@ -218,36 +166,35 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
     const senderAccount = MCAsenderAccount();
     const senderKey = MCAsenderKey();
 
-    // =================================== Compile Programs ===================================
-    console.log('\n📝 Compiling ZK programs...');
+    // =================================== Centralized ZK Compilation ===================================
+    console.log('\\n📝 Starting centralized ZK program compilation...');
     
-    // Import and compile individual service ZK programs first
-    console.log('🔧 Compiling individual service ZK programs...');
-    
-    // Import the actual ZK programs
+    // Import all ZK programs first
     const { CorporateRegistrationOptim } = await import('../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js');
     const { EXIMOptim } = await import('../../zk-programs/with-sign/EXIMOptimZKProgram.js');
     const { GLEIFOptim } = await import('../../zk-programs/with-sign/GLEIFOptimZKProgram.js');
+    const { GLEIFOptimMultiCompanySmartContract } = await import('../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js');
     
-    // Compile individual service programs first
-    await CorporateRegistrationOptim.compile();
-    console.log('✅ CorporateRegistrationOptim ZK program compiled');
+    // Compile all programs using the compilation manager
+    const programs = {
+      CorporateRegistrationOptim,
+      EXIMOptim,
+      GLEIFOptim,
+      ComposedOptimCompliance,
+      ComposedOptimComplianceVerifierSC,
+      GLEIFOptimMultiCompanySmartContract
+    };
+
+    const compilationResults = await zkCompilationManager.compileAllInOrder(programs);
     
-    await EXIMOptim.compile();
-    console.log('✅ EXIMOptim ZK program compiled');
+    // Get verification key from compiled smart contract
+    const { verificationKey } = compilationResults.ComposedOptimComplianceVerifierSC || 
+                                await ComposedOptimComplianceVerifierSC.compile();
     
-    await GLEIFOptim.compile();
-    console.log('✅ GLEIFOptim ZK program compiled');
-    
-    // Now compile the composed program that depends on the individual programs
-    await ComposedOptimCompliance.compile();
-    console.log('✅ ComposedOptimCompliance ZK program compiled');
-    
-    const { verificationKey } = await ComposedOptimComplianceVerifierSC.compile();
-    console.log('✅ ComposedOptimComplianceVerifierSC compiled');
+    console.log('✅ All ZK programs compiled successfully using centralized manager!');
 
     // =================================== Deploy Smart Contract ===================================
-    console.log('\n🚀 Deploying composed verification smart contract...');
+    console.log('\\n🚀 Deploying composed verification smart contract...');
     const zkAppKey = PrivateKey.random();
     const zkAppAddress = zkAppKey.toPublicKey();
     const zkApp = new ComposedOptimComplianceVerifierSC(zkAppAddress);
@@ -290,13 +237,13 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
     // =================================== Process Company Multiple Times ===================================
     const companyIdentifier = CircuitString.fromString(companyName).hash().toString();
     
-    console.log(`\n${'='.repeat(100)}`);
+    console.log(`\\n${'='.repeat(100)}`);
     console.log(`🏢 Processing Company: ${companyName} (CIN: ${companyCIN})`);
     console.log(`${'='.repeat(100)}`);
 
     // =================================== Multiple Iterations for Same Company ===================================
     for (let iteration = 1; iteration <= testIterations; iteration++) {
-      console.log(`\n🔄 Iteration ${iteration}/${testIterations} for ${companyName}`);
+      console.log(`\\n🔄 Iteration ${iteration}/${testIterations} for ${companyName}`);
       console.log(`-`.repeat(80));
 
       const iterationStartTime = Date.now();
@@ -304,53 +251,44 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
 
       try {
         // =================================== Generate Individual Service Proofs ===================================
-        console.log(`\n📡 Generating individual service proofs for ${companyName}...`);
+        console.log(`\\n📡 Generating individual service proofs for ${companyName}...`);
         
-        // Corporate Registration Proof - Use CIN
+        // Corporate Registration Proof - Use CIN (skip compilation)
         console.log(`🏛️ Generating Corporate Registration proof with CIN: ${companyCIN}...`);
-        const corpRegResult = await getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils(
-          companyCIN // Use CIN for Corporate Registration
-        );
-        const corpRegProof = corpRegResult.proof;
-        // Extract compliance score from proof public output or use default
+        const corpRegResult = await getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils(companyCIN);
+        const corpRegProof = corpRegResult;
         const corpRegScore = 75;
         
-        // EXIM Proof - Use Company Name  
+        // EXIM Proof - Use Company Name (skip compilation)
         console.log(`🚢 Generating EXIM proof with Company Name: ${companyName}...`);
-        const eximResult = await getEXIMOptimSingleCompanyVerificationWithSignUtils(
-          companyName // Use Company Name for EXIM
-        );
-        const eximProof = eximResult.proof;
-        // Extract compliance score from proof public output or use default
+        const eximResult = await getEXIMOptimSingleCompanyVerificationWithSignUtils(companyName);
+        const eximProof = eximResult;
         const eximScore = 80;
         
-        // GLEIF Proof - Use Company Name
+        // GLEIF Proof - Use Company Name (skip compilation)
         console.log(`🌍 Generating GLEIF proof with Company Name: ${companyName}...`);
-        const gleifResult = await getGLEIFLocalMultiVerifierUtils(
-          [companyName] // Use Company Name for GLEIF (wrapped in array for multi-company function)
-        );
-        const gleifProof = gleifResult.proofs[0]; // Get first proof from multi-company result
-        // Extract compliance score from proof public output or use default
+        const gleifResult = await getGLEIFLocalMultiVerifierUtils([companyName]);
+        const gleifProof = gleifResult.proofs[0];
         const gleifScore = gleifResult.verificationResults[0]?.complianceScore || 85;
 
         console.log(`✅ All individual service proofs generated for ${companyName}`);
 
         // =================================== Compose Proofs in 3 Levels ===================================
-        console.log(`\n🔗 Composing proofs in 3 levels for ${companyName}...`);
+        console.log(`\\n🔗 Composing proofs in 3 levels for ${companyName}...`);
         
         const currentTimestamp = UInt64.from(Date.now());
         
         // Level 1: Corporate Registration
         console.log(`🔸 Level 1: Composing Corporate Registration proof...`);
         const level1Proof = await ComposedOptimCompliance.level1(
-          currentTimestamp.value,
+          currentTimestamp,
           corpRegProof as any
         );
         
         // Level 2: Level1 + EXIM
         console.log(`🔸 Level 2: Composing Level1 + EXIM proof...`);
         const level2Proof = await ComposedOptimCompliance.level2(
-          currentTimestamp.value,
+          currentTimestamp,
           level1Proof as any,
           eximProof as any
         );
@@ -358,7 +296,7 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
         // Level 3: Level2 + GLEIF (Final composed proof)
         console.log(`🔸 Level 3: Composing Level2 + GLEIF proof (Final)...`);
         const finalComposedProof = await ComposedOptimCompliance.level3(
-          currentTimestamp.value,
+          currentTimestamp,
           level2Proof as any,
           gleifProof as any
         );
@@ -398,11 +336,11 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
         };
 
         // =================================== Store Proof with Lineage ===================================
-        console.log(`\n📋 Storing composed proof with lineage for ${companyName}...`);
+        console.log(`\\n📋 Storing composed proof with lineage for ${companyName}...`);
         const { index, witness } = proofRegistry.storeProofWithLineage(proofLineage);
 
         // =================================== Verify on Smart Contract ===================================
-        console.log(`\n🔍 Verifying composed proof on smart contract for ${companyName}...`);
+        console.log(`\\n🔍 Verifying composed proof on smart contract for ${companyName}...`);
         
         const verificationStartTime = Date.now();
         const verifyTxn = await Mina.transaction(
@@ -460,7 +398,7 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
       }
     }
 
-    // =================================== Calculate Company Compliance Trend ===================================
+    // Calculate compliance trend
     if (companyResult.iterations.length > 1) {
       const scores = companyResult.iterations
         .filter(iter => !iter.error)
@@ -476,8 +414,6 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
         else companyResult.complianceTrend = 'stable';
       }
     }
-
-    console.log(`✅ Completed all iterations for ${companyName}`);
 
     // =================================== Generate Retrieval Examples ===================================
     console.log(`\n🔍 Demonstrating proof retrieval capabilities...`);
@@ -511,7 +447,9 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
       });
     }
 
-    // =================================== Calculate Final Metrics ===================================
+    console.log(`✅ Completed all iterations for ${companyName}`);
+
+    // Generate final metrics
     const totalExecutionTime = Date.now() - startTime;
     performanceMetrics.totalExecutionTime = totalExecutionTime;
     performanceMetrics.averageProofGenerationTime = 
@@ -524,22 +462,30 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
     // Get contract final state
     const contractState = {
       totalProofsStored: Field(proofRegistry.getTotalProofs()),
-      totalCompaniesTracked: Field(1), // Single company
+      totalCompaniesTracked: Field(1),
       proofsRootHash: proofRegistry.getRoot(),
       lastUpdateTimestamp: UInt64.from(Date.now())
     };
+
+    // Log compilation status
+    console.log('\\n📊 Final Compilation Status:');
+    const compilationStatus = zkCompilationManager.getCompilationStatus();
+    Object.entries(compilationStatus).forEach(([program, compiled]) => {
+      console.log(`  ${compiled ? '✅' : '❌'} ${program}`);
+    });
 
     return {
       totalCompanies: 1,
       totalComposedProofs,
       successfulVerifications,
       failedVerifications,
-      companyResult, // Single company result instead of array
+      companyResult,
       proofLineageExamples: proofRegistry.getProofLineageExamples(3),
       retrievalExamples,
       contractState,
       performanceMetrics,
-      proofRegistry // For additional queries if needed
+      proofRegistry,
+      compilationStatus: zkCompilationManager.getCompilationStatus()
     };
 
   } catch (error) {

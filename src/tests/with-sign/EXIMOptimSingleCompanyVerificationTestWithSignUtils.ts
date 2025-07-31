@@ -135,7 +135,6 @@ function createOptimizedEXIMComplianceData(
 export async function getEXIMOptimSingleCompanyVerificationWithSignUtils(companyName: string) {
   console.log(`\n🚀 EXIM Single Company Verification Test Started`);
   console.log(`🏢 Company: ${companyName}`);
-  //console.log(`🌐 Network: ${typeOfNet}`);
   console.log(`📡 Using LIVE API for all environments`);
 
   try {

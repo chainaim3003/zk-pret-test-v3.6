@@ -351,14 +351,14 @@ export class GLEIFNetworkHandler {
 
           // === CREATE MERKLE TREE ===
           console.log(`\n🌳 Creating Merkle tree for ${companyName}...`);
-          const { tree, extractedData, fieldCount } = createComprehensiveGLEIFMerkleTree(
+          const { tree, extractedData } = createComprehensiveGLEIFMerkleTree(
             apiResponse,
             MerkleTree,
             CircuitString,
             8,  // Use height 8 to match MerkleWitness8
             GLEIF_FIELD_INDICES
           );
-          console.log(`✅ Merkle tree created with ${fieldCount} fields`);
+          console.log(`✅ Merkle tree created with ${Object.keys(extractedData).length} fields`);
 
           // === PREPARE ZK PROOF DATA ===
           console.log(`\n🔐 Preparing ZK proof data for ${companyName}...`);
