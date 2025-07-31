@@ -143,6 +143,27 @@
       "contractName": "GLEIFOptimMultiCompanySmartContract",
       "oracle": "GLEIF",
       "description": "Force deployment - used when deployer knows there are contract changes that need redeployment"
+    },
+    "testnet-exim": {
+      "name": "testnet-exim",
+      "environment": "TESTNET",
+      "contractName": "EXIMOptimMultiCompanySmartContract",
+      "oracle": "EXIM",
+      "description": "Stable testnet EXIM deployment"
+    },
+    "testnet-exim-dev": {
+      "name": "testnet-exim-dev",
+      "environment": "TESTNET",
+      "contractName": "EXIMOptimMultiCompanySmartContract",
+      "oracle": "EXIM",
+      "description": "Development iteration testing"
+    },
+    "testnet-exim-force": {
+      "name": "testnet-exim-force",
+      "environment": "TESTNET",
+      "contractName": "EXIMOptimMultiCompanySmartContract",
+      "oracle": "EXIM",
+      "description": "Force deployment - used when deployer knows there are contract changes that need redeployment"
     }
   },
   "deprecatedDeployments": {
