@@ -26,7 +26,7 @@ export class ComposedOptimCompliancePublicOutput extends Struct({
   servicesCompliant: Field,        // Which services passed compliance
   
   // Verification metadata
-  verificationTimestamp: UInt64,   // When this composed proof was generated
+  verificationTimestamp: Field,   // When this composed proof was generated (Fix 2: Field instead of UInt64)
   composedProofVersion: Field,     // Version number for this company
   
   // Cryptographic integrity
@@ -51,7 +51,7 @@ export class UnderlyingProofMetadata extends Struct({
  */
 export const ComposedOptimCompliance = ZkProgram({
   name: 'ComposedOptimCompliance',
-  publicInput: UInt64, // FIXED: Changed to UInt64 to match timestamp usage
+  publicInput: Field, // Fix 2: Changed from UInt64 to Field to match working version
   publicOutput: ComposedOptimCompliancePublicOutput,
   methods: {
     /**
@@ -61,7 +61,7 @@ export const ComposedOptimCompliance = ZkProgram({
     level1: {
       privateInputs: [CorporateRegistrationOptimProof],
       async method(
-        timestamp: UInt64, 
+        timestamp: Field, 
         corpRegProof: CorporateRegistrationOptimProof
       ): Promise<ComposedOptimCompliancePublicOutput> {
         // Verify the corporate registration proof
@@ -79,7 +79,7 @@ export const ComposedOptimCompliance = ZkProgram({
           corpRegOutput.companyName.hash(),
           corpRegOutput.CIN.hash(),
           corpRegOutput.merkle_root,
-          timestamp.value // FIXED: Use timestamp.value instead of Field conversion
+          timestamp // Fix 4: Direct use, no .value for Field
         ]);
         const underlyingHash = corpRegHash; // Only one proof at this level
         
@@ -102,10 +102,10 @@ export const ComposedOptimCompliance = ZkProgram({
      * FIXED: Use UInt64 timestamp directly without toBigInt()
      */
     level2: {
-      privateInputs: [SelfProof<UInt64, ComposedOptimCompliancePublicOutput>, EXIMOptimProof],
+      privateInputs: [SelfProof<Field, ComposedOptimCompliancePublicOutput>, EXIMOptimProof],
       async method(
-        timestamp: UInt64,
-        prevProof: SelfProof<UInt64, ComposedOptimCompliancePublicOutput>,
+        timestamp: Field,
+        prevProof: SelfProof<Field, ComposedOptimCompliancePublicOutput>,
         eximProof: EXIMOptimProof
       ): Promise<ComposedOptimCompliancePublicOutput> {
         // Verify both proofs
@@ -138,7 +138,7 @@ export const ComposedOptimCompliance = ZkProgram({
           eximOutput.iec.hash(),
           eximOutput.entityName.hash(),
           eximOutput.merkle_root,
-          timestamp.value // FIXED: Use timestamp.value instead of Field conversion
+          timestamp // Fix 4: Direct use, no .value for Field
         ]);
         const combinedUnderlyingHash = Poseidon.hash([
           prevOutput.underlyingProofsHash,
@@ -164,10 +164,10 @@ export const ComposedOptimCompliance = ZkProgram({
      * FIXED: Use UInt64 timestamp directly without toBigInt()
      */
     level3: {
-      privateInputs: [SelfProof<UInt64, ComposedOptimCompliancePublicOutput>, GLEIFOptimProof],
+      privateInputs: [SelfProof<Field, ComposedOptimCompliancePublicOutput>, GLEIFOptimProof],
       async method(
-        timestamp: UInt64,
-        prevProof: SelfProof<UInt64, ComposedOptimCompliancePublicOutput>,
+        timestamp: Field,
+        prevProof: SelfProof<Field, ComposedOptimCompliancePublicOutput>,
         gleifProof: GLEIFOptimProof
       ): Promise<ComposedOptimCompliancePublicOutput> {
         // Verify both proofs
@@ -200,7 +200,7 @@ export const ComposedOptimCompliance = ZkProgram({
           gleifOutput.lei.hash(),
           gleifOutput.name.hash(),
           gleifOutput.merkle_root,
-          timestamp.value // FIXED: Use timestamp.value instead of Field conversion
+          timestamp // Fix 4: Direct use, no .value for Field
         ]);
         const finalUnderlyingHash = Poseidon.hash([
           prevOutput.underlyingProofsHash,

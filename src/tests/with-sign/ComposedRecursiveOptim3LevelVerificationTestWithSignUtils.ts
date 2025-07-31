@@ -5,8 +5,7 @@ import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signat
 import { ComposedOptimCompliance, ComposedOptimProof, ComposedOptimCompliancePublicOutput } from './ComposedRecursiveOptim3LevelZKProgramWithSign.js';
 import { ComposedOptimComplianceVerifierSC } from './ComposedRecursiveOptim3LevelSmartContractWithSign.js';
 
-// Import ZK Compilation Manager
-import { zkCompilationManager } from './utils/ZKCompilationManager.js';
+// Direct ZK Program compilation (Fix 1: Remove ZKCompilationManager)
 
 // Import individual Optim service utilities
 import { getCorporateRegistrationOptimSingleCompanyVerificationWithSignUtils } from './CorporateRegistrationOptimSingleCompanyVerificationTestWithSignUtils.js';
@@ -166,32 +165,33 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
     const senderAccount = MCAsenderAccount();
     const senderKey = MCAsenderKey();
 
-    // =================================== Centralized ZK Compilation ===================================
-    console.log('\\n📝 Starting centralized ZK program compilation...');
+    // =================================== Direct ZK Compilation (Fix 1) ===================================
+    console.log('\\n📝 Compiling ZK programs...');
     
-    // Import all ZK programs first
+    // Import and compile individual service ZK programs first
+    console.log('🔧 Compiling individual service ZK programs...');
+    
+    // Import the actual ZK programs
     const { CorporateRegistrationOptim } = await import('../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js');
     const { EXIMOptim } = await import('../../zk-programs/with-sign/EXIMOptimZKProgram.js');
     const { GLEIFOptim } = await import('../../zk-programs/with-sign/GLEIFOptimZKProgram.js');
-    const { GLEIFOptimMultiCompanySmartContract } = await import('../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js');
     
-    // Compile all programs using the compilation manager
-    const programs = {
-      CorporateRegistrationOptim,
-      EXIMOptim,
-      GLEIFOptim,
-      ComposedOptimCompliance,
-      ComposedOptimComplianceVerifierSC,
-      GLEIFOptimMultiCompanySmartContract
-    };
-
-    const compilationResults = await zkCompilationManager.compileAllInOrder(programs);
+    // Compile individual service programs first
+    await CorporateRegistrationOptim.compile();
+    console.log('✅ CorporateRegistrationOptim ZK program compiled');
     
-    // Get verification key from compiled smart contract
-    const { verificationKey } = compilationResults.ComposedOptimComplianceVerifierSC || 
-                                await ComposedOptimComplianceVerifierSC.compile();
+    await EXIMOptim.compile();
+    console.log('✅ EXIMOptim ZK program compiled');
     
-    console.log('✅ All ZK programs compiled successfully using centralized manager!');
+    await GLEIFOptim.compile();
+    console.log('✅ GLEIFOptim ZK program compiled');
+    
+    // Now compile the composed program that depends on the individual programs
+    await ComposedOptimCompliance.compile();
+    console.log('✅ ComposedOptimCompliance ZK program compiled');
+    
+    const { verificationKey } = await ComposedOptimComplianceVerifierSC.compile();
+    console.log('✅ ComposedOptimComplianceVerifierSC compiled');
 
     // =================================== Deploy Smart Contract ===================================
     console.log('\\n🚀 Deploying composed verification smart contract...');
@@ -276,7 +276,7 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
         // =================================== Compose Proofs in 3 Levels ===================================
         console.log(`\\n🔗 Composing proofs in 3 levels for ${companyName}...`);
         
-        const currentTimestamp = UInt64.from(Date.now());
+        const currentTimestamp = Field.from(Date.now());
         
         // Level 1: Corporate Registration
         console.log(`🔸 Level 1: Composing Corporate Registration proof...`);
@@ -464,15 +464,16 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
       totalProofsStored: Field(proofRegistry.getTotalProofs()),
       totalCompaniesTracked: Field(1),
       proofsRootHash: proofRegistry.getRoot(),
-      lastUpdateTimestamp: UInt64.from(Date.now())
+      lastUpdateTimestamp: Field.from(Date.now())
     };
 
-    // Log compilation status
+    // Log compilation status (Fix 1: Direct compilation completed)
     console.log('\\n📊 Final Compilation Status:');
-    const compilationStatus = zkCompilationManager.getCompilationStatus();
-    Object.entries(compilationStatus).forEach(([program, compiled]) => {
-      console.log(`  ${compiled ? '✅' : '❌'} ${program}`);
-    });
+    console.log('  ✅ CorporateRegistrationOptim');
+    console.log('  ✅ EXIMOptim');
+    console.log('  ✅ GLEIFOptim');
+    console.log('  ✅ ComposedOptimCompliance');
+    console.log('  ✅ ComposedOptimComplianceVerifierSC');
 
     return {
       totalCompanies: 1,
@@ -485,7 +486,13 @@ export async function getComposedRecursiveOptim3LevelVerificationWithSignUtils(
       contractState,
       performanceMetrics,
       proofRegistry,
-      compilationStatus: zkCompilationManager.getCompilationStatus()
+      compilationStatus: {
+        CorporateRegistrationOptim: true,
+        EXIMOptim: true,
+        GLEIFOptim: true,
+        ComposedOptimCompliance: true,
+        ComposedOptimComplianceVerifierSC: true
+      }
     };
 
   } catch (error) {
