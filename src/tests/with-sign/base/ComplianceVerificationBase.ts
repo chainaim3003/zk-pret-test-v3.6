@@ -79,33 +79,128 @@ export class ComplianceVerificationBase {
   }
 
   /**
-   * Analyzes compliance fields for GLEIF verification
+   * ✅ FIXED: Analyzes compliance fields with comprehensive safety checks
    * MOVED FROM: GLEIFLocalMultiVerifierUtils.ts (analyzeComplianceFields function)
    * DEDUPLICATION: Single implementation instead of duplicates in Local and Network utils
    */
   public analyzeComplianceFields(complianceData: GLEIFOptimComplianceData): ComplianceAnalysis {
-    const isEntityActive = complianceData.entity_status.toString() === 'ACTIVE';
-    const isRegistrationIssued = complianceData.registration_status.toString() === 'ISSUED';
-    const isConformityOk = ['CONFORMING', 'UNKNOWN', ''].includes(complianceData.conformity_flag.toString());
-    const hasValidDates = complianceData.lastUpdateDate.toString() !== '' && complianceData.nextRenewalDate.toString() !== '';
-    const hasValidLEI = complianceData.lei.toString() !== '';
-    
-    const allRulesPassed = isEntityActive && isRegistrationIssued && isConformityOk && hasValidDates && hasValidLEI;
-    const rulesPassedCount = [isEntityActive, isRegistrationIssued, isConformityOk, hasValidDates, hasValidLEI].filter(Boolean).length;
+    try {
+      // Validate input data
+      if (!this.validateComplianceData(complianceData)) {
+        console.error('❌ Invalid compliance data provided');
+        throw new Error('Invalid compliance data structure');
+      }
+      
+      // Safe field extraction with fallbacks
+      const entityStatus = this.safeToString(complianceData.entity_status, 'entity_status');
+      const registrationStatus = this.safeToString(complianceData.registration_status, 'registration_status');
+      const conformityFlag = this.safeToString(complianceData.conformity_flag, 'conformity_flag');
+      const lastUpdateDate = this.safeToString(complianceData.lastUpdateDate, 'lastUpdateDate');
+      const nextRenewalDate = this.safeToString(complianceData.nextRenewalDate, 'nextRenewalDate');
+      const lei = this.safeToString(complianceData.lei, 'lei');
+      
+      // Business logic validation
+      const isEntityActive = entityStatus === 'ACTIVE';
+      const isRegistrationIssued = registrationStatus === 'ISSUED';
+      const isConformityOk = ['CONFORMING', 'UNKNOWN', '', 'EMPTY'].includes(conformityFlag);
+      const hasValidDates = lastUpdateDate !== '' && lastUpdateDate !== 'EMPTY' && 
+                           nextRenewalDate !== '' && nextRenewalDate !== 'EMPTY' &&
+                           lastUpdateDate !== 'UNDEFINED' && nextRenewalDate !== 'UNDEFINED';
+      const hasValidLEI = lei !== '' && lei !== 'EMPTY' && lei !== 'UNDEFINED';
+      
+      const allRulesPassed = isEntityActive && isRegistrationIssued && isConformityOk && hasValidDates && hasValidLEI;
+      const rulesPassedCount = [isEntityActive, isRegistrationIssued, isConformityOk, hasValidDates, hasValidLEI]
+        .filter(Boolean).length;
 
-    return {
-      isEntityActive,
-      isRegistrationIssued,
-      isConformityOk,
-      hasValidDates,
-      hasValidLEI,
-      allRulesPassed,
-      rulesPassedCount
-    };
+      return {
+        isEntityActive,
+        isRegistrationIssued,
+        isConformityOk,
+        hasValidDates,
+        hasValidLEI,
+        allRulesPassed,
+        rulesPassedCount
+      };
+      
+    } catch (error) {
+      console.error('❌ Error in analyzeComplianceFields:', error);
+      // Return safe defaults in case of error
+      return {
+        isEntityActive: false,
+        isRegistrationIssued: false,
+        isConformityOk: false,
+        hasValidDates: false,
+        hasValidLEI: false,
+        allRulesPassed: false,
+        rulesPassedCount: 0
+      };
+    }
   }
 
   /**
-   * Logs compliance field analysis results
+   * ✅ FIXED: Safe toString helper for CircuitString objects
+   * Handles null/undefined/malformed CircuitString objects safely
+   */
+  private safeToString(value: any, fieldName: string = 'unknown'): string {
+    try {
+      // Handle null/undefined
+      if (value === null || value === undefined) {
+        console.warn(`⚠️ Field '${fieldName}' is null/undefined`);
+        return 'UNDEFINED';
+      }
+      
+      // Handle CircuitString objects
+      if (value && typeof value.toString === 'function') {
+        const result = value.toString();
+        return result || 'EMPTY';
+      }
+      
+      // Handle primitive strings
+      if (typeof value === 'string') {
+        return value || 'EMPTY';
+      }
+      
+      // Fallback for other types
+      console.warn(`⚠️ Field '${fieldName}' has unexpected type: ${typeof value}`);
+      return String(value) || 'UNDEFINED';
+      
+    } catch (error) {
+      console.error(`❌ Error converting field '${fieldName}' to string:`, error);
+      return 'ERROR';
+    }
+  }
+
+  /**
+   * ✅ FIXED: Type guard for GLEIFOptimComplianceData validation
+   */
+  private validateComplianceData(complianceData: any): boolean {
+    try {
+      if (!complianceData) {
+        console.error('❌ Compliance data is null or undefined');
+        return false;
+      }
+      
+      const requiredFields = [
+        'entity_status', 'registration_status', 'conformity_flag',
+        'lastUpdateDate', 'nextRenewalDate', 'lei'
+      ];
+      
+      for (const field of requiredFields) {
+        if (!(field in complianceData)) {
+          console.error(`❌ Required field '${field}' missing from compliance data`);
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error validating compliance data:', error);
+      return false;
+    }
+  }
+
+  /**
+   * ✅ FIXED: Logs compliance field analysis with comprehensive error handling
    * MOVED FROM: GLEIFLocalMultiVerifierUtils.ts (logComplianceFieldAnalysis function)
    * DEDUPLICATION: Single implementation instead of duplicates in Local and Network utils
    */
@@ -114,33 +209,69 @@ export class ComplianceVerificationBase {
     isCompliant: Bool,
     phase: 'Pre-Verification' | 'Post-Verification' = 'Pre-Verification'
   ): void {
-    console.log(`\n🔍 COMPLIANCE FIELD ANALYSIS (${phase}):`);
-    
-    const analysis = this.analyzeComplianceFields(complianceData);
-    
-    console.log(`  🏢 Entity Status: "${complianceData.entity_status.toString()}" → ${analysis.isEntityActive ? '✅ ACTIVE (Pass)' : '❌ NOT ACTIVE (Fail)'}`);
-    console.log(`  📋 Registration Status: "${complianceData.registration_status.toString()}" → ${analysis.isRegistrationIssued ? '✅ ISSUED (Pass)' : '❌ NOT ISSUED (Fail)'}`);
-    console.log(`  🔍 Conformity Flag: "${complianceData.conformity_flag.toString()}" → ${analysis.isConformityOk ? '✅ ACCEPTABLE (Pass)' : '❌ NON-CONFORMING (Fail)'}`);
-    console.log(`  📅 Date Validation: Last Update "${complianceData.lastUpdateDate.toString()}", Next Renewal "${complianceData.nextRenewalDate.toString()}" → ${analysis.hasValidDates ? '✅ VALID DATES (Pass)' : '❌ INVALID DATES (Fail)'}`);
-    console.log(`  🆔 LEI Validation: "${complianceData.lei.toString()}" → ${analysis.hasValidLEI ? '✅ VALID LEI (Pass)' : '❌ EMPTY LEI (Fail)'}`);
-    
-    console.log(`  🏆 Overall Compliance Analysis: ${analysis.allRulesPassed ? '✅ ALL RULES PASSED' : '❌ SOME RULES FAILED'} → ZK Proof Shows: ${isCompliant.toJSON() ? '✅ COMPLIANT' : '❌ NON-COMPLIANT'}`);
-    console.log(`  📊 Business Rules: ${analysis.rulesPassedCount}/5 passed`);
-    console.log(`  📈 Compliance Percentage: ${Math.round((analysis.rulesPassedCount / 5) * 100)}%`);
-    
-    if (phase === 'Pre-Verification') {
-      console.log(`  ⏳ Chain Status: NOT YET VERIFIED - Awaiting smart contract transaction...`);
-    } else {
-      console.log(`  ✅ Chain Status: VERIFIED AND STORED ON BLOCKCHAIN`);
-    }
-    
-    if (!analysis.allRulesPassed) {
-      console.log(`  ⚠️ Rules That ${phase === 'Pre-Verification' ? 'Will' : 'Did'} Fail:`);
-      if (!analysis.isEntityActive) console.log(`    - Entity Status must be "ACTIVE", got "${complianceData.entity_status.toString()}"`);
-      if (!analysis.isRegistrationIssued) console.log(`    - Registration Status must be "ISSUED", got "${complianceData.registration_status.toString()}"`);
-      if (!analysis.isConformityOk) console.log(`    - Conformity Flag must be "CONFORMING", "UNKNOWN" or empty, got "${complianceData.conformity_flag.toString()}"`);
-      if (!analysis.hasValidDates) console.log(`    - Last Update and Next Renewal dates must not be empty`);
-      if (!analysis.hasValidLEI) console.log(`    - LEI must not be empty`);
+    try {
+      console.log(`\n🔍 COMPLIANCE FIELD ANALYSIS (${phase}):`);
+      
+      // Validate input parameters
+      if (!complianceData) {
+        console.error('❌ Compliance data is null or undefined');
+        return;
+      }
+      
+      if (!isCompliant) {
+        console.error('❌ isCompliant parameter is null or undefined');
+        return;
+      }
+      
+      // Get analysis with error handling
+      const analysis = this.analyzeComplianceFields(complianceData);
+      
+      // Safe field extraction for logging
+      const entityStatus = this.safeToString(complianceData.entity_status, 'entity_status');
+      const registrationStatus = this.safeToString(complianceData.registration_status, 'registration_status');
+      const conformityFlag = this.safeToString(complianceData.conformity_flag, 'conformity_flag');
+      const lastUpdateDate = this.safeToString(complianceData.lastUpdateDate, 'lastUpdateDate');
+      const nextRenewalDate = this.safeToString(complianceData.nextRenewalDate, 'nextRenewalDate');
+      const lei = this.safeToString(complianceData.lei, 'lei');
+      
+      // Log analysis results
+      console.log(`  🏢 Entity Status: "${entityStatus}" → ${analysis.isEntityActive ? '✅ ACTIVE (Pass)' : '❌ NOT ACTIVE (Fail)'}`);
+      console.log(`  📋 Registration Status: "${registrationStatus}" → ${analysis.isRegistrationIssued ? '✅ ISSUED (Pass)' : '❌ NOT ISSUED (Fail)'}`);
+      console.log(`  🔍 Conformity Flag: "${conformityFlag}" → ${analysis.isConformityOk ? '✅ ACCEPTABLE (Pass)' : '❌ NON-CONFORMING (Fail)'}`);
+      console.log(`  📅 Date Validation: Last Update "${lastUpdateDate}", Next Renewal "${nextRenewalDate}" → ${analysis.hasValidDates ? '✅ VALID DATES (Pass)' : '❌ INVALID DATES (Fail)'}`);
+      console.log(`  🆔 LEI Validation: "${lei}" → ${analysis.hasValidLEI ? '✅ VALID LEI (Pass)' : '❌ EMPTY LEI (Fail)'}`);
+      
+      // Safe Bool conversion
+      let isCompliantValue = false;
+      try {
+        isCompliantValue = isCompliant.toJSON();
+      } catch (error) {
+        console.warn('⚠️ Error converting isCompliant to JSON, using false');
+      }
+      
+      console.log(`  🏆 Overall Compliance Analysis: ${analysis.allRulesPassed ? '✅ ALL RULES PASSED' : '❌ SOME RULES FAILED'} → ZK Proof Shows: ${isCompliantValue ? '✅ COMPLIANT' : '❌ NON-COMPLIANT'}`);
+      console.log(`  📊 Business Rules: ${analysis.rulesPassedCount}/5 passed`);
+      console.log(`  📈 Compliance Percentage: ${Math.round((analysis.rulesPassedCount / 5) * 100)}%`);
+      
+      if (phase === 'Pre-Verification') {
+        console.log(`  ⏳ Chain Status: NOT YET VERIFIED - Awaiting smart contract transaction...`);
+      } else {
+        console.log(`  ✅ Chain Status: VERIFIED AND STORED ON BLOCKCHAIN`);
+      }
+      
+      if (!analysis.allRulesPassed) {
+        console.log(`  ⚠️ Rules That ${phase === 'Pre-Verification' ? 'Will' : 'Did'} Fail:`);
+        if (!analysis.isEntityActive) console.log(`    - Entity Status must be "ACTIVE", got "${entityStatus}"`);
+        if (!analysis.isRegistrationIssued) console.log(`    - Registration Status must be "ISSUED", got "${registrationStatus}"`);
+        if (!analysis.isConformityOk) console.log(`    - Conformity Flag must be "CONFORMING", "UNKNOWN" or empty, got "${conformityFlag}"`);
+        if (!analysis.hasValidDates) console.log(`    - Last Update and Next Renewal dates must not be empty`);
+        if (!analysis.hasValidLEI) console.log(`    - LEI must not be empty`);
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error in logComplianceFieldAnalysis (${phase}):`, error);
+      console.log(`  🚨 Failed to analyze compliance data - this may indicate a data structure issue`);
+      // Don't re-throw here to prevent cascading failures
     }
   }
 

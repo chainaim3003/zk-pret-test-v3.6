@@ -324,6 +324,7 @@ export function createComprehensiveGLEIFMerkleTree(
 
 /**
  * Create optimized GLEIF compliance data for ZK proofs
+ * FIXED: Updated to match the expected GLEIFOptimComplianceData structure
  */
 export function createOptimizedGLEIFComplianceData(
   extractedData: Record<string, any>,
@@ -333,36 +334,60 @@ export function createOptimizedGLEIFComplianceData(
 ): any {
   console.log('🔐 Preparing ZK proof data...');
   
+  // Helper function to safely create CircuitString
+  function safeCircuitString(value: any, fieldName: string): any {
+    try {
+      if (value === null || value === undefined) {
+        console.warn(`⚠️ ${fieldName} is null/undefined, using empty string`);
+        return CircuitStringClass.fromString('');
+      }
+      
+      // Handle different value types
+      if (typeof value === 'string') {
+        return CircuitStringClass.fromString(value);
+      } else if (value && typeof value.toString === 'function') {
+        return CircuitStringClass.fromString(value.toString());
+      } else {
+        console.warn(`⚠️ ${fieldName} cannot be converted to string, using empty string`);
+        return CircuitStringClass.fromString('');
+      }
+    } catch (error) {
+      console.error(`❌ Error creating CircuitString for ${fieldName}:`, error);
+      return CircuitStringClass.fromString('');
+    }
+  }
+  
   try {
+    // Create compliance data matching GLEIFOptimComplianceData structure
     const complianceData = new GLEIFOptimComplianceDataClass({
-      legalName: CircuitStringClass.fromString(extractedData.legalName || ''),
-      lei: CircuitStringClass.fromString(extractedData.lei || ''),
-      entityStatus: CircuitStringClass.fromString(extractedData.entityStatus || ''),
-      legalForm: CircuitStringClass.fromString(extractedData.legalForm || ''),
-      jurisdiction: CircuitStringClass.fromString(extractedData.jurisdiction || ''),
-      legalAddress: CircuitStringClass.fromString(extractedData.legalAddress || ''),
-      legalCity: CircuitStringClass.fromString(extractedData.legalCity || ''),
-      legalCountry: CircuitStringClass.fromString(extractedData.legalCountry || ''),
-      registrationAuthority: CircuitStringClass.fromString(extractedData.registrationAuthority || ''),
-      entityCategory: CircuitStringClass.fromString(extractedData.entityCategory || ''),
-      businessRegisterEntityId: CircuitStringClass.fromString(extractedData.businessRegisterEntityId || ''),
-      leiStatus: CircuitStringClass.fromString(extractedData.leiStatus || ''),
-      initialRegistrationDate: CircuitStringClass.fromString(extractedData.initialRegistrationDate || ''),
-      lastUpdateDate: CircuitStringClass.fromString(extractedData.lastUpdateDate || ''),
-      nextRenewalDate: CircuitStringClass.fromString(extractedData.nextRenewalDate || ''),
-      registrationStatus: CircuitStringClass.fromString(extractedData.registration_status || ''),
-      conformityFlag: CircuitStringClass.fromString(extractedData.conformityFlag || ''),
-      bicCodes: CircuitStringClass.fromString(extractedData.bic_codes || ''),
-      micCodes: CircuitStringClass.fromString(extractedData.mic_codes || ''),
-      managingLou: CircuitStringClass.fromString(extractedData.managingLou || ''),
-      merkleRoot: merkleRoot
+      // Core identifiers
+      lei: safeCircuitString(extractedData.lei, 'lei'),
+      name: safeCircuitString(extractedData.legalName, 'legalName'),
+      
+      // Compliance critical fields (matching the struct field names)
+      entity_status: safeCircuitString(extractedData.entityStatus, 'entityStatus'),
+      registration_status: safeCircuitString(extractedData.registration_status || extractedData.registrationStatus, 'registration_status'),
+      conformity_flag: safeCircuitString(extractedData.conformityFlag, 'conformityFlag'),
+      
+      // Temporal validation fields
+      initialRegistrationDate: safeCircuitString(extractedData.initialRegistrationDate, 'initialRegistrationDate'),
+      lastUpdateDate: safeCircuitString(extractedData.lastUpdateDate, 'lastUpdateDate'),
+      nextRenewalDate: safeCircuitString(extractedData.nextRenewalDate, 'nextRenewalDate'),
+      
+      // Related IDs
+      bic_codes: safeCircuitString(extractedData.bic_codes || '', 'bic_codes'),
+      mic_codes: safeCircuitString(extractedData.mic_codes || '', 'mic_codes'),
+      managing_lou: safeCircuitString(extractedData.managingLou, 'managingLou'),
+      
+      // Merkle tree root
+      merkle_root: merkleRoot
     });
 
-    console.log('✅ All MerkleWitness8 instances created successfully');
+    console.log('✅ Optimized GLEIF compliance data created successfully');
     return complianceData;
   } catch (error) {
-    console.error('❌ Error creating compliance data:', error);
-    throw error;
+    console.error('❌ Error creating optimized GLEIF compliance data:', error);
+    throw new Error(`Failed to create compliance data: ${error}`);
   }
 }
 
