@@ -58,6 +58,7 @@ import {
   getDeployerAccount,
   getDeployerKey,
   environmentManager,
+  Environment,
   compilationManager,
   deploymentManager,
   getSenderAccount,
@@ -263,60 +264,29 @@ export class GLEIFNetworkHandler {
       const { verificationKey } = await GLEIFOptimMultiCompanySmartContract.compile();
       console.log('✅ GLEIFOptimMultiCompanySmartContract compiled');
       
-      // === SMART CONTRACT DEPLOYMENT OR REUSE ===
-      console.log('\n🚀 Setting up multi-company smart contract...');
+      // === SMART CONTRACT LOOKUP ===
+      console.log('\n🚀 Looking up smart contract address...');
       
-      // Check for existing contract in configuration
-      const existingContractAddress = 'B62qqTMTF4KVhFZ82Fkrqakgt1uYE1vi78gjooEiq2Fgo3wyPqd1P5q'; // From testnet.json
+      // Load contract address from environment configuration
+      const contractAddress = await environmentManager.getDeployedContractAddress('GLEIFOptimMultiCompanySmartContract');
       
-      let zkAppAddress: PublicKey;
-      let zkApp: GLEIFOptimMultiCompanySmartContract;
-      
-      // Set fee for transactions (needed for both existing and new contracts)
-      const fee = this.getTransactionFee(currentEnvironment);
-      
-      if (existingContractAddress && currentEnv === 'TESTNET') {
-        // Use existing contract from configuration
-        console.log('✅ Using existing contract from configuration...');
-        zkAppAddress = PublicKey.fromBase58(existingContractAddress);
-        zkApp = new GLEIFOptimMultiCompanySmartContract(zkAppAddress);
-        
-        console.log(`📋 Contract Address: ${zkAppAddress.toBase58()}`);
-        console.log(`🌐 Environment: ${this.baseCore.getEnvironmentDisplayName()}`);
-        console.log('✅ Using existing multi-company smart contract (skipping deployment)');
-        
-        // Verify the contract is accessible
-        try {
-          const accountData = await fetchAccount({ publicKey: zkAppAddress });
-          if (accountData && accountData.account) {
-            console.log('✅ Existing contract verified and accessible on DEVNET');
-          } else {
-            console.warn('⚠️ Warning: Existing contract might not be immediately accessible');
-          }
-        } catch (verifyError) {
-          console.warn(`⚠️ Warning: Could not verify existing contract: ${verifyError}`);
-        }
-      } else {
-        // Deploy new contract (fallback for non-TESTNET or when no existing contract)
-        console.log('🚀 Deploying new multi-company smart contract...');
-        const zkAppKey = PrivateKey.random();
-        zkAppAddress = zkAppKey.toPublicKey();
-        zkApp = new GLEIFOptimMultiCompanySmartContract(zkAppAddress);
-
-        console.log(`📋 Contract Address: ${zkAppAddress.toBase58()}`);
-        console.log(`🌐 Environment: ${this.baseCore.getEnvironmentDisplayName()}`);
-        
-        const deployTxn = await Mina.transaction(
-          { sender: deployerAccount, fee },
-          async () => {
-            AccountUpdate.fundNewAccount(deployerAccount);
-            await zkApp.deploy({ verificationKey });
-          }
-        );
-        
-        await deployTxn.sign([deployerKey, zkAppKey]).send();
-        console.log('✅ Multi-company smart contract deployed successfully');
+      if (!contractAddress) {
+        throw new Error(`GLEIFOptimMultiCompanySmartContract address not found in ${currentEnv.toLowerCase()}.json deployments.contracts section`);
       }
+      
+      // Validate the contract address format
+      if (!environmentManager.validateContractAddress(contractAddress)) {
+        throw new Error(`Invalid contract address format: ${contractAddress}`);
+      }
+      
+      console.log(`✅ Contract address found: ${contractAddress}`);
+      console.log(`📋 Source: config/environments/${currentEnv.toLowerCase()}.json`);
+      
+      const zkAppAddress = PublicKey.fromBase58(contractAddress);
+      const zkApp = new GLEIFOptimMultiCompanySmartContract(zkAppAddress);
+      
+      // Set fee for transactions
+      const fee = this.getTransactionFee(currentEnvironment);
       
       // === MAIN VERIFICATION LOOP ===
       const proofs = [];

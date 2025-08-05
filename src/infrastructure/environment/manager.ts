@@ -287,6 +287,27 @@ export class EnvironmentManager {
     };
   }
 
+  /**
+   * Get deployed contract address from environment configuration
+   */
+  async getDeployedContractAddress(contractName: string): Promise<string | null> {
+    try {
+      const config = await this.getCurrentConfig();
+      return config.deployments?.contracts?.[contractName]?.address || null;
+    } catch (error) {
+      console.error(`Failed to load contract address: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Validate contract address format (Mina public key)
+   */
+  validateContractAddress(address: string): boolean {
+    const base58Regex = /^B62[1-9A-HJ-NP-Za-km-z]{52}$/;
+    return base58Regex.test(address);
+  }
+
   async listDeployments(): Promise<Record<string, any>> {
     const config = await this.getCurrentConfig();
     return config.deployments.contracts;
