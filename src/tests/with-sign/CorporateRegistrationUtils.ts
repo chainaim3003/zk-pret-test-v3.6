@@ -116,7 +116,14 @@ async function fetchMasterData(
     apiUrl: string,
     cin: string
 ): Promise<any> {
-    try {
+
+    if(apiUrl !== 'https://api.sandbox.co.in/mca/company/master-data/search') {
+        console.log('////////////////////////////////////////**********************************////////////////////////////////')
+        const response = await axios.get(`${apiUrl}/${cin}`);
+        return response.data;
+    }
+    else{
+        try {
         const body: MasterDataRequest = {
             "@entity": "in.co.sandbox.kyc.mca.master_data.request",
             id: cin,
@@ -213,6 +220,8 @@ async function fetchMasterData(
         console.error('Error fetching master data:', error.response?.data || error.message);
         throw new Error(`Error fetching master data: ${error.response?.data || error.message}`);
     }
+    }
+    
 }
 
 export async function fetchCorporateRegistrationData(cin: string): Promise<any> {
@@ -253,6 +262,9 @@ export async function fetchCorporateRegistrationData(cin: string): Promise<any> 
         console.log('Using sandbox API endpoint for LOCAL:', BASEURL);
         const accessToken = await authenticate();
         return fetchMasterData(accessToken, BASEURL, cin);
+
+        // const response =await axios.get(`${BASEURL}/${cin}`);
+        // return response.data;
         
     } else {
         console.log('///////////////////////////////////////////////in prod//////////////////////////////////////////////');
