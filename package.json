@@ -69,7 +69,17 @@
     "setup:testnet": "npm run build && node ./build/testnet-setup.js",
     "setup:testnet-direct": "npx ts-node --esm src/testnet-setup.ts",
     "check:funding": "npm run build && node ./build/check-funding.js",
-    "check:funding-direct": "npx ts-node --esm src/check-funding.ts"
+    "check:funding-direct": "npx ts-node --esm src/check-funding.ts",
+    "test:business-process-integrity": "npm run build && node build/tests/with-sign/BusinessProcessIntegrityTest.js",
+    "test:local-business-process": "npm run build && node build/tests/with-sign/BusinessProcessLocalMultiVerifier.js",
+    "test:network-business-process": "npm run build && node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js",
+    "test:local-business-process-single": "npm run build && node build/tests/with-sign/BusinessProcessLocalMultiVerifier.js",
+    "test:network-business-process-single": "npm run build && node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js",
+    "test:local-business-process-multi": "npm run build && node build/tests/with-sign/BusinessProcessLocalMultiVerifier.js",
+    "test:network-business-process-multi": "npm run build && node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js",
+    "example-business-process:local-stablecoin": "npm run build && node build/tests/with-sign/BusinessProcessLocalMultiVerifier.js STABLECOIN ./src/data/STABLECOIN/process/EXPECTED/STABLECOIN-Expected.bpmn ./src/data/STABLECOIN/process/ACTUAL/STABLECOIN-Accepted1.bpmn",
+    "example-business-process:network-stablecoin": "npm run build && node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js STABLECOIN ./src/data/STABLECOIN/process/EXPECTED/STABLECOIN-Expected.bpmn ./src/data/STABLECOIN/process/ACTUAL/STABLECOIN-Accepted1.bpmn",
+    "test:original-business-process": "npm run build && node build/tests/with-sign/BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSign.js"
   },
   "lint-staged": {
     "**/*": [
