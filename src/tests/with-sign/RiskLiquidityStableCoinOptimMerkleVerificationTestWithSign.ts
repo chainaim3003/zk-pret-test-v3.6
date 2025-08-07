@@ -372,31 +372,91 @@ async function loadJurisdictionThresholds(jurisdiction: string) {
 
 async function main() {
     // Enhanced argument parsing with jurisdiction support
-    const initialStatus = parseFloat(process.argv[2]) || 100;
-    const actusUrl = process.argv[3] || 'http://localhost:8083/eventsBatch';
-    const portfolioPath = process.argv[4]; // Portfolio file path
-    const executionMode = process.argv[5] || 'ultra_strict'; // Execution mode
-    const jurisdictionCLI = process.argv[6]; // NEW: Jurisdiction parameter (US/EU)
+    console.log('🔍 DEBUG: Raw arguments received:');
+    console.log(`   Total arguments: ${process.argv.length}`);
+    process.argv.forEach((arg, index) => {
+        console.log(`   [${index}]: "${arg}"`);
+    });
     
-    // Jurisdiction parameter is now REQUIRED
-    if (!jurisdictionCLI) {
+    // Check if arguments are concatenated in a single string and split them
+    let args = [...process.argv];
+    
+    // Handle case where arguments might be concatenated (common in Windows)
+    if (args.length === 5 && args[4] && args[4].includes(' ')) {
+        console.log('🔧 Detected concatenated arguments, splitting...');
+        const concatenatedArgs = args[4].split(/\s+/); // Split by whitespace
+        args = [...args.slice(0, 4), ...concatenatedArgs];
+        console.log('🔍 After splitting:');
+        args.forEach((arg, index) => {
+            console.log(`   [${index}]: "${arg}"`);
+        });
+    }
+    
+    // Alternative approach: if we still don't have enough args, try different parsing
+    if (args.length < 7) {
+        console.log('🔧 Still not enough arguments, trying alternative parsing...');
+        
+        // Check if the file path contains spaces and arguments are mixed
+        const allArgs = process.argv.slice(2).join(' ');
+        console.log(`🔍 Full argument string: "${allArgs}"`);
+        
+        // Try to match the expected pattern
+        const match = allArgs.match(/^(\d+)\s+([^\s]+)\s+([^\s]+(?:\/[^\s]+)*)\s+(\w+)\s+(\w+)$/);
+        if (match) {
+            console.log('🔍 Pattern matched, extracting arguments...');
+            args = [
+                args[0], // node path
+                args[1], // script path
+                match[1], // threshold
+                match[2], // url
+                match[3], // portfolio path
+                match[4], // execution mode
+                match[5]  // jurisdiction
+            ];
+            console.log('🔍 After pattern matching:');
+            args.forEach((arg, index) => {
+                console.log(`   [${index}]: "${arg}"`);
+            });
+        }
+    }
+    
+    const initialStatus = parseFloat(args[2]) || 100;
+    const actusUrl = args[3] || 'http://localhost:8083/eventsBatch';
+    const portfolioPath = args[4]; // Portfolio file path
+    const executionMode = args[5] || 'ultra_strict'; // Execution mode
+    const jurisdictionCLI = args[6]; // NEW: Jurisdiction parameter (US/EU)
+    
+    console.log('🔍 Parsed values:');
+    console.log(`   initialStatus: ${initialStatus}`);
+    console.log(`   actusUrl: ${actusUrl}`);
+    console.log(`   portfolioPath: ${portfolioPath}`);
+    console.log(`   executionMode: ${executionMode}`);
+    console.log(`   jurisdictionCLI: "${jurisdictionCLI}" (type: ${typeof jurisdictionCLI})`);
+    
+    // Jurisdiction parameter is now REQUIRED with enhanced validation
+    if (!jurisdictionCLI || jurisdictionCLI.trim() === '') {
         console.error(`❌ Error: Jurisdiction parameter is required!`);
         console.log('\n📖 Usage: node test.js <threshold> <url> <config> <mode> <jurisdiction>');
         console.log('   jurisdiction: US or EU (REQUIRED)');
         console.log('   Examples:');
         console.log('     node test.js 100 http://api.url config.json ultra_strict US');
         console.log('     node test.js 100 http://api.url config.json ultra_strict EU');
+        console.log('\n🔧 Alternative usage with quotes:');
+        console.log('     node test.js 100 "http://api.url" "config.json" "ultra_strict" "US"');
         process.exit(1);
     }
     
-    // Validate jurisdiction parameter
-    if (!['US', 'EU'].includes(jurisdictionCLI.toUpperCase())) {
+    // Normalize and validate jurisdiction parameter
+    const normalizedJurisdiction = jurisdictionCLI.trim().toUpperCase();
+    if (!['US', 'EU'].includes(normalizedJurisdiction)) {
         console.error(`❌ Error: Invalid jurisdiction '${jurisdictionCLI}'. Must be 'US' or 'EU'.`);
         process.exit(1);
     }
     
+    console.log(`✅ Jurisdiction parameter validated: ${normalizedJurisdiction}`);
+    
     // Load jurisdiction-specific thresholds from SETTINGS directory
-    const jurisdictionThresholds = await loadJurisdictionThresholds(jurisdictionCLI.toUpperCase());
+    const jurisdictionThresholds = await loadJurisdictionThresholds(normalizedJurisdiction);
     
     // Set stablecoin-specific thresholds from SETTINGS files (NO HARDCODING)
     const backingRatioThreshold = jurisdictionThresholds.backingRatioThreshold;
@@ -443,7 +503,7 @@ async function main() {
         console.log(`📁 Portfolio Path: ${portfolioPath}`);
     }
     console.log(`🚀 Execution Mode: ${executionMode}`);
-    console.log(`🏛️ Jurisdiction: ${jurisdictionCLI}`);
+    console.log(`🏛️ Jurisdiction: ${normalizedJurisdiction}`);
     
     const result = await executeRiskLiquidityStableCoinOptimMerkleVerification(
         backingRatioThreshold,
@@ -453,7 +513,7 @@ async function main() {
         actusUrl,
         finalContractPortfolio,
         undefined, // No longer using regulatoryFramework from config
-        jurisdictionCLI?.toUpperCase()  // Pass CLI jurisdiction parameter (normalized)
+        normalizedJurisdiction  // Pass CLI jurisdiction parameter (normalized)
     );
     
     if (result.success) {
