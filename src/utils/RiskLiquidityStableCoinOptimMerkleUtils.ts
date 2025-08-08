@@ -859,70 +859,102 @@ Generated: ${complianceData.metadata.processingDate}
 /**
  * Build Merkle tree structure for StableCoin risk data
  * Creates tree with proper data components that match ZK program expectations
+ * IMPORTANT: This function should receive the SAME aggregated totals that are passed to the ZK program
  */
 export function buildStableCoinRiskMerkleStructure(
-    stableCoinRiskData: RiskLiquidityStableCoinOptimMerkleData
+    stableCoinRiskData: RiskLiquidityStableCoinOptimMerkleData,
+    aggregatedTotals?: {
+        cashReservesTotal?: number;
+        treasuryReservesTotal?: number;
+        corporateReservesTotal?: number;
+        otherReservesTotal?: number;
+        outstandingTokensTotal?: number;
+        averageLiquidityScore?: number;
+        averageCreditRating?: number;
+        averageMaturity?: number;
+        assetQualityScore?: number;
+    }
 ): RiskLiquidityStableCoinOptimMerkleProcessedData {
     console.log('🌳 Building Merkle tree structure...');
     
-    // Create data hashes that match the ZK program structure
-    const companyInfoHash = Poseidon.hash([
-        CircuitString.fromString(stableCoinRiskData.companyID).hash(),
-        Field(stableCoinRiskData.riskEvaluated)
-    ]);
+    // Use provided aggregated totals if available, otherwise fallback to array reduction
+    // ✅ ZK-COMPLIANT: Ensure consistency with ZK program calculations
+    const cashTotal = aggregatedTotals?.cashReservesTotal ?? stableCoinRiskData.cashReserves.reduce((sum, val) => sum + val, 0);
+    const treasuryTotal = aggregatedTotals?.treasuryReservesTotal ?? stableCoinRiskData.treasuryReserves.reduce((sum, val) => sum + val, 0);
+    const corporateTotal = aggregatedTotals?.corporateReservesTotal ?? stableCoinRiskData.corporateReserves.reduce((sum, val) => sum + val, 0);
+    const otherTotal = aggregatedTotals?.otherReservesTotal ?? stableCoinRiskData.otherReserves.reduce((sum, val) => sum + val, 0);
+    const outstandingTotal = aggregatedTotals?.outstandingTokensTotal ?? stableCoinRiskData.outstandingTokens.reduce((sum, val) => sum + val, 0);
+    const avgLiquidityScore = aggregatedTotals?.averageLiquidityScore ?? (stableCoinRiskData.liquidityScores.reduce((sum, val) => sum + val, 0) / stableCoinRiskData.liquidityScores.length);
+    const avgCreditRating = aggregatedTotals?.averageCreditRating ?? (stableCoinRiskData.creditRatings.reduce((sum, val) => sum + val, 0) / stableCoinRiskData.creditRatings.length);
+    const avgMaturity = aggregatedTotals?.averageMaturity ?? (stableCoinRiskData.maturityProfiles.reduce((sum, val) => sum + val, 0) / stableCoinRiskData.maturityProfiles.length);
+    const assetQuality = aggregatedTotals?.assetQualityScore ?? avgLiquidityScore;
     
-    const reservesHash = Poseidon.hash([
-        Field(stableCoinRiskData.cashReserves.reduce((sum, val) => sum + val, 0)),
-        Field(stableCoinRiskData.treasuryReserves.reduce((sum, val) => sum + val, 0)),
-        Field(stableCoinRiskData.corporateReserves.reduce((sum, val) => sum + val, 0)),
-        Field(stableCoinRiskData.otherReserves.reduce((sum, val) => sum + val, 0)),
-        Field(0), // Padding to 8 elements
-        Field(0),
-        Field(0),
-        Field(0)
-    ]);
+    // Prepare data for Merkle tree using consistent aggregated values
+    const merkleLeaves = [
+        // Company information hash
+        // ✅ ZK-COMPLIANT: Use CircuitString hash for consistency with ZK program
+        Poseidon.hash([
+            CircuitString.fromString(stableCoinRiskData.companyID).hash(),
+            Field(stableCoinRiskData.riskEvaluated)
+        ]),
+        
+        // Reserve assets hash (using aggregated totals)
+        // ✅ ZK-COMPLIANT: Use same values that will be passed to ZK program
+        Poseidon.hash([
+            safeFieldFrom(cashTotal),
+            safeFieldFrom(treasuryTotal),
+            safeFieldFrom(corporateTotal),
+            safeFieldFrom(otherTotal),
+            Field(0), // Padding to 8 elements
+            Field(0),
+            Field(0),
+            Field(0)
+        ]),
+        
+        // Token information hash (using aggregated totals)
+        Poseidon.hash([
+            safeFieldFrom(outstandingTotal),
+            safeFieldFrom(stableCoinRiskData.tokenValue * 100), // Scale by 100 to match ZK program
+            Field(0), // Padding to 8 elements
+            Field(0),
+            Field(0),
+            Field(0),
+            Field(0),
+            Field(0)
+        ]),
+        
+        // Quality metrics hash (using average values)
+        Poseidon.hash([
+            safeFieldFrom(avgLiquidityScore),
+            safeFieldFrom(avgCreditRating),
+            safeFieldFrom(avgMaturity),
+            safeFieldFrom(assetQuality),
+            Field(0), // Padding to 8 elements
+            Field(0),
+            Field(0),
+            Field(0)
+        ]),
+        
+        // Thresholds and parameters hash
+        Poseidon.hash([
+            Field(stableCoinRiskData.backingRatioThreshold),
+            Field(stableCoinRiskData.liquidityRatioThreshold),
+            Field(stableCoinRiskData.concentrationLimit),
+            Field(stableCoinRiskData.qualityThreshold),
+            Field(stableCoinRiskData.liquidityThreshold),
+            Field(stableCoinRiskData.newInvoiceAmount),
+            Field(stableCoinRiskData.newInvoiceEvaluationMonth),
+            Field(stableCoinRiskData.periodsCount)
+        ])
+    ];
     
-    const tokensHash = Poseidon.hash([
-        Field(stableCoinRiskData.outstandingTokens.reduce((sum, val) => sum + val, 0)),
-        Field(Math.round(stableCoinRiskData.tokenValue * 100)), // Scale by 100 to match ZK program
-        Field(0), // Padding to 8 elements
-        Field(0),
-        Field(0),
-        Field(0),
-        Field(0),
-        Field(0)
-    ]);
-    
-    const qualityMetricsHash = Poseidon.hash([
-        Field(stableCoinRiskData.liquidityScores[0] || 100),
-        Field(stableCoinRiskData.creditRatings[0] || 100),
-        Field(stableCoinRiskData.maturityProfiles[0] || 0),
-        Field(100), // Use consistent asset quality score
-        Field(0), // Padding to 8 elements
-        Field(0),
-        Field(0),
-        Field(0)
-    ]);
-    
-    const thresholdsHash = Poseidon.hash([
-        Field(stableCoinRiskData.backingRatioThreshold),
-        Field(stableCoinRiskData.liquidityRatioThreshold),
-        Field(stableCoinRiskData.concentrationLimit),
-        Field(stableCoinRiskData.qualityThreshold),
-        Field(stableCoinRiskData.liquidityThreshold),
-        Field(stableCoinRiskData.newInvoiceAmount),
-        Field(stableCoinRiskData.newInvoiceEvaluationMonth),
-        Field(stableCoinRiskData.periodsCount)
-    ]);
-    
-    // Create the Merkle tree with these hashes
-    const leaves = [companyInfoHash, reservesHash, tokensHash, qualityMetricsHash, thresholdsHash];
-    const merkleTree = buildMerkleTreeZK(leaves);
+    // Build Merkle tree
+    const merkleTree = buildMerkleTreeZK(merkleLeaves);
     const merkleRoot = merkleTree.getRoot();
     
     console.log(`📊 Merkle root: ${merkleRoot}`);
     
-    // Create witnesses for each component
+    // Generate witnesses
     const witnesses = {
         companyInfo: new MerkleWitness8(merkleTree.getWitness(BigInt(0))),
         reserves: new MerkleWitness8(merkleTree.getWitness(BigInt(1))),

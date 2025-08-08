@@ -55,6 +55,15 @@ async function main() {
                 console.log(`💰 LOCAL Total Notional: ${configData.portfolioMetadata?.totalNotional || 'Unknown'}`);
                 console.log(`🎯 LOCAL Using concentration limit from config: ${finalConcentrationLimit}%`);
             }
+            // ALSO CHECK portfolioMetadata.complianceTarget (ACTUAL config structure)
+            else if (configData.portfolioMetadata?.complianceTarget) {
+                const target = configData.portfolioMetadata.complianceTarget;
+                finalConcentrationLimit = target.concentrationLimit || 25;
+                // Keep existing thresholds for ultra_strict mode override
+                console.log(`📊 LOCAL Portfolio ID: ${configData.portfolioMetadata?.portfolioId || 'Unknown'}`);
+                console.log(`💰 LOCAL Total Notional: ${configData.portfolioMetadata?.totalNotional || 'Unknown'}`);
+                console.log(`🎯 LOCAL Using concentration limit from config: ${finalConcentrationLimit}%`);
+            }
             
             if (configData.contracts) {
                 finalContractPortfolio = configData.contracts;
