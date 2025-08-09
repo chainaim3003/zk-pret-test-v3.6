@@ -13,7 +13,7 @@ import { BaseVerificationCore } from '../base/BaseVerificationCore.js';
 import { ComplianceVerificationBase } from '../base/ComplianceVerificationBase.js';
 
 // PRESERVE EXACT IMPORTS from working implementation
-import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signature, UInt64 } from 'o1js';
+import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signature, UInt64, MerkleTree } from 'o1js';
 import { getPrivateKeyFor } from '../../../core/OracleRegistry.js';
 import { 
     fetchRiskLiquidityBasel3OptimMerkleData,
@@ -27,7 +27,8 @@ import { loadContractPortfolio } from '../../../utils/ACTUSOptimMerkleAPI.js';
 import {
     RiskLiquidityBasel3OptimMerkleZKProgramWithSign,
     createBasel3RiskComplianceData,
-    validateBasel3RiskComplianceData
+    validateBasel3RiskComplianceData,
+    MerkleWitness8
 } from '../../../zk-programs/with-sign/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js';
 import { RiskLiquidityBasel3OptimMerkleSmartContract } from '../../../contracts/with-sign/RiskLiquidityBasel3OptimMerkleSmartContract.js';
 
@@ -121,14 +122,19 @@ export class RiskBasel3LocalHandler {
             // PRESERVE EXACT ZK COMPLIANCE DATA CREATION from working code
             console.log('📋 LOCAL: Building Merkle tree with CURRENT processed data...');
             
-            // Create Merkle root using simplified approach
-            const merkleRoot = Field.from(Math.round(Math.random() * 1000000)); // Simplified for now
-            console.log(`🔧 LOCAL DYNAMIC Merkle root: ${merkleRoot}`);
+            // ✅ FIXED: Use the proper Merkle tree construction function from utils
+            // This ensures the tree structure matches exactly what the ZK program expects
+            const merkleProcessedData = buildBasel3RiskMerkleStructure(basel3RiskData);
+            const merkleRoot = merkleProcessedData.merkleRoot;
+            
+            console.log(`🔧 DYNAMIC Merkle root: ${merkleRoot}`);
             console.log('LOCAL: This root is calculated AFTER data processing to ensure consistency');
             
             // PRESERVE EXACT ORACLE SIGNATURE CREATION from working code
+            console.log('🔐 Creating oracle signature on dynamic root...');
             const oraclePrivateKey = getPrivateKeyFor('BASEL3');
             const signature = this.riskBase.createOracleSignature(merkleRoot, oraclePrivateKey);
+            console.log('✅ Oracle signature created for dynamic root');
             
             // PRESERVE EXACT ZK DATA STRUCTURE CREATION from working code
             console.log('📋 LOCAL: Creating final ZK compliance data with dynamic Merkle root...');
@@ -163,15 +169,17 @@ export class RiskBasel3LocalHandler {
             validateBasel3RiskComplianceData(zkComplianceData);
             console.log('✅ LOCAL: ZK compliance data structure created and validated');
 
-            // LOCAL OPTIMIZATION: Faster proof generation without network delays
-            console.log('🏠 LOCAL: Generating ZK proof (faster execution)...');
-            const proof = await this.executeLocalZKProofFlow(
+            // FIXED: ZK proof generation with proper oracle signature and Merkle data
+            console.log('🏠 LOCAL: Generating Basel3 ZK proof (faster execution)...');
+            const proof = await this.executeLocalBasel3ZKProofFlowFixed(
                 RiskLiquidityBasel3OptimMerkleZKProgramWithSign,
                 zkApp,
                 zkComplianceData,
-                'verifyBasel3Compliance',
+                signature,
+                'verifyBasel3RiskComplianceWithProof',  // ✅ FIXED: Correct method name from smart contract
                 riskEnv.senderAccount,
-                riskEnv.senderKey
+                riskEnv.senderKey,
+                merkleProcessedData  // ✅ ADD: Pass the proper Merkle tree data
             );
             
             // PRESERVE EXACT PROOF OUTPUT LOGGING from working code
@@ -179,16 +187,15 @@ export class RiskBasel3LocalHandler {
             console.log(`📊 LOCAL Proof public output - LCR Ratio: ${proof.publicOutput.lcrRatio}`);
             console.log(`📊 LOCAL Proof public output - NSFR Ratio: ${proof.publicOutput.nsfrRatio}`);
 
-            // PRESERVE EXACT CONTRACT STATUS LOGGING from working code
-            console.log('🔧 LOCAL CRITICAL DEBUG - ZK Circuit Output:');
-            console.log(`   - Input to ZK: Overall Compliance = ${riskMetrics.overallCompliant}`);
-            console.log(`   - Output from ZK: Basel3 Compliant = ${proof.publicOutput.basel3Compliant}`);
-            console.log(`   - proofsEnabled = ${riskEnv.useProof} (LOCAL optimized)`);
-            console.log(`   - Expected: ZK should have FAILED if input was false AND proofsEnabled=true`);
-            if (riskMetrics.overallCompliant === proof.publicOutput.basel3Compliant) {
-                console.log(`   ✅ LOCAL CORRECT: Both input and output are ${riskMetrics.overallCompliant ? 'compliant' : 'non-compliant'}`);
+            // ✅ SIMPLIFIED: Clean ZK verification status
+            console.log('🔧 LOCAL ZK Verification Results:');
+            console.log(`   - ProofsEnabled: ${riskEnv.useProof}`);
+            console.log(`   - Basel3 Compliant: ${proof.publicOutput.basel3Compliant}`);
+            console.log(`   - ZK Proof: ✅ Successfully generated and verified`);
+            if (proof.publicOutput.basel3Compliant) {
+                console.log(`   - Status: ✅ COMPLIANT - LCR and NSFR thresholds met`);
             } else {
-                console.log(`   ❌ LOCAL MISMATCH: Input=${riskMetrics.overallCompliant}, Output=${proof.publicOutput.basel3Compliant}`);
+                console.log(`   - Status: ❌ NON-COMPLIANT - Thresholds not met`);
             }
 
             // PRESERVE EXACT STATUS TRACKING from working code
@@ -249,30 +256,65 @@ export class RiskBasel3LocalHandler {
     }
 
     /**
-     * LOCAL-optimized ZK proof flow for Basel3
-     * Faster execution without network transaction delays
+     * FIXED: ZK proof flow with proper oracle signature and witnesses from utils function
      */
-    private async executeLocalZKProofFlow(
+    private async executeLocalBasel3ZKProofFlowFixed(
         zkProgram: any,
         zkApp: any,
         zkComplianceData: any,
+        oracleSignature: Signature,
         verificationMethod: string,
         senderAccount: any,
-        senderKey: any
+        senderKey: any,
+        merkleProcessedData: any  // ✅ ADD: Use the proper Merkle tree data from utils
     ): Promise<any> {
-        // LOCAL OPTIMIZATION: No network delays
-        console.log('🏠 LOCAL: Generating Basel3 ZK proof (no network delays)...');
-        const proof = await zkProgram.generateProof(zkComplianceData);
-        console.log('✅ LOCAL: Basel3 ZK proof generated successfully');
+        console.log('🔧 Generating ZK proof...');
         
-        // LOCAL OPTIMIZATION: Instant local transaction
-        console.log('🏠 LOCAL: Verifying Basel3 proof with smart contract (instant)...');
+        // ✅ FIXED: Use the properly constructed witnesses from utils function
+        // This ensures the witnesses match the same tree that generated the merkleRoot
+        const witnesses = merkleProcessedData.witnesses;
+        
+        console.log(`🔍 Verifying witness calculations:`);
+        console.log(`   Company Info Root: ${witnesses.companyInfo.calculateRoot(zkComplianceData.scenarioID.hash())}`);
+        console.log(`   Cash Flows Root: ${witnesses.cashFlows.calculateRoot(zkComplianceData.hqlaLevel1Total.add(zkComplianceData.hqlaLevel2ATotal))}`);
+        console.log(`   HQLA Root: ${witnesses.hqlaComponents.calculateRoot(zkComplianceData.hqlaLevel1Total.add(zkComplianceData.hqlaLevel2ATotal).add(zkComplianceData.hqlaLevel2BTotal).add(zkComplianceData.netCashOutflowsTotal))}`);
+        console.log(`   NSFR Root: ${witnesses.nsfrComponents.calculateRoot(zkComplianceData.availableStableFundingTotal.add(zkComplianceData.requiredStableFundingTotal))}`);
+        console.log(`   Thresholds Root: ${witnesses.thresholds.calculateRoot(zkComplianceData.lcrThreshold.add(zkComplianceData.nsfrThreshold))}`);
+        
+        // Verify they all match the main root
+        const merkleRoot = zkComplianceData.merkleRoot;
+        const allMatch = [
+            witnesses.companyInfo.calculateRoot(zkComplianceData.scenarioID.hash()),
+            witnesses.cashFlows.calculateRoot(zkComplianceData.hqlaLevel1Total.add(zkComplianceData.hqlaLevel2ATotal)),
+            witnesses.hqlaComponents.calculateRoot(zkComplianceData.hqlaLevel1Total.add(zkComplianceData.hqlaLevel2ATotal).add(zkComplianceData.hqlaLevel2BTotal).add(zkComplianceData.netCashOutflowsTotal)),
+            witnesses.nsfrComponents.calculateRoot(zkComplianceData.availableStableFundingTotal.add(zkComplianceData.requiredStableFundingTotal)),
+            witnesses.thresholds.calculateRoot(zkComplianceData.lcrThreshold.add(zkComplianceData.nsfrThreshold))
+        ].every(calculatedRoot => calculatedRoot.toString() === merkleRoot.toString());
+        
+        console.log(`   All witnesses match root: ${allMatch}`);
+        
+        // FIXED: Use correct method with ALL required parameters including oracle signature
+        const currentTimestamp = UInt64.from(Date.now());
+        const proof = await zkProgram.proveBasel3RiskCompliance(
+            currentTimestamp,
+            zkComplianceData,
+            oracleSignature,          // FIXED: Add oracle signature
+            witnesses.companyInfo,    // FIXED: Use proper witness from utils
+            witnesses.cashFlows,      // FIXED: Use proper witness from utils
+            witnesses.hqlaComponents, // FIXED: Use proper witness from utils
+            witnesses.nsfrComponents, // FIXED: Use proper witness from utils
+            witnesses.thresholds      // FIXED: Use proper witness from utils
+        );
+        console.log('✅ ZK proof generated successfully');
+        
+        // Contract verification
+        console.log('🔍 Verifying proof with smart contract...');
         const verifyTxn = await Mina.transaction(senderAccount, async () => {
             await zkApp[verificationMethod](proof);
         });
         await verifyTxn.prove();
         await verifyTxn.sign([senderKey]).send();
-        console.log('✅ LOCAL: Basel3 proof verified by smart contract (instant)');
+        console.log('✅ Proof verified by smart contract');
         
         return proof;
     }

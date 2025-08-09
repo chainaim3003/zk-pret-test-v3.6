@@ -120,7 +120,7 @@ export const RiskLiquidityBasel3OptimMerkleZKProgramWithSign = ZkProgram({
             ): Promise<RiskLiquidityBasel3OptimMerklePublicOutput> {
 
                 // =================================== Oracle Signature Verification ===================================
-                const registryPublicKey = getPublicKeyFor('RISK');
+                const registryPublicKey = getPublicKeyFor('BASEL3');
                 verifyOracleSignatureZK(oracleSignature, [complianceData.merkleRoot], registryPublicKey);
 
                 // =================================== Merkle Inclusion Proofs ===================================

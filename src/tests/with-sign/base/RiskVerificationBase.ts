@@ -9,7 +9,7 @@
 
 import { BaseVerificationCore } from './BaseVerificationCore.js';
 import { ComplianceVerificationBase } from './ComplianceVerificationBase.js';
-import { Field, Mina, PrivateKey, AccountUpdate, UInt64 } from 'o1js';
+import { Field, Mina, PrivateKey, AccountUpdate, UInt64, Signature } from 'o1js';
 
 export interface RiskEnvironment {
     deployerAccount: any;
@@ -246,7 +246,6 @@ export class RiskVerificationBase {
      */
     createOracleSignature(merkleRoot: any, oraclePrivateKey: any): any {
         console.log('🔐 Creating oracle signature on dynamic root...');
-        const { Signature } = require('o1js');
         const signature = Signature.create(oraclePrivateKey, [merkleRoot]);
         console.log('✅ Oracle signature created for dynamic root');
         return signature;
