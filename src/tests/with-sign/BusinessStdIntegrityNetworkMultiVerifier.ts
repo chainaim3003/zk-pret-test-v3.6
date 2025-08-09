@@ -29,6 +29,10 @@ async function verifyBusinessStdIntegrityCompliance() {
     console.log('✅ REAL Network: Submits to actual MINA blockchain');
     console.log('✅ REAL Merkle Trees: All cryptographic operations are genuine');
     
+    console.log('\n🔍 DEBUG: Network verifier started');
+    console.log(`📋 Arguments received: ${args.length}`);
+    console.log(`📂 Args: ${JSON.stringify(args)}`);
+    
     // Determine network type from environment
     const networkType = process.env.NETWORK_TYPE || 'testnet';
     
@@ -94,6 +98,9 @@ async function verifyBusinessStdIntegrityCompliance() {
             // Single document verification
             const [documentType, documentFile] = args;
             console.log(`📂 Single Document: ${documentType} (${documentFile})`);
+            
+            console.log('\n🔧 DEBUG: About to call runBusinessStdIntegrityTestWithFundedAccounts...');
+            console.log('⚠️  If hanging occurs after this message, the issue is in NetworkHandler');
             
             result = await runBusinessStdIntegrityTestWithFundedAccounts(documentType, documentFile, networkType);
             
@@ -203,10 +210,8 @@ async function main() {
     }
 }
 
-// Execute if run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-    main().catch((error) => {
-        console.error('Fatal error:', error);
-        process.exit(1);
-    });
-}
+// Execute main function immediately
+verifyBusinessStdIntegrityCompliance().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
