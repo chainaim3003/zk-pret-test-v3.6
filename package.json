@@ -99,7 +99,20 @@
     "test:network-business-process-multi": "npm run build && node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js",
     "example-business-process:local-stablecoin": "npm run build && node build/tests/with-sign/BusinessProcessLocalMultiVerifier.js STABLECOIN ./src/data/STABLECOIN/process/EXPECTED/STABLECOIN-Expected.bpmn ./src/data/STABLECOIN/process/ACTUAL/STABLECOIN-Accepted1.bpmn",
     "example-business-process:network-stablecoin": "npm run build && node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js STABLECOIN ./src/data/STABLECOIN/process/EXPECTED/STABLECOIN-Expected.bpmn ./src/data/STABLECOIN/process/ACTUAL/STABLECOIN-Accepted1.bpmn",
-    "test:original-business-process": "npm run build && node build/tests/with-sign/BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSign.js"
+    "test:original-business-process": "npm run build && node build/tests/with-sign/BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSign.js",
+
+    "_comment_business_std_integrity": "=== BUSINESS STANDARD INTEGRITY SCRIPTS (NEW PATTERN) ===",
+    "test:local-business-std-integrity": "npm run build && node build/tests/with-sign/BusinessStdIntegrityLocalMultiVerifier.js",
+    "test:network-business-std-integrity": "npm run build && node build/tests/with-sign/BusinessStdIntegrityNetworkMultiVerifier.js",
+    
+    "_comment_business_std_examples": "=== BUSINESS STANDARD INTEGRITY EXAMPLES ===",
+    "example-business-std:local-bol": "npm run build && node build/tests/with-sign/BusinessStdIntegrityLocalMultiVerifier.js BOL ./src/data/scf/BILLOFLADING/BOL-VALID-1.json",
+    "example-business-std:network-bol": "npm run build && node build/tests/with-sign/BusinessStdIntegrityNetworkMultiVerifier.js BOL ./src/data/scf/BILLOFLADING/BOL-VALID-1.json",
+    "example-business-std:local-multi": "npm run build && node build/tests/with-sign/BusinessStdIntegrityLocalMultiVerifier.js BOL ./src/data/scf/BILLOFLADING/BOL-VALID-1.json AWB ./src/data/scf/BILLOFLADING/BOL-VALID-2.json",
+    "example-business-std:network-multi": "npm run build && node build/tests/with-sign/BusinessStdIntegrityNetworkMultiVerifier.js BOL ./src/data/scf/BILLOFLADING/BOL-VALID-1.json AWB ./src/data/scf/BILLOFLADING/BOL-VALID-2.json",
+    
+    "_comment_legacy_business_std": "=== LEGACY BUSINESS STANDARD (DEPRECATED) ===",
+    "test:legacy-business-std-merkle": "npm run build && node ./build/tests/with-sign/BusinessStdIntegrityOptimMerkleVerificationTestWithSign.js ./src/data/scf/BILLOFLADING/BOL-VALID-1.json"
   },
   "lint-staged": {
     "**/*": [
