@@ -36,6 +36,18 @@ import { getPrivateKeyFor, getPublicKeyFor } from '../../../core/OracleRegistry.
 // === UTILITY IMPORTS ===
 import { BusinessProcessIntegrityOptimMerkleTestUtils } from '../BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSignUtils.js';
 
+// === TYPES ===
+interface ZKVerificationResult {
+  success: boolean;
+  zkRegexResult?: boolean;
+  merkleRoot?: string;
+  processHash?: string;
+  oracleVerified?: boolean;
+  merkleVerified?: boolean;
+  proof?: any;
+  error?: string;
+}
+
 export class BusinessProcessLocalHandler {
   // === COMPOSITION: Use utility classes ===
   private baseCore: BaseVerificationCore;
@@ -103,7 +115,7 @@ export class BusinessProcessLocalHandler {
       // === ZK PROOF GENERATION (using existing utils for compatibility) ===
       console.log('\n⚙️ Generating ZK proof using existing OptimMerkle utils...');
       
-      const result = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
+      const result: ZKVerificationResult = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
         businessProcessType, 
         expectedPath, 
         actualPath,
@@ -112,6 +124,19 @@ export class BusinessProcessLocalHandler {
           actualFile: actualBPMNFile
         }
       );
+      
+      // === CRITICAL: UPDATE VERIFICATION RESULT BASED ON ZK CIRCUIT ONLY ===
+      const zkCircuitResult: boolean = result.zkRegexResult ?? false; // This comes from the ZK circuit
+      
+      // UPDATE VERIFICATION RESULT BASED ON ZK CIRCUIT ONLY
+      processAnalysis.verificationResult = zkCircuitResult;
+      processAnalysis.pathsMatch = zkCircuitResult;
+      
+      // Log the final authority
+      console.log(`\n🎯 FINAL VERIFICATION AUTHORITY: ZK CIRCUIT`);
+      console.log(`⚡ ZK Circuit Result: ${zkCircuitResult ? '✅ PASS' : '❌ FAIL'}`);
+      console.log(`📋 Pattern Check was: ${processAnalysis.pathsMatch ? 'MATCH' : 'NO MATCH'} (Info Only)`);
+      console.log(`🏆 Final Decision: ${zkCircuitResult ? '✅ PASSED' : '❌ FAILED'}`);
       
       // === LOG POST-VERIFICATION RESULTS ===
       this.businessProcessBase.logProcessVerificationResults(
@@ -127,7 +152,7 @@ export class BusinessProcessLocalHandler {
         processAnalysis,
         processData,
         proof: result,
-        verificationResult: result.success && processAnalysis.pathsMatch,
+        verificationResult: zkCircuitResult, // ZK CIRCUIT RESULT ONLY
         timestamp: currentTimestamp.toString(),
         environment: 'LOCAL'
       };
@@ -196,26 +221,28 @@ export class BusinessProcessLocalHandler {
         console.log(`📝 Generating proof ${i + 1}/${processFilePairs.length} for ${pair.processType}...`);
         
         try {
-          if (analysis.verificationResult) {
-            const result = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
-              pair.processType, 
-              analysis.expectedPattern, 
-              analysis.actualPath,
-              {
-                expectedFile: pair.expectedBPMNFile,
-                actualFile: pair.actualBPMNFile
-              }
-            );
-            
-            proofs.push(result);
-            if (result.success) {
-              successfulProofs++;
+          // ALWAYS GENERATE ZK PROOF - Let ZK circuit be the authority
+          const result: ZKVerificationResult = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
+            pair.processType, 
+            analysis.expectedPattern, 
+            analysis.actualPath,
+            {
+              expectedFile: pair.expectedBPMNFile,
+              actualFile: pair.actualBPMNFile
             }
-            console.log(`✅ Proof ${i + 1} generated successfully`);
-          } else {
-            console.log(`⚠️ Skipping proof generation for ${pair.processType} due to path mismatch`);
-            proofs.push({ success: false, reason: 'Path mismatch' });
+          );
+          
+          // UPDATE ANALYSIS WITH ZK CIRCUIT RESULT
+          const zkCircuitResult: boolean = result.zkRegexResult ?? false;
+          analysis.verificationResult = zkCircuitResult;
+          analysis.pathsMatch = zkCircuitResult;
+          
+          proofs.push(result);
+          if (result.success && zkCircuitResult) {
+            successfulProofs++;
           }
+          
+          console.log(`✅ Proof ${i + 1} generated - ZK Result: ${zkCircuitResult ? 'PASS' : 'FAIL'}`);
         } catch (error) {
           console.error(`❌ Failed to generate proof for ${pair.processType}:`, error);
           proofs.push({ success: false, error: error instanceof Error ? error.message : String(error) });

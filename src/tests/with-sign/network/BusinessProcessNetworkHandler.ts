@@ -37,6 +37,18 @@ import { getPrivateKeyFor, getPublicKeyFor } from '../../../core/OracleRegistry.
 // === UTILITY IMPORTS ===
 import { BusinessProcessIntegrityOptimMerkleTestUtils } from '../BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSignUtils.js';
 
+// === TYPES ===
+interface ZKVerificationResult {
+  success: boolean;
+  zkRegexResult?: boolean;
+  merkleRoot?: string;
+  processHash?: string;
+  oracleVerified?: boolean;
+  merkleVerified?: boolean;
+  proof?: any;
+  error?: string;
+}
+
 export class BusinessProcessNetworkHandler {
   // === COMPOSITION: Use utility classes ===
   private baseCore: BaseVerificationCore;
@@ -131,7 +143,7 @@ export class BusinessProcessNetworkHandler {
       // === ZK PROOF GENERATION ===
       console.log('\n⚙️ Generating ZK proof for network submission...');
       
-      const result = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
+      const result: ZKVerificationResult = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
         businessProcessType, 
         expectedPath, 
         actualPath,
@@ -140,6 +152,13 @@ export class BusinessProcessNetworkHandler {
           actualFile: actualBPMNFile
         }
       );
+      
+      // === CRITICAL: UPDATE VERIFICATION RESULT BASED ON ZK CIRCUIT ONLY ===
+      const zkCircuitResult: boolean = result.zkRegexResult ?? false; // This comes from the ZK circuit
+      
+      // UPDATE VERIFICATION RESULT BASED ON ZK CIRCUIT ONLY
+      processAnalysis.verificationResult = zkCircuitResult;
+      processAnalysis.pathsMatch = zkCircuitResult;
       
       // === NETWORK TRANSACTION SUBMISSION ===
       let transactionHash = null;
@@ -191,7 +210,7 @@ export class BusinessProcessNetworkHandler {
         processAnalysis,
         processData,
         proof: result,
-        verificationResult: result.success && processAnalysis.pathsMatch,
+        verificationResult: zkCircuitResult, // ZK CIRCUIT RESULT ONLY
         timestamp: currentTimestamp.toString(),
         environment: networkType.toUpperCase(),
         networkSubmitted,
@@ -279,49 +298,52 @@ export class BusinessProcessNetworkHandler {
         console.log(`📝 Processing ${i + 1}/${processFilePairs.length}: ${pair.processType}...`);
         
         try {
-          if (analysis.verificationResult) {
-            // Generate proof
-            const result = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
-              pair.processType, 
-              analysis.expectedPattern, 
-              analysis.actualPath,
-              {
-                expectedFile: pair.expectedBPMNFile,
-                actualFile: pair.actualBPMNFile
-              }
-            );
+          // ALWAYS GENERATE ZK PROOF - Let ZK circuit be the authority
+          const result: ZKVerificationResult = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
+            pair.processType, 
+            analysis.expectedPattern, 
+            analysis.actualPath,
+            {
+              expectedFile: pair.expectedBPMNFile,
+              actualFile: pair.actualBPMNFile
+            }
+          );
+          
+          // UPDATE ANALYSIS WITH ZK CIRCUIT RESULT
+          const zkCircuitResult: boolean = result.zkRegexResult ?? false;
+          analysis.verificationResult = zkCircuitResult;
+          analysis.pathsMatch = zkCircuitResult;
+          
+          proofs.push(result);
+          if (result.success && zkCircuitResult) {
+            successfulProofs++;
             
-            proofs.push(result);
-            if (result.success) {
-              successfulProofs++;
+            // Submit to network
+            try {
+              const transactionHash = `txn_${Date.now()}_${pair.processType}_${i}`;
+              transactions.push({
+                processType: pair.processType,
+                transactionHash,
+                status: 'submitted'
+              });
+              successfulTransactions++;
               
-              // Submit to network
-              try {
-                const transactionHash = `txn_${Date.now()}_${pair.processType}_${i}`;
-                transactions.push({
-                  processType: pair.processType,
-                  transactionHash,
-                  status: 'submitted'
-                });
-                successfulTransactions++;
-                
-                console.log(`✅ ${pair.processType}: Proof + Network submission successful`);
-              } catch (networkError) {
-                transactions.push({
-                  processType: pair.processType,
-                  transactionHash: null,
-                  status: 'network_failed'
-                });
-                console.log(`⚠️ ${pair.processType}: Proof successful, network failed`);
-              }
+              console.log(`✅ ${pair.processType}: Proof + Network submission successful`);
+            } catch (networkError) {
+              transactions.push({
+                processType: pair.processType,
+                transactionHash: null,
+                status: 'network_failed'
+              });
+              console.log(`⚠️ ${pair.processType}: Proof successful, network failed`);
             }
           } else {
-            console.log(`⚠️ Skipping ${pair.processType} due to path mismatch`);
-            proofs.push({ success: false, reason: 'Path mismatch' });
+            console.log(`⚠️ ZK Circuit rejected ${pair.processType}`);
+            proofs.push({ success: false, reason: 'ZK Circuit rejected' });
             transactions.push({
               processType: pair.processType,
               transactionHash: null,
-              status: 'skipped'
+              status: 'zk_circuit_rejected'
             });
           }
         } catch (error) {

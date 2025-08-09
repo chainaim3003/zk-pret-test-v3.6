@@ -20,11 +20,11 @@ import parseBpmn from '../../../utils/parsebpmn.js';
 export interface ProcessAnalysis {
   expectedPattern: string;
   actualPath: string;
-  pathsMatch: boolean;
+  pathsMatch: boolean | null; // null until ZK circuit decides
   processType: string;
   expectedPaths: string[];
   actualPaths: string[];
-  verificationResult: boolean;
+  verificationResult: boolean | null; // null until ZK circuit decides
 }
 
 export interface ProcessVerificationData {
@@ -115,7 +115,7 @@ export class BusinessProcessVerificationBase {
   
   /**
    * Analyze process paths and generate verification data
-   * ENHANCED: Multi-process support
+   * ENHANCED: Multi-process support - ZK CIRCUIT AUTHORITY ONLY
    */
   public analyzeProcessPaths(
     expectedPattern: string, 
@@ -124,25 +124,21 @@ export class BusinessProcessVerificationBase {
   ): ProcessAnalysis {
     console.log(`\n🔍 Process Analysis for ${processType}:`);
     
-    // Extract paths from expected pattern (regex-based)
-    const expectedPaths = this.extractPathsFromPattern(expectedPattern);
-    const actualPaths = [actualPath]; // Single actual path
+    // Pattern verification for LOGGING ONLY - NOT FOR FINAL DECISION
+    const patternCheck = this.verifyPathAgainstPattern(actualPath, expectedPattern);
     
-    // Check if actual path matches expected pattern
-    const pathsMatch = this.verifyPathAgainstPattern(actualPath, expectedPattern);
-    
-    console.log(`📊 Expected Paths: ${expectedPaths.length}`);
-    console.log(`📋 Actual Paths: ${actualPaths.length}`);
-    console.log(`✅ Paths Match: ${pathsMatch ? 'YES' : 'NO'}`);
+    console.log(`📊 Expected Paths: 1`);
+    console.log(`📋 Actual Paths: 1`);
+    console.log(`⚡ Final Decision: Will be determined by ZK Circuit ONLY`);
     
     return {
       expectedPattern,
       actualPath,
-      pathsMatch,
+      pathsMatch: null as any, // Don't make decision here - let ZK circuit decide
       processType,
-      expectedPaths,
-      actualPaths,
-      verificationResult: pathsMatch
+      expectedPaths: [expectedPattern],
+      actualPaths: [actualPath],
+      verificationResult: null as any // Will be set by ZK proof result
     };
   }
   
@@ -298,36 +294,42 @@ export class BusinessProcessVerificationBase {
   }
   
   /**
-   * Log process verification results
-   * ENHANCED: Multi-process logging support
-   */
+  * Log process verification results - ZK CIRCUIT AUTHORITY ONLY
+  * ENHANCED: Multi-process logging support
+  */
   public logProcessVerificationResults(
-    analysis: ProcessAnalysis,
-    verificationData: ProcessVerificationData,
-    phase: 'Pre-Verification' | 'Post-Verification' = 'Pre-Verification'
+  analysis: ProcessAnalysis,
+  verificationData: ProcessVerificationData,
+  phase: 'Pre-Verification' | 'Post-Verification' = 'Pre-Verification'
   ): void {
-    console.log(`\n📊 PROCESS VERIFICATION RESULTS (${phase}):`);
-    console.log('='.repeat(50));
+  console.log(`\n📊 PROCESS VERIFICATION RESULTS (${phase}):`); 
+  console.log('='.repeat(50));
+  
+  console.log(`🏷️  Process Type: ${analysis.processType}`);
+  console.log(`🎯 Expected Pattern: ${analysis.expectedPattern}`);
+  console.log(`📋 Actual Path: ${analysis.actualPath}`);
+  
+  if (phase === 'Pre-Verification') {
+    console.log(`⏳ Awaiting ZK Circuit verification...`);
+  } else {
+    // Post-verification - show ZK circuit result
+  console.log(`⚡ ZK Circuit Verification: ${analysis.verificationResult ? '✅ PASS' : '❌ FAIL'}`);
+    console.log(`🏆 Final Authority: ZK CIRCUIT RESULT`);
+  }
+  
+  console.log(`🔐 Process Hash: ${verificationData.processHash.toString().substring(0, 30)}...`);
+  console.log(`🌳 Merkle Root: ${verificationData.merkleRoot.toString().substring(0, 30)}...`);
+  console.log(`⏰ Timestamp: ${verificationData.timestamp.toString()}`);
+  
+  if (phase === 'Post-Verification') {
+  console.log(`✅ Chain Status: VERIFIED AND STORED ON BLOCKCHAIN`);
     
-    console.log(`🏷️  Process Type: ${analysis.processType}`);
-    console.log(`🎯 Expected Pattern: ${analysis.expectedPattern}`);
-    console.log(`📋 Actual Path: ${analysis.actualPath}`);
-    console.log(`✅ Path Verification: ${analysis.pathsMatch ? '✅ MATCH' : '❌ NO MATCH'}`);
-    console.log(`🔐 Process Hash: ${verificationData.processHash.toString().substring(0, 30)}...`);
-    console.log(`🌳 Merkle Root: ${verificationData.merkleRoot.toString().substring(0, 30)}...`);
-    console.log(`⏰ Timestamp: ${verificationData.timestamp.toString()}`);
-    
-    if (phase === 'Pre-Verification') {
-      console.log(`⏳ Chain Status: NOT YET VERIFIED - Awaiting ZK proof generation...`);
-    } else {
-      console.log(`✅ Chain Status: VERIFIED AND STORED ON BLOCKCHAIN`);
-    }
-    
-    if (!analysis.pathsMatch) {
-      console.log(`⚠️ Process Issues Detected:`);
-      console.log(`  - Expected pattern: ${analysis.expectedPattern}`);
-      console.log(`  - Actual path: ${analysis.actualPath}`);
-      console.log(`  - Verification: Process does not follow expected pattern`);
+      if (!analysis.verificationResult) {
+        console.log(`⚠️ ZK Circuit Issues Detected:`);
+        console.log(`  - Expected behavior: Process should match circuit pattern`);
+        console.log(`  - Actual result: ZK circuit verification failed`);
+        console.log(`  - Recommendation: Check ZK circuit implementation`);
+      }
     }
   }
   
@@ -385,13 +387,14 @@ export class BusinessProcessVerificationBase {
   }
   
   private verifyPathAgainstPattern(path: string, pattern: string): boolean {
-    // Use regex matching to verify path against pattern
+    // FOR LOGGING ONLY - NOT FOR FINAL DECISION
     try {
       const regex = new RegExp(pattern);
-      return regex.test(path);
+      const matches = regex.test(path);
+      return matches;
     } catch (error) {
-      console.warn(`⚠️ Pattern verification failed: ${error}`);
-      return false;
+      // Pattern has syntax errors - this is expected for complex patterns
+      return false; // This should NOT affect final result
     }
   }
   

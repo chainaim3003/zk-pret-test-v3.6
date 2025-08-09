@@ -240,6 +240,7 @@ export function verifyProcessSTABLECOIN(input: UInt8[]) {
 }
 
 
+//abc(def|edf|efd)gh(iu(vw|xy)|jklm(opqr(ty|su(vw|xy))|nu(vw|xy)))
 
 // Command used: 'abc(edf|def|efd)gh(jklm(opqr(ty|su(vw|xy))|nu(vw|xy))|iu(vw|xy))' '--functionName' 'verifyProcessDVP' '--filePath' './src/bpmnCircuit.ts'
 export function verifyProcessDVP(input: UInt8[]) {
