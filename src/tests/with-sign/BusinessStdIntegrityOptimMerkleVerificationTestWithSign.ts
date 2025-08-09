@@ -1,5 +1,28 @@
 import { BusinessStdIntegrityOptimMerkleTestUtils } from './BusinessStdIntegrityOptimMerkleVerificationTestWithSignUtils.js';
 import * as fs from 'fs';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// === ENVIRONMENT DETECTION DEBUG (Following BusinessProcess pattern) ===
+const buildEnv = process.env.BUILD_ENV;
+const nodeEnv = process.env.NODE_ENV;
+const minaEnv = process.env.MINA_ENV;
+
+console.log('🌍 Environment Detection Debug:');
+console.log(`  BUILD_ENV: ${buildEnv}`);
+console.log(`  NODE_ENV: ${nodeEnv}`);
+console.log(`  MINA_ENV: ${minaEnv}`);
+
+const detectedEnvironment = buildEnv || nodeEnv || 'LOCAL';
+console.log(`🌍 Selected environment value: "${detectedEnvironment}"`);
+console.log(`✅ Environment "${detectedEnvironment}" mapped to: ${detectedEnvironment}`);
+
+console.log('🔍 Environment Validation:');
+console.log(`  Current Environment: ${detectedEnvironment}`);
+console.log(`  Should use NetworkOracleRegistry: ${detectedEnvironment !== 'LOCAL'}`);
+console.log(`  Should connect to DEVNET: ${detectedEnvironment === 'TESTNET'}`);
 
 /**
  * Business Standard Integrity Optimized Merkle Verification Test
@@ -26,8 +49,8 @@ import * as fs from 'fs';
  */
 
 async function main() {
-  console.log('🌳 Business Standard Integrity Optimized Merkle Verification Test');
-  console.log('=' .repeat(80));
+  console.log('\n🌳 Business Standard Integrity Optimized Merkle Verification Test');
+  console.log('='.repeat(80));
   console.log('📋 Testing comprehensive BL document validation using MerkleTree approach');
   console.log('🎯 Goal: 100% field coverage with optimized ZK proof generation');
   console.log('');
@@ -78,10 +101,10 @@ async function main() {
       console.log('=' .repeat(60));
       console.log('📊 Final Results:');
       if (testResult.coreResult) {
-        console.log(`   ✅ Core Compliance: ${testResult.coreResult.publicOutput.isBLCompliant.toString()}`);
+        console.log(`   ✅ Core Compliance: ${testResult.coreResult.isBLCompliant.toString()}`);
       }
       if (testResult.enhancedResult) {
-        console.log(`   ✅ Enhanced Compliance: ${testResult.enhancedResult.publicOutput.isBLCompliant.toString()}`);
+        console.log(`   ✅ Enhanced Compliance: ${testResult.enhancedResult.isBLCompliant.toString()}`);
       }
       if (testResult.contractState) {
         console.log(`   📈 Total Verifications: ${testResult.contractState.totalVerifications.toString()}`);

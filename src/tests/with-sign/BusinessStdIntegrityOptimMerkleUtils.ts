@@ -8,10 +8,12 @@ class BusinessStdMerkleWitness8 extends MerkleWitness(8) {}
 export class BusinessStdMerkleTree {
   values: {key: number, value: Field[], fieldName: string}[];
   tree: MerkleTree;
+  fieldNames: string[];
 
   constructor(blData: any) {
     this.values = this.parseBLToTreeData(blData);
     this.tree = new MerkleTree(8); // Support 256 fields
+    this.fieldNames = this.values.map(v => v.fieldName);
     
     // Populate tree with hashed field values - ALL fields from document
     for(const {key, value} of this.values) {
@@ -211,6 +213,11 @@ export class BusinessStdMerkleTree {
 
   public witness(index: number): BusinessStdMerkleWitness8 {
     return new BusinessStdMerkleWitness8(this.tree.getWitness(BigInt(index)));
+  }
+
+  // Compatibility method for test utils
+  public getWitness(index: number): BusinessStdMerkleWitness8 {
+    return this.witness(index);
   }
 
   // Get field value by index
