@@ -147,9 +147,7 @@ async function main(): Promise<void> {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((err) => {
-    console.error('💥 Fatal Error:', err);
-    process.exit(1);
-  });
-}
+main().catch((err: Error) => {
+  console.error('💥 Fatal Error:', err);
+  process.exit(1);
+});

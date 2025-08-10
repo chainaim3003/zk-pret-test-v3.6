@@ -40,6 +40,17 @@ import {
   MCAsenderKey
 } from '../../../core/OracleRegistry.js';
 
+// Infrastructure imports
+import { 
+  initializeOracleRegistry, 
+  getDeployerAccount, 
+  getDeployerKey, 
+  environmentManager, 
+  compilationManager, 
+  getSenderAccount, 
+  getSenderKey 
+} from '../../../infrastructure/index.js';
+
 // Network imports
 import { Field, Mina, PrivateKey, PublicKey, Signature, AccountUpdate, UInt64, CircuitString } from 'o1js';
 
@@ -57,19 +68,27 @@ export async function runCorporateRegistrationTestWithFundedAccounts(
   console.log(`🌍 Jurisdiction: ${jurisdiction}`);
   
   try {
-    // Environment setup using base classes
-    const networkSetup = baseCore.setupNetworkConnection();
-    if (!networkSetup) {
-      throw new Error('Failed to setup network connection');
+    // Environment setup using infrastructure manager
+    await initializeOracleRegistry();
+    const currentEnv = environmentManager.getCurrentEnvironment();
+    const shouldConnectToDevnet = environmentManager.shouldConnectToDevnet();
+    
+    console.log(`🌐 Environment: ${currentEnv}`);
+    console.log(`🔗 Connect to DEVNET: ${shouldConnectToDevnet}`);
+    
+    if (shouldConnectToDevnet) {
+      const connected = baseCore.setupNetworkConnection();
+      if (!connected) {
+        throw new Error('Failed to establish DEVNET connection');
+      }
+      console.log('✅ Network connection established via BaseVerificationCore');
     }
     
-    await complianceBase.initializeOracleRegistry();
-    
-    // Get jurisdiction-specific oracle accounts (for now, use existing MCA for India)
-    const deployerAccount = MCAdeployerAccount();
-    const senderAccount = MCAsenderAccount();
-    const deployerKey = MCAdeployerKey();
-    const senderKey = MCAsenderKey();
+    // Get jurisdiction-specific oracle accounts (use MCA for Corporate Registration)
+    const deployerAccount = getDeployerAccount('MCA');
+    const senderAccount = getSenderAccount('MCA');
+    const deployerKey = getDeployerKey('MCA');
+    const senderKey = getSenderKey('MCA');
     
     console.log(`🔑 Using ${jurisdiction} oracle accounts:`);
     console.log(`   Deployer: ${deployerAccount.toBase58()}`);
@@ -133,53 +152,66 @@ async function discoverOrDeployContract(
   jurisdiction: string, 
   useExisting: boolean
 ): Promise<PublicKey> {
-  console.log(`\n🔍 Contract Discovery (${jurisdiction})...`);
+  console.log(`\n🚀 Looking up Corporate Registration smart contract address...`);
   
-  // For now, we'll create a new contract since testnet.json doesn't have corp reg entries yet
-  // TODO: Read from testnet.json configuration for Corporate Registration
-  // const contractAlias = `testnet-corp-reg-${jurisdiction.toLowerCase()}`;
+  // Load contract address from environment configuration
+  // Try both possible contract names due to typo in config
+  let contractAddress = await environmentManager.getDeployedContractAddress('CorporateRegistrationOptimMultiCompanySmartContract');
   
-  if (useExisting) {
-    console.log(`⚠️  Contract discovery from testnet.json not yet implemented`);
-    console.log(`⚠️  Will deploy new contract instead`);
+  if (!contractAddress) {
+    // Try the typo version that exists in testnet.json
+    contractAddress = await environmentManager.getDeployedContractAddress('CoporateRegistrationOptimMultiCompanySmartContract');
   }
   
-  // Deploy new contract
-  console.log(`🚀 Deploying new Corporate Registration contract for ${jurisdiction}...`);
-  const deployedAddress = await deployNewContract(jurisdiction);
-  console.log(`✅ New contract deployed: ${deployedAddress.toBase58()}`);
+  if (!contractAddress) {
+    console.log(`⚠️ Corporate Registration contract not found in testnet.json`);
+    console.log(`🚀 Deploying new Corporate Registration contract for ${jurisdiction}...`);
+    const deployedAddress = await deployNewContract(jurisdiction);
+    console.log(`✅ New contract deployed: ${deployedAddress.toBase58()}`);
+    return deployedAddress;
+  }
   
-  return deployedAddress;
+  // Validate the contract address format
+  if (!environmentManager.validateContractAddress(contractAddress)) {
+    throw new Error(`Invalid contract address format: ${contractAddress}`);
+  }
+  
+  console.log(`✅ Contract address found: ${contractAddress}`);
+  console.log(`📋 Source: config/environments/testnet.json`);
+  
+  return PublicKey.fromBase58(contractAddress);
 }
 
 async function deployNewContract(jurisdiction: string): Promise<PublicKey> {
-  // Get jurisdiction-specific oracle (for now, use existing MCA for India)
-  const deployerAccount = MCAdeployerAccount();
-  const deployerKey = MCAdeployerKey();
+  // Get jurisdiction-specific oracle (use MCA for Corporate Registration)
+  const deployerAccount = getDeployerAccount('MCA');
+  const deployerKey = getDeployerKey('MCA');
+  const currentEnvironment = environmentManager.getCurrentEnvironment();
   
   // Compile contracts
   console.log('⚡ Compiling ZK program and smart contract...');
   await CorporateRegistrationOptim.compile();
-  await CorporateRegistrationOptimMultiCompanySmartContract.compile();
+  const { verificationKey } = await CorporateRegistrationOptimMultiCompanySmartContract.compile();
   
   // Generate contract key
   const zkAppKey = PrivateKey.random();
   const zkApp = new CorporateRegistrationOptimMultiCompanySmartContract(zkAppKey.toPublicKey());
   
+  // Set transaction fee based on environment
+  const fee = environmentManager.isLocal() ? UInt64.from(1000000) : UInt64.from(100000000);
+  
   // Deploy transaction
-  const deployTxn = await Mina.transaction(deployerAccount, async () => {
-    AccountUpdate.fundNewAccount(deployerAccount);
-    await zkApp.deploy();
-    // The contract init() method is automatically called during deploy()
-  });
+  const deployTxn = await Mina.transaction(
+    { sender: deployerAccount, fee },
+    async () => {
+      AccountUpdate.fundNewAccount(deployerAccount);
+      await zkApp.deploy({ verificationKey });
+    }
+  );
   
   await deployTxn.sign([deployerKey, zkAppKey]).send();
   
-  // Wait for confirmation using base class
-  await baseCore.waitForDeploymentConfirmation(
-    'local-deployment', // Placeholder for LOCAL deployment
-    zkAppKey.toPublicKey()
-  );
+  console.log(`✅ Contract deployed successfully: ${zkAppKey.toPublicKey().toBase58()}`);
   
   return zkAppKey.toPublicKey();
 }

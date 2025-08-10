@@ -109,6 +109,17 @@
         "deployerAccountIndex": 10,
         "senderAccountIndex": 11
       }
+    },
+    "GLEIF": {
+      "role": "GLEIF_ORACLE",
+      "deployer": {
+        "privateKey": "EKEHy37taYcCRXgKL3uhycUeniLzhDBS5y4DMN79pNYggsubLjgv",
+        "publicKey": "B62qjusDqJsqnh9hunqT2yRzxnxWn52XAbwUQM3o4vocn3WfTjoREP3"
+      },
+      "sender": {
+        "privateKey": "EKDtoqAPWNoB7RkVTbP4TkWxDmcPNgCrzvebEdwywi6Ts5JF9zyR",
+        "publicKey": "B62qofi6mojnWf1MQwL94C7Fgy91Hn9zzojbppYmKHdeVYrsHXnJJ5U"
+      }
     }
   },
   "deployAliases": {
@@ -152,20 +163,6 @@
       "environment": "TESTNET",
       "contractName": "EXIMOptimMultiCompanySmartContract",
       "oracle": "EXIM",
-      "description": "Force deployment - used when deployer knows there are contract changes that need redeployment"
-    },
-    "testnet-corpreg-dev": {
-      "name": "testnet-corpreg-dev",
-      "environment": "TESTNET",
-      "contractName": "CoporateRegistrationOptimMultiCompanySmartContract",
-      "oracle": "MCA_",
-      "description": "Development iteration testing"
-    },
-    "testnet-corpreg-force": {
-      "name": "testnet-corpreg-force",
-      "environment": "TESTNET",
-      "contractName": "CoporateRegistrationOptimMultiCompanySmartContract",
-      "oracle": "MCA",
       "description": "Force deployment - used when deployer knows there are contract changes that need redeployment"
     }
   },
@@ -588,25 +585,6 @@
           ],
           "reason": "Critical contract update via force deployment",
           "sourceAlias": "testnet-gleif-force"
-        }
-      },
-      "EXIMOptimMultiCompanySmartContract": {
-        "address": "B62qoJKYYHAvmLyxWjwgLxyJVHiqeRig6N7aZRpVdtPB5dR5tPtYMRG",
-        "status": "DEPLOYED",
-        "deployedAt": "2025-08-10T16:48:13.373Z",
-        "transactionHash": "5JvExHaCttT9va9qGkzaZg1ieLXDEpiDiu9VuaL4fYRr1vG5rhZg",
-        "alias": "testnet-exim-dev",
-        "oracle": "EXIM",
-        "contractName": "EXIMOptimMultiCompanySmartContract",
-        "zkAppPrivateKey": "EKDu4aaBVMPyRGRGDP2wiR42xUP5TcpCM77zVhSYESEZ85j4iG6P",
-        "verificationKey": {
-          "data": "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",
-          "hash": "17094672314933782098612220879800699527069250467155529111362932237772505150078"
-        },
-        "deploymentMetrics": {
-          "proofTime": 2,
-          "broadcastTime": 225,
-          "totalDeploymentTime": 2
         }
       }
     }

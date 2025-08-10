@@ -37,16 +37,23 @@
     "test:local-single-CorpReg:IN": "npm run build && node build/scripts/local-deploy-verify-single-CorpReg.js --jurisdiction=IN",
     "example-CorpReg:single-sree": "npm run build && node build/scripts/local-deploy-verify-single-CorpReg.js \"U01112TZ2022PTC039493\"",
     "deploy": "npm run build && node build/scripts/deploy.js",
-    "deploy:testnet": "npm run deploy testnet-gleif-dev",
+    "check-status": "npm run build && node build/scripts/check-deployment-status.js",
+    "deploy:testnet-GLEIF": "npm run deploy testnet-gleif-dev",
     "deploy:testnet-GLEIF-stable": "npm run deploy testnet-gleif",
     "deploy:testnet-GLEIF-force": "npm run deploy testnet-gleif-force",
     "deploy:mainnet": "npm run deploy mainnet-gleif",
-    "deploy:testnet-corp-reg-india": "npm run deploy testnet-corp-reg-india",
-    "deploy:testnet-corp-reg-usa": "npm run deploy testnet-corp-reg-usa",
-    "deploy:testnet-corp-reg-force": "npm run deploy testnet-corp-reg-force",
+
+    "deploy:testnet-corpreg": "npm run deploy testnet-corpreg-dev",
+    "deploy:testnet-corpreg-india": "npm run deploy testnet-corpreg-india",
+    "deploy:testnet-corpreg-usa": "npm run deploy testnet-corpreg-usa",
+    "deploy:testnet-corpreg-force": "npm run deploy testnet-corpreg-force",
+
+
     "deploy:testnet-exim": "npm run deploy testnet-exim-dev",
     "deploy:testnet-exim-dev": "npm run deploy testnet-exim-dev",
     "deploy:testnet-exim-force": "npm run deploy testnet-exim-force",
+
+
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js",
     "testw": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js --watch",

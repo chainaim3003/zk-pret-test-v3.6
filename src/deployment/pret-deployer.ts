@@ -494,10 +494,10 @@ export class PRETDeployer {
       }
 
       const alias = config.deployAliases[aliasName];
-      const oracleConfig = config.oracles[alias.oracle];
+      const oracleConfig = config.oracles.registry[alias.oracle];
 
       if (!oracleConfig) {
-        throw new Error(`Oracle '${alias.oracle}' not configured in ${environment}`);
+        throw new Error(`Oracle '${alias.oracle}' not configured in ${environment}.registry`);
       }
 
       return { alias, oracleConfig };
@@ -660,29 +660,45 @@ export class PRETDeployer {
       }
     });
 
-    // Compile dependencies first (GLEIFOptim ZK program)
+    // Compile dependencies first - Dynamic dependency resolution
     await this.addMicroStepAsync(step, 'COMPILE_DEPENDENCIES', async () => {
-      console.log(`   🔄 Compiling dependencies... (GLEIFOptim ZK program)`);
+      // Map contract names to their ZK program dependencies
+      const CONTRACT_DEPENDENCIES: { [key: string]: string } = {
+        'GLEIFOptimMultiCompanySmartContract': 'GLEIFOptimZKProgram',
+        'EXIMOptimMultiCompanySmartContract': 'EXIMOptimZKProgram',
+        'CorporateRegistrationOptimMultiCompanySmartContract': 'CorporateRegistrationOptimZKProgram'
+      };
       
-      try {
-        // Import and compile GLEIFOptim ZK program
-        const zkProgramPath = `../zk-programs/with-sign/GLEIFOptimZKProgram.js`;
-        const zkProgramModule = await import(zkProgramPath);
-        const GLEIFOptim = zkProgramModule.GLEIFOptim;
+      const dependencyProgram = CONTRACT_DEPENDENCIES[contractName];
+      if (dependencyProgram) {
+        console.log(`   🔄 Compiling dependencies... (${dependencyProgram})`);
         
-        if (!GLEIFOptim) {
-          throw new Error('GLEIFOptim ZK program not found');
+        try {
+          // Import the appropriate ZK program
+          const zkProgramPath = `../zk-programs/with-sign/${dependencyProgram}.js`;
+          const zkProgramModule = await import(zkProgramPath);
+          
+          // Extract program name from file name (remove 'ZKProgram' suffix)
+          const programName = dependencyProgram.replace('ZKProgram', '');
+          const ZKProgram = zkProgramModule[programName];
+          
+          if (!ZKProgram) {
+            throw new Error(`ZK Program '${programName}' not found in ${dependencyProgram}`);
+          }
+          
+          const dependencyStart = Date.now();
+          await ZKProgram.compile();
+          const dependencyTime = Date.now() - dependencyStart;
+          
+          console.log(`   ✅ ${programName} ZK program compiled in ${dependencyTime}ms`);
+          return { dependencyTime, programName };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          throw new Error(`Failed to compile dependencies: ${errorMessage}`);
         }
-        
-        const dependencyStart = Date.now();
-        await GLEIFOptim.compile();
-        const dependencyTime = Date.now() - dependencyStart;
-        
-        console.log(`   ✅ GLEIFOptim ZK program compiled in ${dependencyTime}ms`);
-        return { dependencyTime };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to compile dependencies: ${errorMessage}`);
+      } else {
+        console.log(`   ⚠️ No ZK dependencies configured for contract: ${contractName}`);
+        throw new Error(`No ZK dependencies configured for contract: ${contractName}`);
       }
     });
 
