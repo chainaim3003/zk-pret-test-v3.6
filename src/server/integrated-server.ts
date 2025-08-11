@@ -1,0 +1,2084 @@
+// import dotenv from 'dotenv';
+// dotenv.config();
+
+// import express from 'express';
+// import cors from 'cors';
+// import helmet from 'helmet';
+// import rateLimit from 'express-rate-limit';
+// import { createServer } from 'http';
+// import WebSocket, { WebSocketServer } from 'ws';
+// import fs from 'fs';
+// import path from 'path';
+// import { logger } from './utils/logger.js';
+// import { zkToolExecutor } from './services/zkToolExecutor.js';
+
+// declare global {
+//     var wsServer: WebSocketServer;
+// }
+
+// // Utility functions for reading config files
+// function getConfigFiles(configPath: string): string[] {
+//     try {
+//         const fullPath = path.join(process.cwd(), 'src', 'data', 'RISK', configPath);
+//         const files = fs.readdirSync(fullPath);
+//         return files.filter(file => file.endsWith('.json'));
+//     } catch (error) {
+//         logger.error(`Failed to read config files from ${configPath}:`, error);
+//         return [];
+//     }
+// }
+
+// function getDirectories(basePath: string): string[] {
+//     try {
+//         const fullPath = path.join(process.cwd(), 'src', 'data', 'RISK', basePath);
+//         const items = fs.readdirSync(fullPath, { withFileTypes: true });
+//         return items.filter(item => item.isDirectory()).map(item => item.name);
+//     } catch (error) {
+//         logger.error(`Failed to read directories from ${basePath}:`, error);
+//         return [];
+//     }
+// }
+
+// function generateJobId(): string {
+//     return 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+// }
+
+// interface Job {
+//     id: string;
+//     toolName: string;
+//     parameters: any;
+//     status: 'pending' | 'running' | 'completed' | 'failed';
+//     startTime: Date;
+//     endTime?: Date;
+//     result?: any;
+//     error?: string;
+//     progress?: number;
+// }
+
+// class AsyncJobManager {
+//     private jobs = new Map<string, Job>();
+//     private wss: WebSocketServer;
+
+//     constructor(wss: WebSocketServer) {
+//         this.wss = wss;
+//         logger.info('Async job management enabled (default execution mode)');
+//     }
+
+//     async startJob(jobId: string, toolName: string, parameters: any): Promise<Job> {
+//         const job: Job = {
+//             id: jobId,
+//             toolName,
+//             parameters,
+//             status: 'pending',
+//             startTime: new Date()
+//         };
+
+//         this.jobs.set(jobId, job);
+//         this.broadcastJobUpdate(job);
+
+//         this.processJob(job);
+
+//         return job;
+//     }
+
+//     private async processJob(job: Job) {
+//         try {
+//             job.status = 'running';
+//             job.progress = 0;
+//             this.broadcastJobUpdate(job);
+
+//             logger.info(`Starting async job ${job.id}: ${job.toolName}`);
+
+//             job.progress = 10;
+//             this.broadcastJobUpdate(job);
+
+//             const startTime = Date.now();
+//             const result = await zkToolExecutor.executeTool(job.toolName, job.parameters);
+//             const executionTime = Date.now() - startTime;
+
+//             job.status = 'completed';
+//             job.result = {
+//                 ...result,
+//                 executionTimeMs: executionTime,
+//                 jobId: job.id,
+//                 completedAt: new Date().toISOString(),
+//                 mode: 'async-only-server'
+//             };
+//             job.endTime = new Date();
+//             job.progress = 100;
+
+//             logger.info(`Async job ${job.id} completed successfully in ${executionTime}ms`);
+
+//         } catch (error) {
+//             job.status = 'failed';
+//             job.error = error instanceof Error ? error.message : 'Unknown error';
+//             job.endTime = new Date();
+
+//             logger.error(`Async job ${job.id} failed:`, error);
+//         }
+
+//         this.broadcastJobUpdate(job);
+//     }
+
+//     private broadcastJobUpdate(job: Job) {
+//         const message = JSON.stringify({
+//             type: 'job_update',
+//             jobId: job.id,
+//             status: job.status,
+//             progress: job.progress,
+//             result: job.result,
+//             error: job.error,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+
+//         this.wss.clients.forEach((client: WebSocket) => {
+//             if (client.readyState === WebSocket.OPEN) {
+//                 client.send(message);
+//             }
+//         });
+//     }
+
+//     getJob(jobId: string): Job | undefined {
+//         return this.jobs.get(jobId);
+//     }
+
+//     getAllJobs(): Job[] {
+//         return Array.from(this.jobs.values());
+//     }
+
+//     getActiveJobs(): Job[] {
+//         return Array.from(this.jobs.values()).filter(job =>
+//             job.status === 'pending' || job.status === 'running'
+//         );
+//     }
+
+//     clearCompletedJobs() {
+//         for (const [jobId, job] of this.jobs.entries()) {
+//             if (job.status === 'completed' || job.status === 'failed') {
+//                 this.jobs.delete(jobId);
+//             }
+//         }
+//     }
+// }
+
+// const app = express();
+// const server = createServer(app);
+
+// const wss = new WebSocketServer({ server });
+// global.wsServer = wss;
+
+// const jobManager = new AsyncJobManager(wss);
+
+// const ZK_PRET_HTTP_SERVER_PORT = parseInt(process.env.ZK_PRET_HTTP_SERVER_PORT || '3001', 10);
+// const ZK_PRET_HTTP_SERVER_HOST = process.env.ZK_PRET_HTTP_SERVER_HOST || 'localhost';
+
+// app.use(helmet());
+
+// const limiter = rateLimit({
+//     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+//     max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
+//     message: 'Too many requests from this IP, please try again later.'
+// });
+// app.use(limiter);
+
+// app.use(cors({
+//     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+//     credentials: true
+// }));
+
+// app.use(express.json({ limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+// app.use(express.urlencoded({ extended: true, limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+
+// if (process.env.ZK_PRET_ENABLE_API_AUTH === 'true') {
+//     const API_KEY = process.env.ZK_PRET_API_KEY;
+
+//     const requireApiKey = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+//         const providedKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+
+//         if (!providedKey || providedKey !== API_KEY) {
+//             logger.warn('Unauthorized API access attempt', {
+//                 ip: req.ip,
+//                 userAgent: req.get('User-Agent'),
+//                 url: req.url,
+//                 providedKey: providedKey ? '[REDACTED]' : 'none'
+//             });
+
+//             return res.status(401).json({
+//                 success: false,
+//                 error: 'Unauthorized: Valid API key required',
+//                 timestamp: new Date().toISOString(),
+//                 server: 'zk-pret-async-only-server'
+//             });
+//         }
+
+//         next();
+//     };
+
+//     app.use('/api/v1/tools', requireApiKey);
+//     logger.info('API key authentication enabled for tool endpoints');
+// } else {
+//     logger.info('API key authentication disabled');
+// }
+
+// app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+//     logger.info('HTTP Request', {
+//         method: req.method,
+//         url: req.url,
+//         ip: req.ip,
+//         userAgent: req.get('User-Agent')
+//     });
+//     next();
+// });
+
+// wss.on('connection', (ws: WebSocket) => {
+//     logger.info('New WebSocket connection established');
+
+//     ws.on('message', (message: WebSocket.RawData) => {
+//         try {
+//             const data = JSON.parse(message.toString());
+//             logger.info('WebSocket message received:', data);
+
+//             if (data.type === 'subscribe_state_monitoring') {
+//                 ws.send(JSON.stringify({
+//                     type: 'state_monitoring_subscribed',
+//                     message: 'Subscribed to progressive state monitoring',
+//                     timestamp: new Date().toISOString(),
+//                     server: 'zk-pret-async-only-server'
+//                 }));
+//             }
+//         } catch (error) {
+//             logger.error('Invalid WebSocket message:', error);
+//         }
+//     });
+
+//     ws.on('close', () => {
+//         logger.info('WebSocket connection closed');
+//     });
+
+//     ws.send(JSON.stringify({
+//         type: 'connection',
+//         status: 'connected',
+//         server: 'zk-pret-async-only-server',
+//         timestamp: new Date().toISOString(),
+//         features: {
+//             progressiveStateMonitoring: true,
+//             asyncJobs: true,
+//             realTimeUpdates: true,
+//             executionMode: 'async-only'
+//         }
+//     }));
+// });
+
+// app.get('/api/v1/health', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const executorHealth = await zkToolExecutor.healthCheck();
+
+//         return res.json({
+//             status: executorHealth.connected ? 'healthy' : 'degraded',
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server',
+//             version: '1.0.0',
+//             mode: 'async-only',
+//             services: {
+//                 zkExecutor: executorHealth.connected,
+//                 asyncJobs: true,
+//                 websockets: wss.clients.size > 0,
+//                 progressiveStateMonitoring: true,
+//                 configDataEndpoints: true,
+//                 stdioPath: executorHealth.status?.path
+//             },
+//             activeJobs: jobManager.getActiveJobs().length,
+//             websocketConnections: wss.clients.size,
+//             executorStatus: executorHealth.status
+//         });
+//     } catch (error) {
+//         logger.error('Health check failed', { error: error instanceof Error ? error.message : String(error) });
+//         return res.status(500).json({
+//             status: 'error',
+//             timestamp: new Date().toISOString(),
+//             error: 'Health check failed'
+//         });
+//     }
+// });
+
+// app.get('/api/v1/tools', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const tools = zkToolExecutor.getAvailableTools();
+
+//         return res.json({
+//             success: true,
+//             tools,
+//             count: tools.length,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server',
+//             mode: 'async-only',
+//             features: {
+//                 asyncExecution: true,
+//                 websockets: true,
+//                 directBackendAccess: true,
+//                 progressiveStateMonitoring: true,
+//                 configDataEndpoints: true,
+//                 executionMode: 'async-only'
+//             }
+//         });
+//     } catch (error) {
+//         logger.error('Failed to list tools', { error: error instanceof Error ? error.message : String(error) });
+//         return res.status(500).json({
+//             success: false,
+//             error: 'Failed to list tools',
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+// });
+
+// // ==== CONFIG DATA ENDPOINTS - ADDED FOR FRONTEND SUPPORT ====
+
+// // Basel III Configuration Files
+// app.get('/api/v1/basel3-config-files', (req: express.Request, res: express.Response) => {
+//     try {
+//         const files = getConfigFiles('Basel3/CONFIG');
+
+//         logger.info(`Basel III config files requested - found ${files.length} files`);
+
+//         return res.json({
+//             success: true,
+//             files: files,
+//             count: files.length,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     } catch (error) {
+//         logger.error('Failed to get Basel III config files:', error);
+//         return res.status(500).json({
+//             success: false,
+//             error: 'Failed to load Basel III configuration files',
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     }
+// });
+
+// // Risk Advanced Configuration Files  
+// app.get('/api/v1/risk-advanced-config-files', (req: express.Request, res: express.Response) => {
+//     try {
+//         const files = getConfigFiles('Advanced/CONFIG');
+
+//         logger.info(`Risk Advanced config files requested - found ${files.length} files`);
+
+//         return res.json({
+//             success: true,
+//             files: files,
+//             count: files.length,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     } catch (error) {
+//         logger.error('Failed to get Risk Advanced config files:', error);
+//         return res.status(500).json({
+//             success: false,
+//             error: 'Failed to load Risk Advanced configuration files',
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     }
+// });
+
+// // Stablecoin Jurisdictions
+// app.get('/api/v1/stablecoin-jurisdictions', (req: express.Request, res: express.Response) => {
+//     try {
+//         const jurisdictions = getDirectories('StableCoin/CONFIG');
+
+//         logger.info(`Stablecoin jurisdictions requested - found ${jurisdictions.length} jurisdictions`);
+
+//         return res.json({
+//             success: true,
+//             jurisdictions: jurisdictions,
+//             count: jurisdictions.length,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     } catch (error) {
+//         logger.error('Failed to get stablecoin jurisdictions:', error);
+//         return res.status(500).json({
+//             success: false,
+//             error: 'Failed to load stablecoin jurisdictions',
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     }
+// });
+
+// // Stablecoin Situations by Jurisdiction
+// app.get('/api/v1/stablecoin-situations/:jurisdiction', (req: express.Request, res: express.Response) => {
+//     try {
+//         const jurisdiction = req.params.jurisdiction;
+//         const situations = getDirectories(`StableCoin/CONFIG/${jurisdiction}`);
+
+//         logger.info(`Stablecoin situations requested for ${jurisdiction} - found ${situations.length} situations`);
+
+//         return res.json({
+//             success: true,
+//             situations: situations,
+//             jurisdiction: jurisdiction,
+//             count: situations.length,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     } catch (error) {
+//         logger.error(`Failed to get stablecoin situations for ${req.params.jurisdiction}:`, error);
+//         return res.status(500).json({
+//             success: false,
+//             error: `Failed to load situations for ${req.params.jurisdiction}`,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     }
+// });
+
+// // Risk Advanced Execution Settings
+// app.get('/api/v1/risk-advanced-execution-settings', (req: express.Request, res: express.Response) => {
+//     try {
+//         // Predefined execution paths - you can make this dynamic later by reading from config files
+//         const executionPaths = [
+//             {
+//                 id: "ultra_strict",
+//                 name: "Ultra Strict Mode",
+//                 description: "Highest security verification"
+//             },
+//             {
+//                 id: "strict",
+//                 name: "Strict Mode",
+//                 description: "High security verification"
+//             },
+//             {
+//                 id: "standard",
+//                 name: "Standard Mode",
+//                 description: "Standard security verification"
+//             },
+//             {
+//                 id: "relaxed",
+//                 name: "Relaxed Mode",
+//                 description: "Lower security verification"
+//             }
+//         ];
+
+//         logger.info(`Risk Advanced execution settings requested - found ${executionPaths.length} paths`);
+
+//         return res.json({
+//             success: true,
+//             executionPaths: executionPaths,
+//             count: executionPaths.length,
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     } catch (error) {
+//         logger.error('Failed to get execution settings:', error);
+//         return res.status(500).json({
+//             success: false,
+//             error: 'Failed to load execution settings',
+//             timestamp: new Date().toISOString(),
+//             server: 'zk-pret-async-only-server'
+//         });
+//     }
+// });
+
+// // ==== END CONFIG DATA ENDPOINTS ====
+
+// // MAIN EXECUTION ENDPOINT - ASYNC ONLY
+// app.post('/api/v1/tools/execute', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const { toolName, parameters, jobId } = req.body;
+
+//         if (!toolName) {
+//             return res.status(400).json({
+//                 success: false,
+//                 error: 'toolName is required',
+//                 timestamp: new Date().toISOString()
+//             });
+//         }
+
+//         const actualJobId = jobId || generateJobId();
+
+//         logger.info('ASYNC execution started (default mode)', {
+//             jobId: actualJobId,
+//             toolName,
+//             parameters: JSON.stringify(parameters),
+//             mode: 'async-only',
+//             progressiveStateMonitoring: true
+//         });
+
+//         const job = await jobManager.startJob(actualJobId, toolName, parameters || {});
+
+//         return res.json({
+//             success: true,
+//             jobId: job.id,
+//             status: job.status,
+//             toolName: job.toolName,
+//             timestamp: job.startTime.toISOString(),
+//             message: 'Async job started successfully (default execution mode)',
+//             server: 'zk-pret-async-only-server',
+//             mode: 'async-only',
+//             websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+//             progressiveStateMonitoring: true
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             success: false,
+//             error: 'Failed to start async job',
+//             message: error instanceof Error ? error.message : 'Unknown error',
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+// });
+
+// app.get('/api/v1/jobs/:jobId', (req: express.Request, res: express.Response) => {
+//     const job = jobManager.getJob(req.params.jobId);
+//     if (!job) {
+//         return res.status(404).json({
+//             success: false,
+//             error: 'Job not found',
+//             jobId: req.params.jobId,
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+
+//     return res.json({
+//         success: true,
+//         job,
+//         timestamp: new Date().toISOString(),
+//         server: 'zk-pret-async-only-server',
+//         mode: 'async-only'
+//     });
+// });
+
+// app.get('/api/v1/jobs', (req: express.Request, res: express.Response) => {
+//     const jobs = jobManager.getAllJobs();
+//     return res.json({
+//         success: true,
+//         jobs,
+//         total: jobs.length,
+//         active: jobManager.getActiveJobs().length,
+//         timestamp: new Date().toISOString(),
+//         server: 'zk-pret-async-only-server',
+//         mode: 'async-only'
+//     });
+// });
+
+// app.delete('/api/v1/jobs/completed', (req: express.Request, res: express.Response) => {
+//     jobManager.clearCompletedJobs();
+//     return res.json({
+//         success: true,
+//         message: 'Completed jobs cleared',
+//         timestamp: new Date().toISOString(),
+//         server: 'zk-pret-async-only-server',
+//         mode: 'async-only'
+//     });
+// });
+
+// // SPECIALIZED TOOL ENDPOINTS - ALL ASYNC
+// app.post('/api/v1/tools/gleif', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const parameters = req.body;
+//         const jobId = generateJobId();
+
+//         logger.info('GLEIF async execution started', {
+//             jobId,
+//             parameters: JSON.stringify(parameters)
+//         });
+
+//         const job = await jobManager.startJob(jobId, 'get-GLEIF-verification-with-sign', parameters);
+
+//         return res.json({
+//             success: true,
+//             jobId: job.id,
+//             status: job.status,
+//             toolName: 'get-GLEIF-verification-with-sign',
+//             timestamp: job.startTime.toISOString(),
+//             message: 'GLEIF async job started successfully',
+//             server: 'zk-pret-async-only-server',
+//             mode: 'async-only',
+//             websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+//             progressiveStateMonitoring: true
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             success: false,
+//             error: error instanceof Error ? error.message : 'Unknown error',
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+// });
+
+// app.post('/api/v1/tools/corporate', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const parameters = req.body;
+//         const jobId = generateJobId();
+
+//         logger.info('Corporate async execution started', {
+//             jobId,
+//             parameters: JSON.stringify(parameters)
+//         });
+
+//         const job = await jobManager.startJob(jobId, 'get-Corporate-Registration-verification-with-sign', parameters);
+
+//         return res.json({
+//             success: true,
+//             jobId: job.id,
+//             status: job.status,
+//             toolName: 'get-Corporate-Registration-verification-with-sign',
+//             timestamp: job.startTime.toISOString(),
+//             message: 'Corporate Registration async job started successfully',
+//             server: 'zk-pret-async-only-server',
+//             mode: 'async-only',
+//             websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+//             progressiveStateMonitoring: true
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             success: false,
+//             error: error instanceof Error ? error.message : 'Unknown error',
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+// });
+
+// app.post('/api/v1/tools/exim', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const parameters = req.body;
+//         const jobId = generateJobId();
+
+//         logger.info('EXIM async execution started', {
+//             jobId,
+//             parameters: JSON.stringify(parameters)
+//         });
+
+//         const job = await jobManager.startJob(jobId, 'get-EXIM-verification-with-sign', parameters);
+
+//         return res.json({
+//             success: true,
+//             jobId: job.id,
+//             status: job.status,
+//             toolName: 'get-EXIM-verification-with-sign',
+//             timestamp: job.startTime.toISOString(),
+//             message: 'EXIM async job started successfully',
+//             server: 'zk-pret-async-only-server',
+//             mode: 'async-only',
+//             websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+//             progressiveStateMonitoring: true
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             success: false,
+//             error: error instanceof Error ? error.message : 'Unknown error',
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+// });
+
+// app.post('/api/v1/tools/risk', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const parameters = req.body;
+//         const toolName = parameters.riskType === 'advanced' ? 'get-RiskLiquidityAdvancedOptimMerkle-verification-with-sign' :
+//             parameters.riskType === 'basel3' ? 'get-RiskLiquidityBasel3Optim-Merkle-verification-with-sign' :
+//                 parameters.riskType === 'stablecoin' ? 'get-StablecoinProofOfReservesRisk-verification-with-sign' :
+//                     'get-RiskLiquidityAdvancedOptimMerkle-verification-with-sign';
+
+//         const jobId = generateJobId();
+
+//         logger.info('Risk async execution started', {
+//             jobId,
+//             toolName,
+//             parameters: JSON.stringify(parameters)
+//         });
+
+//         const job = await jobManager.startJob(jobId, toolName, parameters);
+
+//         return res.json({
+//             success: true,
+//             jobId: job.id,
+//             status: job.status,
+//             toolName,
+//             timestamp: job.startTime.toISOString(),
+//             message: 'Risk verification async job started successfully',
+//             server: 'zk-pret-async-only-server',
+//             mode: 'async-only',
+//             websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+//             progressiveStateMonitoring: true
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             success: false,
+//             error: error instanceof Error ? error.message : 'Unknown error',
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+// });
+
+// app.get('/api/v1/status', async (req: express.Request, res: express.Response) => {
+//     try {
+//         const executorHealth = await zkToolExecutor.healthCheck();
+
+//         return res.json({
+//             server: 'zk-pret-async-only-server',
+//             version: '1.0.0',
+//             mode: 'async-only',
+//             status: executorHealth.connected ? 'healthy' : 'degraded',
+//             timestamp: new Date().toISOString(),
+//             port: ZK_PRET_HTTP_SERVER_PORT,
+//             host: ZK_PRET_HTTP_SERVER_HOST,
+//             features: {
+//                 asyncExecution: true,
+//                 realTimeResults: true,
+//                 batchOperations: true,
+//                 websockets: true,
+//                 jobManagement: true,
+//                 directBackendAccess: true,
+//                 progressiveStateMonitoring: true,
+//                 configDataEndpoints: true,
+//                 executionMode: 'async-only'
+//             },
+//             executor: {
+//                 connected: executorHealth.connected,
+//                 status: executorHealth.status,
+//                 executionMode: 'async-only'
+//             },
+//             jobs: {
+//                 total: jobManager.getAllJobs().length,
+//                 active: jobManager.getActiveJobs().length
+//             },
+//             websockets: {
+//                 connections: wss.clients.size,
+//                 enabled: true,
+//                 progressiveStateUpdates: true
+//             }
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             server: 'zk-pret-async-only-server',
+//             status: 'error',
+//             error: error instanceof Error ? error.message : String(error),
+//             timestamp: new Date().toISOString()
+//         });
+//     }
+// });
+
+// app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+//     logger.error('Unhandled error', {
+//         error: error.message,
+//         stack: error.stack,
+//         url: req.url,
+//         method: req.method
+//     });
+
+//     res.status(500).json({
+//         success: false,
+//         error: 'Internal server error',
+//         timestamp: new Date().toISOString(),
+//         server: 'zk-pret-async-only-server'
+//     });
+// });
+
+// app.use((req: express.Request, res: express.Response) => {
+//     res.status(404).json({
+//         success: false,
+//         error: 'Endpoint not found',
+//         path: req.path,
+//         method: req.method,
+//         timestamp: new Date().toISOString(),
+//         server: 'zk-pret-async-only-server'
+//     });
+// });
+
+// const startServer = async () => {
+//     try {
+//         console.log('🚀 Starting ZK-PRET Async-Only HTTP Server...');
+
+//         console.log('⚡ Initializing ZK Tool Executor...');
+//         await zkToolExecutor.initialize();
+//         console.log('✅ ZK Tool Executor initialization completed');
+
+//         server.listen(ZK_PRET_HTTP_SERVER_PORT, ZK_PRET_HTTP_SERVER_HOST, () => {
+//             logger.info(`🚀 ZK-PRET Async-Only HTTP Server started successfully`);
+//             logger.info(`📡 Server URL: http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`);
+//             logger.info(`🔄 Mode: Async-Only Execution`);
+//             logger.info(`📡 WebSocket URL: ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`);
+//             logger.info(`⚡ Features: Async-only execution with real-time updates`);
+//             logger.info(`🎯 Ready to process ZK-PRET tool requests asynchronously`);
+//             logger.info(`📊 Progressive State Monitoring: Enabled`);
+//             logger.info(`📂 Config Data Endpoints: Enabled`);
+
+//             console.log('\n=== ZK-PRET ASYNC-ONLY HTTP SERVER ENDPOINTS ===');
+//             console.log('🔍 HEALTH & INFO:');
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/health`);
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools`);
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/status`);
+//             console.log('📂 CONFIG DATA ENDPOINTS (NEW):');
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/basel3-config-files`);
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/risk-advanced-config-files`);
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/stablecoin-jurisdictions`);
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/stablecoin-situations/:jurisdiction`);
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/risk-advanced-execution-settings`);
+//             console.log('🔄 ASYNC EXECUTION (DEFAULT):');
+//             console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/execute`);
+//             console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/gleif`);
+//             console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/corporate`);
+//             console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/exim`);
+//             console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/risk`);
+//             console.log('📊 JOB MANAGEMENT:');
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs/:jobId`);
+//             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs`);
+//             console.log(`DEL  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs/completed`);
+//             console.log('📡 WEBSOCKET:');
+//             console.log(`WS   ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT} (real-time async updates)`);
+//             console.log('📊 PROGRESSIVE STATE MONITORING:');
+//             console.log(`WS   ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT} (real-time state updates)`);
+//             console.log('=====================================\n');
+
+//             console.log('🎯 ASYNC-ONLY INTEGRATION SUCCESS:');
+//             console.log('• All executions are asynchronous by default');
+//             console.log('• POST /api/v1/tools/execute → Returns job ID immediately');
+//             console.log('• Real-time updates via WebSocket');
+//             console.log('• Progressive state monitoring enabled');
+//             console.log('• Config data endpoints enabled (NEW)');
+//             console.log('• Frontend dropdown population supported (NEW)');
+//             console.log('• No synchronous blocking operations');
+//             console.log('• Optimized for concurrent processing');
+//             console.log('=====================================\n');
+
+//             console.log('📊 ASYNC-ONLY FEATURES:');
+//             console.log('• Immediate job ID response');
+//             console.log('• Real-time progress updates via WebSocket');
+//             console.log('• Non-blocking execution');
+//             console.log('• Enhanced job management');
+//             console.log('• Progressive state capture');
+//             console.log('• Configuration file serving (NEW)');
+//             console.log('• Basel III config files endpoint (NEW)');
+//             console.log('• Risk Advanced config files endpoint (NEW)');
+//             console.log('• Stablecoin jurisdictions endpoint (NEW)');
+//             console.log('• Dynamic situations loading (NEW)');
+//             console.log('• Execution settings endpoint (NEW)');
+//             console.log('=====================================\n');
+//         });
+//     } catch (error) {
+//         logger.error('Failed to start async-only HTTP server:', error);
+//         console.log('❌ Server startup failed');
+//         process.exit(1);
+//     }
+// };
+
+// export { startServer };
+
+// process.on('SIGTERM', () => {
+//     logger.info('SIGTERM received, shutting down gracefully');
+//     server.close(() => {
+//         logger.info('Async-only HTTP server closed');
+//         process.exit(0);
+//     });
+// });
+
+// process.on('SIGINT', () => {
+//     logger.info('SIGINT received, shutting down gracefully');
+//     server.close(() => {
+//         logger.info('Async-only HTTP server closed');
+//         process.exit(0);
+//     });
+// });
+
+// console.log('Starting async-only server from integrated-server.js...');
+// startServer().catch(error => {
+//     console.error('Failed to start server:', error);
+//     process.exit(1);
+// });
+
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
+import WebSocket, { WebSocketServer } from 'ws';
+import fs from 'fs';
+import path from 'path';
+import { logger } from './utils/logger.js';
+import { zkToolExecutor } from './services/zkToolExecutor.js';
+
+declare global {
+    var wsServer: WebSocketServer;
+}
+
+// Utility functions for reading config files
+function getConfigFiles(configPath: string): string[] {
+    try {
+        const fullPath = path.join(process.cwd(), 'src', 'data', 'RISK', configPath);
+        const files = fs.readdirSync(fullPath);
+        return files.filter(file => file.endsWith('.json'));
+    } catch (error) {
+        logger.error(`Failed to read config files from ${configPath}:`, error);
+        return [];
+    }
+}
+
+function getDirectories(basePath: string): string[] {
+    try {
+        const fullPath = path.join(process.cwd(), 'src', 'data', 'RISK', basePath);
+        const items = fs.readdirSync(fullPath, { withFileTypes: true });
+        return items.filter(item => item.isDirectory()).map(item => item.name);
+    } catch (error) {
+        logger.error(`Failed to read directories from ${basePath}:`, error);
+        return [];
+    }
+}
+
+// NEW: Utility function for process files (SCF, DVP, STABLECOIN)
+function getProcessFiles(processType: string, fileType: 'expected' | 'actual'): string[] {
+    try {
+        const basePath = processType.toUpperCase();
+        const subPath = fileType.toUpperCase();
+        const fullPath = path.join(process.cwd(), 'src', 'data', basePath, 'process', subPath);
+
+        logger.info(`Reading process files from: ${fullPath}`);
+
+        if (!fs.existsSync(fullPath)) {
+            logger.warn(`Process files directory does not exist: ${fullPath}`);
+            return [];
+        }
+
+        const files = fs.readdirSync(fullPath);
+        // Filter for common process file extensions
+        const processFiles = files.filter(file =>
+            file.endsWith('.bpmn') ||
+            file.endsWith('.xml') ||
+            file.endsWith('.json') ||
+            file.endsWith('.txt')
+        );
+
+        logger.info(`Found ${processFiles.length} process files in ${fullPath}`);
+        return processFiles;
+    } catch (error) {
+        logger.error(`Failed to read process files from ${processType}/${fileType}:`, error);
+        return [];
+    }
+}
+
+// NEW: Utility function to get all available process types
+function getAvailableProcessTypes(): string[] {
+    try {
+        const dataPath = path.join(process.cwd(), 'src', 'data');
+        const items = fs.readdirSync(dataPath, { withFileTypes: true });
+
+        // Filter for directories that contain process subdirectories
+        const processTypes = items
+            .filter(item => item.isDirectory())
+            .map(item => item.name)
+            .filter(name => {
+                const processPath = path.join(dataPath, name, 'process');
+                return fs.existsSync(processPath);
+            });
+
+        logger.info(`Available process types: ${processTypes.join(', ')}`);
+        return processTypes;
+    } catch (error) {
+        logger.error('Failed to get available process types:', error);
+        return ['SCF', 'DVP', 'STABLECOIN']; // Fallback to known types
+    }
+}
+
+function generateJobId(): string {
+    return 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+interface Job {
+    id: string;
+    toolName: string;
+    parameters: any;
+    status: 'pending' | 'running' | 'completed' | 'failed';
+    startTime: Date;
+    endTime?: Date;
+    result?: any;
+    error?: string;
+    progress?: number;
+}
+
+class AsyncJobManager {
+    private jobs = new Map<string, Job>();
+    private wss: WebSocketServer;
+
+    constructor(wss: WebSocketServer) {
+        this.wss = wss;
+        logger.info('Async job management enabled (default execution mode)');
+    }
+
+    async startJob(jobId: string, toolName: string, parameters: any): Promise<Job> {
+        const job: Job = {
+            id: jobId,
+            toolName,
+            parameters,
+            status: 'pending',
+            startTime: new Date()
+        };
+
+        this.jobs.set(jobId, job);
+        this.broadcastJobUpdate(job);
+
+        this.processJob(job);
+
+        return job;
+    }
+
+    private async processJob(job: Job) {
+        try {
+            job.status = 'running';
+            job.progress = 0;
+            this.broadcastJobUpdate(job);
+
+            logger.info(`Starting async job ${job.id}: ${job.toolName}`);
+
+            job.progress = 10;
+            this.broadcastJobUpdate(job);
+
+            const startTime = Date.now();
+            const result = await zkToolExecutor.executeTool(job.toolName, job.parameters);
+            const executionTime = Date.now() - startTime;
+
+            job.status = 'completed';
+            job.result = {
+                ...result,
+                executionTimeMs: executionTime,
+                jobId: job.id,
+                completedAt: new Date().toISOString(),
+                mode: 'async-only-server'
+            };
+            job.endTime = new Date();
+            job.progress = 100;
+
+            logger.info(`Async job ${job.id} completed successfully in ${executionTime}ms`);
+
+        } catch (error) {
+            job.status = 'failed';
+            job.error = error instanceof Error ? error.message : 'Unknown error';
+            job.endTime = new Date();
+
+            logger.error(`Async job ${job.id} failed:`, error);
+        }
+
+        this.broadcastJobUpdate(job);
+    }
+
+    private broadcastJobUpdate(job: Job) {
+        const message = JSON.stringify({
+            type: 'job_update',
+            jobId: job.id,
+            status: job.status,
+            progress: job.progress,
+            result: job.result,
+            error: job.error,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+
+        this.wss.clients.forEach((client: WebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    }
+
+    getJob(jobId: string): Job | undefined {
+        return this.jobs.get(jobId);
+    }
+
+    getAllJobs(): Job[] {
+        return Array.from(this.jobs.values());
+    }
+
+    getActiveJobs(): Job[] {
+        return Array.from(this.jobs.values()).filter(job =>
+            job.status === 'pending' || job.status === 'running'
+        );
+    }
+
+    clearCompletedJobs() {
+        for (const [jobId, job] of this.jobs.entries()) {
+            if (job.status === 'completed' || job.status === 'failed') {
+                this.jobs.delete(jobId);
+            }
+        }
+    }
+}
+
+const app = express();
+const server = createServer(app);
+
+const wss = new WebSocketServer({ server });
+global.wsServer = wss;
+
+const jobManager = new AsyncJobManager(wss);
+
+const ZK_PRET_HTTP_SERVER_PORT = parseInt(process.env.ZK_PRET_HTTP_SERVER_PORT || '3001', 10);
+const ZK_PRET_HTTP_SERVER_HOST = process.env.ZK_PRET_HTTP_SERVER_HOST || 'localhost';
+
+app.use(helmet());
+
+const limiter = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+    max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use(limiter);
+
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true
+}));
+
+app.use(express.json({ limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+
+if (process.env.ZK_PRET_ENABLE_API_AUTH === 'true') {
+    const API_KEY = process.env.ZK_PRET_API_KEY;
+
+    const requireApiKey = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        const providedKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+
+        if (!providedKey || providedKey !== API_KEY) {
+            logger.warn('Unauthorized API access attempt', {
+                ip: req.ip,
+                userAgent: req.get('User-Agent'),
+                url: req.url,
+                providedKey: providedKey ? '[REDACTED]' : 'none'
+            });
+
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized: Valid API key required',
+                timestamp: new Date().toISOString(),
+                server: 'zk-pret-async-only-server'
+            });
+        }
+
+        next();
+    };
+
+    app.use('/api/v1/tools', requireApiKey);
+    logger.info('API key authentication enabled for tool endpoints');
+} else {
+    logger.info('API key authentication disabled');
+}
+
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    logger.info('HTTP Request', {
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+    });
+    next();
+});
+
+wss.on('connection', (ws: WebSocket) => {
+    logger.info('New WebSocket connection established');
+
+    ws.on('message', (message: WebSocket.RawData) => {
+        try {
+            const data = JSON.parse(message.toString());
+            logger.info('WebSocket message received:', data);
+
+            if (data.type === 'subscribe_state_monitoring') {
+                ws.send(JSON.stringify({
+                    type: 'state_monitoring_subscribed',
+                    message: 'Subscribed to progressive state monitoring',
+                    timestamp: new Date().toISOString(),
+                    server: 'zk-pret-async-only-server'
+                }));
+            }
+        } catch (error) {
+            logger.error('Invalid WebSocket message:', error);
+        }
+    });
+
+    ws.on('close', () => {
+        logger.info('WebSocket connection closed');
+    });
+
+    ws.send(JSON.stringify({
+        type: 'connection',
+        status: 'connected',
+        server: 'zk-pret-async-only-server',
+        timestamp: new Date().toISOString(),
+        features: {
+            progressiveStateMonitoring: true,
+            asyncJobs: true,
+            realTimeUpdates: true,
+            executionMode: 'async-only'
+        }
+    }));
+});
+
+app.get('/api/v1/health', async (req: express.Request, res: express.Response) => {
+    try {
+        const executorHealth = await zkToolExecutor.healthCheck();
+
+        return res.json({
+            status: executorHealth.connected ? 'healthy' : 'degraded',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server',
+            version: '1.0.0',
+            mode: 'async-only',
+            services: {
+                zkExecutor: executorHealth.connected,
+                asyncJobs: true,
+                websockets: wss.clients.size > 0,
+                progressiveStateMonitoring: true,
+                configDataEndpoints: true,
+                processFileEndpoints: true,
+                stdioPath: executorHealth.status?.path
+            },
+            activeJobs: jobManager.getActiveJobs().length,
+            websocketConnections: wss.clients.size,
+            executorStatus: executorHealth.status
+        });
+    } catch (error) {
+        logger.error('Health check failed', { error: error instanceof Error ? error.message : String(error) });
+        return res.status(500).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            error: 'Health check failed'
+        });
+    }
+});
+
+app.get('/api/v1/tools', async (req: express.Request, res: express.Response) => {
+    try {
+        const tools = zkToolExecutor.getAvailableTools();
+
+        return res.json({
+            success: true,
+            tools,
+            count: tools.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server',
+            mode: 'async-only',
+            features: {
+                asyncExecution: true,
+                websockets: true,
+                directBackendAccess: true,
+                progressiveStateMonitoring: true,
+                configDataEndpoints: true,
+                processFileEndpoints: true,
+                executionMode: 'async-only'
+            }
+        });
+    } catch (error) {
+        logger.error('Failed to list tools', { error: error instanceof Error ? error.message : String(error) });
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to list tools',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// ==== EXISTING CONFIG DATA ENDPOINTS ====
+
+// Basel III Configuration Files
+app.get('/api/v1/basel3-config-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getConfigFiles('Basel3/CONFIG');
+
+        logger.info(`Basel III config files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get Basel III config files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load Basel III configuration files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// Risk Advanced Configuration Files  
+app.get('/api/v1/risk-advanced-config-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getConfigFiles('Advanced/CONFIG');
+
+        logger.info(`Risk Advanced config files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get Risk Advanced config files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load Risk Advanced configuration files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// Stablecoin Jurisdictions
+app.get('/api/v1/stablecoin-jurisdictions', (req: express.Request, res: express.Response) => {
+    try {
+        const jurisdictions = getDirectories('StableCoin/CONFIG');
+
+        logger.info(`Stablecoin jurisdictions requested - found ${jurisdictions.length} jurisdictions`);
+
+        return res.json({
+            success: true,
+            jurisdictions: jurisdictions,
+            count: jurisdictions.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get stablecoin jurisdictions:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load stablecoin jurisdictions',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// Stablecoin Situations by Jurisdiction
+app.get('/api/v1/stablecoin-situations/:jurisdiction', (req: express.Request, res: express.Response) => {
+    try {
+        const jurisdiction = req.params.jurisdiction;
+        const situations = getDirectories(`StableCoin/CONFIG/${jurisdiction}`);
+
+        logger.info(`Stablecoin situations requested for ${jurisdiction} - found ${situations.length} situations`);
+
+        return res.json({
+            success: true,
+            situations: situations,
+            jurisdiction: jurisdiction,
+            count: situations.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error(`Failed to get stablecoin situations for ${req.params.jurisdiction}:`, error);
+        return res.status(500).json({
+            success: false,
+            error: `Failed to load situations for ${req.params.jurisdiction}`,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// Risk Advanced Execution Settings
+app.get('/api/v1/risk-advanced-execution-settings', (req: express.Request, res: express.Response) => {
+    try {
+        // Predefined execution paths - you can make this dynamic later by reading from config files
+        const executionPaths = [
+            {
+                id: "ultra_strict",
+                name: "Ultra Strict Mode",
+                description: "Highest security verification"
+            },
+            {
+                id: "strict",
+                name: "Strict Mode",
+                description: "High security verification"
+            },
+            {
+                id: "standard",
+                name: "Standard Mode",
+                description: "Standard security verification"
+            },
+            {
+                id: "relaxed",
+                name: "Relaxed Mode",
+                description: "Lower security verification"
+            }
+        ];
+
+        logger.info(`Risk Advanced execution settings requested - found ${executionPaths.length} paths`);
+
+        return res.json({
+            success: true,
+            executionPaths: executionPaths,
+            count: executionPaths.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get execution settings:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load execution settings',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// ==== NEW: PROCESS FILES ENDPOINTS ====
+
+// Get all available process types
+app.get('/api/v1/process-types', (req: express.Request, res: express.Response) => {
+    try {
+        const processTypes = getAvailableProcessTypes();
+
+        logger.info(`Process types requested - found ${processTypes.length} types`);
+
+        return res.json({
+            success: true,
+            processTypes: processTypes,
+            count: processTypes.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get process types:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load process types',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// Generic process files endpoint - handles SCF/expected, SCF/actual, DVP/expected, etc.
+app.get('/api/v1/process-files/:processType/:fileType', (req: express.Request, res: express.Response) => {
+    try {
+        const { processType, fileType } = req.params;
+
+        // Validate file type
+        if (fileType !== 'expected' && fileType !== 'actual') {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid file type. Must be "expected" or "actual"',
+                timestamp: new Date().toISOString(),
+                server: 'zk-pret-async-only-server'
+            });
+        }
+
+        const files = getProcessFiles(processType, fileType as 'expected' | 'actual');
+
+        logger.info(`Process files requested for ${processType}/${fileType} - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            processType: processType.toUpperCase(),
+            fileType: fileType.toLowerCase(),
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error(`Failed to get process files for ${req.params.processType}/${req.params.fileType}:`, error);
+        return res.status(500).json({
+            success: false,
+            error: `Failed to load ${req.params.processType}/${req.params.fileType} process files`,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// Specific endpoints for common process types (for backward compatibility)
+app.get('/api/v1/scf-expected-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getProcessFiles('SCF', 'expected');
+
+        logger.info(`SCF expected files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get SCF expected files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load SCF expected files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+app.get('/api/v1/scf-actual-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getProcessFiles('SCF', 'actual');
+
+        logger.info(`SCF actual files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get SCF actual files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load SCF actual files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// DVP process files
+app.get('/api/v1/dvp-expected-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getProcessFiles('DVP', 'expected');
+
+        logger.info(`DVP expected files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get DVP expected files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load DVP expected files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+app.get('/api/v1/dvp-actual-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getProcessFiles('DVP', 'actual');
+
+        logger.info(`DVP actual files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get DVP actual files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load DVP actual files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// Stablecoin process files
+app.get('/api/v1/stablecoin-expected-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getProcessFiles('STABLECOIN', 'expected');
+
+        logger.info(`Stablecoin expected files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get Stablecoin expected files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load Stablecoin expected files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+app.get('/api/v1/stablecoin-actual-files', (req: express.Request, res: express.Response) => {
+    try {
+        const files = getProcessFiles('STABLECOIN', 'actual');
+
+        logger.info(`Stablecoin actual files requested - found ${files.length} files`);
+
+        return res.json({
+            success: true,
+            files: files,
+            count: files.length,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    } catch (error) {
+        logger.error('Failed to get Stablecoin actual files:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to load Stablecoin actual files',
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server'
+        });
+    }
+});
+
+// ==== END PROCESS FILES ENDPOINTS ====
+
+// MAIN EXECUTION ENDPOINT - ASYNC ONLY
+app.post('/api/v1/tools/execute', async (req: express.Request, res: express.Response) => {
+    try {
+        const { toolName, parameters, jobId } = req.body;
+
+        if (!toolName) {
+            return res.status(400).json({
+                success: false,
+                error: 'toolName is required',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        const actualJobId = jobId || generateJobId();
+
+        logger.info('ASYNC execution started (default mode)', {
+            jobId: actualJobId,
+            toolName,
+            parameters: JSON.stringify(parameters),
+            mode: 'async-only',
+            progressiveStateMonitoring: true
+        });
+
+        const job = await jobManager.startJob(actualJobId, toolName, parameters || {});
+
+        return res.json({
+            success: true,
+            jobId: job.id,
+            status: job.status,
+            toolName: job.toolName,
+            timestamp: job.startTime.toISOString(),
+            message: 'Async job started successfully (default execution mode)',
+            server: 'zk-pret-async-only-server',
+            mode: 'async-only',
+            websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+            progressiveStateMonitoring: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to start async job',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+app.get('/api/v1/jobs/:jobId', (req: express.Request, res: express.Response) => {
+    const job = jobManager.getJob(req.params.jobId);
+    if (!job) {
+        return res.status(404).json({
+            success: false,
+            error: 'Job not found',
+            jobId: req.params.jobId,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    return res.json({
+        success: true,
+        job,
+        timestamp: new Date().toISOString(),
+        server: 'zk-pret-async-only-server',
+        mode: 'async-only'
+    });
+});
+
+app.get('/api/v1/jobs', (req: express.Request, res: express.Response) => {
+    const jobs = jobManager.getAllJobs();
+    return res.json({
+        success: true,
+        jobs,
+        total: jobs.length,
+        active: jobManager.getActiveJobs().length,
+        timestamp: new Date().toISOString(),
+        server: 'zk-pret-async-only-server',
+        mode: 'async-only'
+    });
+});
+
+app.delete('/api/v1/jobs/completed', (req: express.Request, res: express.Response) => {
+    jobManager.clearCompletedJobs();
+    return res.json({
+        success: true,
+        message: 'Completed jobs cleared',
+        timestamp: new Date().toISOString(),
+        server: 'zk-pret-async-only-server',
+        mode: 'async-only'
+    });
+});
+
+// SPECIALIZED TOOL ENDPOINTS - ALL ASYNC
+app.post('/api/v1/tools/gleif', async (req: express.Request, res: express.Response) => {
+    try {
+        const parameters = req.body;
+        const jobId = generateJobId();
+
+        logger.info('GLEIF async execution started', {
+            jobId,
+            parameters: JSON.stringify(parameters)
+        });
+
+        const job = await jobManager.startJob(jobId, 'get-GLEIF-verification-with-sign', parameters);
+
+        return res.json({
+            success: true,
+            jobId: job.id,
+            status: job.status,
+            toolName: 'get-GLEIF-verification-with-sign',
+            timestamp: job.startTime.toISOString(),
+            message: 'GLEIF async job started successfully',
+            server: 'zk-pret-async-only-server',
+            mode: 'async-only',
+            websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+            progressiveStateMonitoring: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+app.post('/api/v1/tools/corporate', async (req: express.Request, res: express.Response) => {
+    try {
+        const parameters = req.body;
+        const jobId = generateJobId();
+
+        logger.info('Corporate async execution started', {
+            jobId,
+            parameters: JSON.stringify(parameters)
+        });
+
+        const job = await jobManager.startJob(jobId, 'get-Corporate-Registration-verification-with-sign', parameters);
+
+        return res.json({
+            success: true,
+            jobId: job.id,
+            status: job.status,
+            toolName: 'get-Corporate-Registration-verification-with-sign',
+            timestamp: job.startTime.toISOString(),
+            message: 'Corporate Registration async job started successfully',
+            server: 'zk-pret-async-only-server',
+            mode: 'async-only',
+            websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+            progressiveStateMonitoring: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+app.post('/api/v1/tools/exim', async (req: express.Request, res: express.Response) => {
+    try {
+        const parameters = req.body;
+        const jobId = generateJobId();
+
+        logger.info('EXIM async execution started', {
+            jobId,
+            parameters: JSON.stringify(parameters)
+        });
+
+        const job = await jobManager.startJob(jobId, 'get-EXIM-verification-with-sign', parameters);
+
+        return res.json({
+            success: true,
+            jobId: job.id,
+            status: job.status,
+            toolName: 'get-EXIM-verification-with-sign',
+            timestamp: job.startTime.toISOString(),
+            message: 'EXIM async job started successfully',
+            server: 'zk-pret-async-only-server',
+            mode: 'async-only',
+            websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+            progressiveStateMonitoring: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+app.post('/api/v1/tools/risk', async (req: express.Request, res: express.Response) => {
+    try {
+        const parameters = req.body;
+        const toolName = parameters.riskType === 'advanced' ? 'get-RiskLiquidityAdvancedOptimMerkle-verification-with-sign' :
+            parameters.riskType === 'basel3' ? 'get-RiskLiquidityBasel3Optim-Merkle-verification-with-sign' :
+                parameters.riskType === 'stablecoin' ? 'get-StablecoinProofOfReservesRisk-verification-with-sign' :
+                    'get-RiskLiquidityAdvancedOptimMerkle-verification-with-sign';
+
+        const jobId = generateJobId();
+
+        logger.info('Risk async execution started', {
+            jobId,
+            toolName,
+            parameters: JSON.stringify(parameters)
+        });
+
+        const job = await jobManager.startJob(jobId, toolName, parameters);
+
+        return res.json({
+            success: true,
+            jobId: job.id,
+            status: job.status,
+            toolName,
+            timestamp: job.startTime.toISOString(),
+            message: 'Risk verification async job started successfully',
+            server: 'zk-pret-async-only-server',
+            mode: 'async-only',
+            websocketUrl: `ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`,
+            progressiveStateMonitoring: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+app.get('/api/v1/status', async (req: express.Request, res: express.Response) => {
+    try {
+        const executorHealth = await zkToolExecutor.healthCheck();
+
+        return res.json({
+            server: 'zk-pret-async-only-server',
+            version: '1.0.0',
+            mode: 'async-only',
+            status: executorHealth.connected ? 'healthy' : 'degraded',
+            timestamp: new Date().toISOString(),
+            port: ZK_PRET_HTTP_SERVER_PORT,
+            host: ZK_PRET_HTTP_SERVER_HOST,
+            features: {
+                asyncExecution: true,
+                realTimeResults: true,
+                batchOperations: true,
+                websockets: true,
+                jobManagement: true,
+                directBackendAccess: true,
+                progressiveStateMonitoring: true,
+                configDataEndpoints: true,
+                processFileEndpoints: true,
+                executionMode: 'async-only'
+            },
+            executor: {
+                connected: executorHealth.connected,
+                status: executorHealth.status,
+                executionMode: 'async-only'
+            },
+            jobs: {
+                total: jobManager.getAllJobs().length,
+                active: jobManager.getActiveJobs().length
+            },
+            websockets: {
+                connections: wss.clients.size,
+                enabled: true,
+                progressiveStateUpdates: true
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            server: 'zk-pret-async-only-server',
+            status: 'error',
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    logger.error('Unhandled error', {
+        error: error.message,
+        stack: error.stack,
+        url: req.url,
+        method: req.method
+    });
+
+    res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        timestamp: new Date().toISOString(),
+        server: 'zk-pret-async-only-server'
+    });
+});
+
+app.use((req: express.Request, res: express.Response) => {
+    res.status(404).json({
+        success: false,
+        error: 'Endpoint not found',
+        path: req.path,
+        method: req.method,
+        timestamp: new Date().toISOString(),
+        server: 'zk-pret-async-only-server'
+    });
+});
+
+const startServer = async () => {
+    try {
+        console.log('🚀 Starting ZK-PRET Async-Only HTTP Server...');
+
+        console.log('⚡ Initializing ZK Tool Executor...');
+        await zkToolExecutor.initialize();
+        console.log('✅ ZK Tool Executor initialization completed');
+
+        server.listen(ZK_PRET_HTTP_SERVER_PORT, ZK_PRET_HTTP_SERVER_HOST, () => {
+            logger.info(`🚀 ZK-PRET Async-Only HTTP Server started successfully`);
+            logger.info(`📡 Server URL: http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`);
+            logger.info(`🔄 Mode: Async-Only Execution`);
+            logger.info(`📡 WebSocket URL: ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}`);
+            logger.info(`⚡ Features: Async-only execution with real-time updates`);
+            logger.info(`🎯 Ready to process ZK-PRET tool requests asynchronously`);
+            logger.info(`📊 Progressive State Monitoring: Enabled`);
+            logger.info(`📂 Config Data Endpoints: Enabled`);
+            logger.info(`📄 Process Files Endpoints: Enabled`);
+
+            console.log('\n=== ZK-PRET ASYNC-ONLY HTTP SERVER ENDPOINTS ===');
+            console.log('🔍 HEALTH & INFO:');
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/health`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/status`);
+
+            console.log('📂 CONFIG DATA ENDPOINTS:');
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/basel3-config-files`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/risk-advanced-config-files`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/stablecoin-jurisdictions`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/stablecoin-situations/:jurisdiction`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/risk-advanced-execution-settings`);
+
+            console.log('📄 PROCESS FILES ENDPOINTS (NEW):');
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-types`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-files/:processType/:fileType`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-files/SCF/expected`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-files/SCF/actual`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-files/DVP/expected`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-files/DVP/actual`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-files/STABLECOIN/expected`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/process-files/STABLECOIN/actual`);
+
+            console.log('📄 SPECIFIC PROCESS FILE ENDPOINTS (BACKWARD COMPATIBILITY):');
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/scf-expected-files`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/scf-actual-files`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/dvp-expected-files`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/dvp-actual-files`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/stablecoin-expected-files`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/stablecoin-actual-files`);
+
+            console.log('🔄 ASYNC EXECUTION (DEFAULT):');
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/execute`);
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/gleif`);
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/corporate`);
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/exim`);
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/tools/risk`);
+
+            console.log('📊 JOB MANAGEMENT:');
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs/:jobId`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs`);
+            console.log(`DEL  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs/completed`);
+
+            console.log('📡 WEBSOCKET:');
+            console.log(`WS   ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT} (real-time async updates)`);
+            console.log('📊 PROGRESSIVE STATE MONITORING:');
+            console.log(`WS   ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT} (real-time state updates)`);
+            console.log('=====================================\n');
+
+            console.log('🎯 ASYNC-ONLY INTEGRATION SUCCESS:');
+            console.log('• All executions are asynchronous by default');
+            console.log('• POST /api/v1/tools/execute → Returns job ID immediately');
+            console.log('• Real-time updates via WebSocket');
+            console.log('• Progressive state monitoring enabled');
+            console.log('• Config data endpoints enabled');
+            console.log('• Process files endpoints enabled (NEW)');
+            console.log('• Frontend dropdown population supported');
+            console.log('• Business process file access (NEW)');
+            console.log('• No synchronous blocking operations');
+            console.log('• Optimized for concurrent processing');
+            console.log('=====================================\n');
+
+            console.log('📊 ASYNC-ONLY FEATURES:');
+            console.log('• Immediate job ID response');
+            console.log('• Real-time progress updates via WebSocket');
+            console.log('• Non-blocking execution');
+            console.log('• Enhanced job management');
+            console.log('• Progressive state capture');
+            console.log('• Configuration file serving');
+            console.log('• Basel III config files endpoint');
+            console.log('• Risk Advanced config files endpoint');
+            console.log('• Stablecoin jurisdictions endpoint');
+            console.log('• Dynamic situations loading');
+            console.log('• Execution settings endpoint');
+            console.log('• Process files endpoints (NEW)');
+            console.log('• SCF/DVP/STABLECOIN process file access (NEW)');
+            console.log('• Expected/Actual file categorization (NEW)');
+            console.log('• Business process integrity support (NEW)');
+            console.log('=====================================\n');
+        });
+    } catch (error) {
+        logger.error('Failed to start async-only HTTP server:', error);
+        console.log('❌ Server startup failed');
+        process.exit(1);
+    }
+};
+
+export { startServer };
+
+process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        logger.info('Async-only HTTP server closed');
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    logger.info('SIGINT received, shutting down gracefully');
+    server.close(() => {
+        logger.info('Async-only HTTP server closed');
+        process.exit(0);
+    });
+});
+
+console.log('Starting async-only server from integrated-server.js...');
+startServer().catch(error => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+});

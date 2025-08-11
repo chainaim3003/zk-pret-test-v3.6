@@ -1,0 +1,26 @@
+{"level":"info","message":"Async job management enabled (default execution mode)","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.747Z"}
+{"level":"info","message":"API key authentication disabled","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.755Z"}
+{"level":"info","message":"ZK Tool Executor (Multi-Path Mode) initialized successfully","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.771Z"}
+{"level":"info","message":"🚀 ZK-PRET Async-Only HTTP Server started successfully","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.810Z"}
+{"level":"info","message":"📡 Server URL: http://localhost:3001","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.811Z"}
+{"level":"info","message":"🔄 Mode: Async-Only Execution","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.812Z"}
+{"level":"info","message":"📡 WebSocket URL: ws://localhost:3001","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.812Z"}
+{"level":"info","message":"⚡ Features: Async-only execution with real-time updates","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.812Z"}
+{"level":"info","message":"🎯 Ready to process ZK-PRET tool requests asynchronously","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.812Z"}
+{"level":"info","message":"📊 Progressive State Monitoring: Enabled","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.813Z"}
+{"level":"info","message":"📂 Config Data Endpoints: Enabled","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.813Z"}
+{"level":"info","message":"📄 Process Files Endpoints: Enabled","service":"zk-pret-server","timestamp":"2025-08-11T05:50:44.813Z"}
+{"level":"info","message":"SIGINT received, shutting down gracefully","service":"zk-pret-server","timestamp":"2025-08-11T05:52:46.473Z"}
+{"level":"info","message":"Async job management enabled (default execution mode)","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.396Z"}
+{"level":"info","message":"API key authentication disabled","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.406Z"}
+{"level":"info","message":"ZK Tool Executor (Multi-Path Mode) initialized successfully","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.411Z"}
+{"level":"info","message":"🚀 ZK-PRET Async-Only HTTP Server started successfully","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.432Z"}
+{"level":"info","message":"📡 Server URL: http://localhost:3001","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.433Z"}
+{"level":"info","message":"🔄 Mode: Async-Only Execution","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.433Z"}
+{"level":"info","message":"📡 WebSocket URL: ws://localhost:3001","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.434Z"}
+{"level":"info","message":"⚡ Features: Async-only execution with real-time updates","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.434Z"}
+{"level":"info","message":"🎯 Ready to process ZK-PRET tool requests asynchronously","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.434Z"}
+{"level":"info","message":"📊 Progressive State Monitoring: Enabled","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.435Z"}
+{"level":"info","message":"📂 Config Data Endpoints: Enabled","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.436Z"}
+{"level":"info","message":"📄 Process Files Endpoints: Enabled","service":"zk-pret-server","timestamp":"2025-08-11T05:53:08.436Z"}
+{"level":"info","message":"SIGINT received, shutting down gracefully","service":"zk-pret-server","timestamp":"2025-08-11T05:55:37.182Z"}
