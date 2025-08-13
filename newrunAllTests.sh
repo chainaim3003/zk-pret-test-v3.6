@@ -5,7 +5,6 @@
 # Corporate Registration Optimized Tests 
 npm run test:local-complete-CorpReg "U01112TZ2022PTC039493"
 
-
 # EXIM Optimized Tests
 npm run test:local-complete-EXIM "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"
 
@@ -47,12 +46,16 @@ node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js DVP ./src/data
 npm run test:risk-stablecoin-local-us 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
 npm run test:risk-stablecoin-local-us 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-INVALID-1.json ultra_strict US
 
+# Risk Liquidity 
 
-# Risk Liquidity Basel3 Merkle Tests
 node build/tests/with-sign/RiskBasel3LocalMultiVerifier.js 80 80 http://3.88.158.37:8083/eventsBatch src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json
+node build/tests/with-sign/RiskStableCoinLocalMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
+node build/tests/with-sign/RiskAdvancedLocalMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json
 
-# Risk Liquidity Advanced Merkle Tests
-node ./build/tests/with-sign/RiskLiquidityAdvancedOptimMerkleVerificationTestWithSign.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json
+
+node build/tests/with-sign/RiskBasel3NetworkMultiVerifier.js 80 80 http://3.88.158.37:8083/eventsBatch src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json
+node build/tests/with-sign/RiskStableCoinNetworkMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
+node build/tests/with-sign/RiskAdvancedNetworkMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json
 
 
 #==================================================
@@ -107,6 +110,3 @@ node ./build/tests/with-sign/ComposedRecursiveOptim3LevelVerificationTestWithSig
 node ./build/tests/with-sign/ComposedRecursiveOptim3LevelVerificationTestWithSign.js "RNJ TRAVEL SOLUTIONS PRIVATE LIMITED" "U63040MH2019PTC325808"
 node ./build/tests/with-sign/ComposedRecursiveOptim3LevelVerificationTestWithSign.js "LAKSHMI AGS ENGINEERING PRIVATE LIMITED" "U25999TN2024PTC168589"
 node ./build/tests/with-sign/ComposedRecursiveOptim3LevelVerificationTestWithSign.js "RMKV SILKS PRIVATE LIMITED" "U52320TN2011PTC081680"
-
-
-

@@ -9,6 +9,7 @@ import { readBLJsonFile } from './BSDIUtils.js';
 import { getPrivateKeyFor } from '../../core/OracleRegistry.js';
 import { verifyActualFromFile } from '../../core/verifyActual.js';
 
+
 // 🎯 COMPREHENSIVE: Extract ALL fields required by data.json (FIXED VERSION)
 function extractComprehensiveOptimFields(evalBLJson: any): ComprehensiveOptimBLFields {
     console.log('🎯 Extracting ALL fields required by data.json schema...');
