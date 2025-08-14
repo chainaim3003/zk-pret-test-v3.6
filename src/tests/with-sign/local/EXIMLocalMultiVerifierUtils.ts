@@ -387,83 +387,83 @@ export async function getEXIMLocalMultiVerifierUtils(
 
 // =================================== CLI ENTRY POINT ===================================
 
-async function main(): Promise<void> {
-  // Get company names and network type from command line arguments
-  const companyNamesArg = process.argv[2];
+// async function main(): Promise<void> {
+//   // Get company names and network type from command line arguments
+//   const companyNamesArg = process.argv[2];
   
-  if (!companyNamesArg) {
-    console.error('❌ Error: Company names are required');
-    console.log('📖 Usage: node EXIMLocalMultiVerifierUtils.js "COMPANY1,COMPANY2"');
-    console.log('📝 Example: node EXIMLocalMultiVerifierUtils.js "Tata Motors Limited,Reliance Industries Limited"');
-    console.log('📝 Example: node EXIMLocalMultiVerifierUtils.js "Wipro Limited,Infosys Limited"');
-    console.log('📝 Single Company: node EXIMLocalMultiVerifierUtils.js "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"');
-    console.log('🔍 Features: Individual company tracking, name-based queries, same capabilities as SingleCompany contract');
-    process.exit(1);
-  }
+//   if (!companyNamesArg) {
+//     console.error('❌ Error: Company names are required');
+//     console.log('📖 Usage: node EXIMLocalMultiVerifierUtils.js "COMPANY1,COMPANY2"');
+//     console.log('📝 Example: node EXIMLocalMultiVerifierUtils.js "Tata Motors Limited,Reliance Industries Limited"');
+//     console.log('📝 Example: node EXIMLocalMultiVerifierUtils.js "Wipro Limited,Infosys Limited"');
+//     console.log('📝 Single Company: node EXIMLocalMultiVerifierUtils.js "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"');
+//     console.log('🔍 Features: Individual company tracking, name-based queries, same capabilities as SingleCompany contract');
+//     process.exit(1);
+//   }
   
-  // Parse company names from comma-separated string
-  const companyNames = companyNamesArg.split(',').map(name => name.trim()).filter(name => name.length > 0);
+//   // Parse company names from comma-separated string
+//   const companyNames = companyNamesArg.split(',').map(name => name.trim()).filter(name => name.length > 0);
   
-  if (companyNames.length === 0) {
-    console.error('❌ Error: At least one company name is required');
-    process.exit(1);
-  }
+//   if (companyNames.length === 0) {
+//     console.error('❌ Error: At least one company name is required');
+//     process.exit(1);
+//   }
   
-  if (companyNames.length > 10) {
-    console.error('❌ Error: Maximum 10 companies supported in this demo');
-    process.exit(1);
-  }
+//   if (companyNames.length > 10) {
+//     console.error('❌ Error: Maximum 10 companies supported in this demo');
+//     process.exit(1);
+//   }
   
-  console.log('🏢 Company Names:', companyNames);
-  console.log('🏠 Environment: LOCAL (local blockchain)');
-  console.log('📊 Total Companies to Process:', companyNames.length);
+//   console.log('🏢 Company Names:', companyNames);
+//   console.log('🏠 Environment: LOCAL (local blockchain)');
+//   console.log('📊 Total Companies to Process:', companyNames.length);
   
-  try {
-    const result = await getEXIMLocalMultiVerifierUtils(companyNames);
+//   try {
+//     const result = await getEXIMLocalMultiVerifierUtils(companyNames);
     
-    console.log('\n🎯 Multi-Company Verification completed successfully!');
-    console.log('\n📊 Final Summary:');
-    console.log(`✅ Total Companies Processed: ${result.verificationResults.length}`);
-    console.log(`✅ Successful Verifications: ${result.verificationResults.filter((r: any) => !r.error).length}`);
-    console.log(`❌ Failed Verifications: ${result.verificationResults.filter((r: any) => r.error).length}`);
-    console.log(`🏆 Compliant Companies: ${result.verificationResults.filter((r: any) => r.isCompliant).length}`);
-    console.log(`⚠️ Non-Compliant Companies: ${result.verificationResults.filter((r: any) => !r.isCompliant && !r.error).length}`);
+//     console.log('\n🎯 Multi-Company Verification completed successfully!');
+//     console.log('\n📊 Final Summary:');
+//     console.log(`✅ Total Companies Processed: ${result.verificationResults.length}`);
+//     console.log(`✅ Successful Verifications: ${result.verificationResults.filter((r: any) => !r.error).length}`);
+//     console.log(`❌ Failed Verifications: ${result.verificationResults.filter((r: any) => r.error).length}`);
+//     console.log(`🏆 Compliant Companies: ${result.verificationResults.filter((r: any) => r.isCompliant).length}`);
+//     console.log(`⚠️ Non-Compliant Companies: ${result.verificationResults.filter((r: any) => !r.isCompliant && !r.error).length}`);
     
-    console.log('\n🏢 Company Status Details:');
-    result.verificationResults.forEach((company: any, index: number) => {
-      const status = company.error ? '❌ ERROR' : (company.isCompliant ? '✅ COMPLIANT' : '⚠️ NON-COMPLIANT');
-      console.log(`  ${index + 1}. ${company.companyName}: ${status}`);
-      if (!company.error) {
-        console.log(`     📄 IEC: ${company.iec}`);
-        console.log(`     📊 Score: ${company.complianceScore}%`);
-        console.log(`     🕒 Verified: ${new Date(Number(company.verificationTime)).toISOString()}`);
-      } else {
-        console.log(`     ❌ Error: ${company.error}`);
-      }
-    });
+//     console.log('\n🏢 Company Status Details:');
+//     result.verificationResults.forEach((company: any, index: number) => {
+//       const status = company.error ? '❌ ERROR' : (company.isCompliant ? '✅ COMPLIANT' : '⚠️ NON-COMPLIANT');
+//       console.log(`  ${index + 1}. ${company.companyName}: ${status}`);
+//       if (!company.error) {
+//         console.log(`     📄 IEC: ${company.iec}`);
+//         console.log(`     📊 Score: ${company.complianceScore}%`);
+//         console.log(`     🕒 Verified: ${new Date(Number(company.verificationTime)).toISOString()}`);
+//       } else {
+//         console.log(`     ❌ Error: ${company.error}`);
+//       }
+//     });
     
-    console.log('\n🎉 Multi-Company EXIM LOCAL Verification Demo Completed Successfully!');
-    console.log('📋 Features Demonstrated:');
-    console.log('  ✅ Multiple company verification in single contract');
-    console.log('  ✅ Global compliance statistics tracking');
-    console.log('  ✅ Individual company state management');
-    console.log('  ✅ Merkle tree-based company registry');
-    console.log('  ✅ Aggregate compliance scoring');
-    console.log('  ✅ Real-time EXIM API integration');
-    console.log('  ✅ Zero-knowledge proof generation and verification');
-    console.log('  ✅ Smart contract state updates');
-    console.log('  ✅ LOCAL blockchain execution');
+//     console.log('\n🎉 Multi-Company EXIM LOCAL Verification Demo Completed Successfully!');
+//     console.log('📋 Features Demonstrated:');
+//     console.log('  ✅ Multiple company verification in single contract');
+//     console.log('  ✅ Global compliance statistics tracking');
+//     console.log('  ✅ Individual company state management');
+//     console.log('  ✅ Merkle tree-based company registry');
+//     console.log('  ✅ Aggregate compliance scoring');
+//     console.log('  ✅ Real-time EXIM API integration');
+//     console.log('  ✅ Zero-knowledge proof generation and verification');
+//     console.log('  ✅ Smart contract state updates');
+//     console.log('  ✅ LOCAL blockchain execution');
     
-  } catch (error) {
-    console.error('💥 Error:', error);
-    console.error('💥 Error Stack:', (error as Error).stack || 'No stack trace available');
-    process.exit(1);
-  }
-}
+//   } catch (error) {
+//     console.error('💥 Error:', error);
+//     console.error('💥 Error Stack:', (error as Error).stack || 'No stack trace available');
+//     process.exit(1);
+//   }
+// }
 
-// Always run main function when this module is executed
-main().catch(err => {
-  console.error('💥 Fatal Error:', err);
-  console.error('💥 Fatal Error Stack:', err.stack);
-  process.exit(1);
-});
+// // Always run main function when this module is executed
+// main().catch(err => {
+//   console.error('💥 Fatal Error:', err);
+//   console.error('💥 Fatal Error Stack:', err.stack);
+//   process.exit(1);
+// });

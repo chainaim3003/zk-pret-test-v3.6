@@ -238,46 +238,46 @@ async function verifyProofOnLocalContract(
   console.log('   LOCAL transaction sent and confirmed');
 }
 
-// Main execution (same pattern as GLEIF)
-async function main() {
-  const args = process.argv.slice(2);
+// // Main execution (same pattern as GLEIF)
+// async function main() {
+//   const args = process.argv.slice(2);
   
-  // Parse jurisdiction flag
-  const jurisdictionFlag = args.find(arg => arg.startsWith('--jurisdiction='));
-  const jurisdiction = jurisdictionFlag ? jurisdictionFlag.split('=')[1] : 'IN';
+//   // Parse jurisdiction flag
+//   const jurisdictionFlag = args.find(arg => arg.startsWith('--jurisdiction='));
+//   const jurisdiction = jurisdictionFlag ? jurisdictionFlag.split('=')[1] : 'IN';
   
-  // Parse company identifiers
-  const companyIds = args.filter(arg => !arg.startsWith('--'));
+//   // Parse company identifiers
+//   const companyIds = args.filter(arg => !arg.startsWith('--'));
   
-  if (companyIds.length === 0) {
-    console.error('❌ Usage: node CorporateRegistrationLocalMultiVerifierUtils.js [--jurisdiction=IN] "CIN1" "CIN2" ...');
-    console.error('');
-    console.error('Examples:');
-    console.error('  node CorporateRegistrationLocalMultiVerifierUtils.js "U01112TZ2022PTC039493"');
-    console.error('  node CorporateRegistrationLocalMultiVerifierUtils.js --jurisdiction=US "Delaware_Corp_123"');
-    console.error('  node CorporateRegistrationLocalMultiVerifierUtils.js "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"');
-    process.exit(1);
-  }
+//   if (companyIds.length === 0) {
+//     console.error('❌ Usage: node CorporateRegistrationLocalMultiVerifierUtils.js [--jurisdiction=IN] "CIN1" "CIN2" ...');
+//     console.error('');
+//     console.error('Examples:');
+//     console.error('  node CorporateRegistrationLocalMultiVerifierUtils.js "U01112TZ2022PTC039493"');
+//     console.error('  node CorporateRegistrationLocalMultiVerifierUtils.js --jurisdiction=US "Delaware_Corp_123"');
+//     console.error('  node CorporateRegistrationLocalMultiVerifierUtils.js "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED"');
+//     process.exit(1);
+//   }
 
-  try {
-    const result = await getCorporateRegistrationLocalMultiVerifierUtils(companyIds, jurisdiction);
-    console.log('\n🎉 LOCAL Corporate Registration verification completed successfully!');
-    console.log(`✅ Total companies verified: ${result.totalCompanies}`);
-    console.log(`🌍 Jurisdiction: ${result.jurisdiction}`);
-    console.log(`🏠 Environment: ${result.environment}`);
-  } catch (error) {
-    console.error('💥 Fatal Error:', error);
-    process.exit(1);
-  }
-}
+//   try {
+//     const result = await getCorporateRegistrationLocalMultiVerifierUtils(companyIds, jurisdiction);
+//     console.log('\n🎉 LOCAL Corporate Registration verification completed successfully!');
+//     console.log(`✅ Total companies verified: ${result.totalCompanies}`);
+//     console.log(`🌍 Jurisdiction: ${result.jurisdiction}`);
+//     console.log(`🏠 Environment: ${result.environment}`);
+//   } catch (error) {
+//     console.error('💥 Fatal Error:', error);
+//     process.exit(1);
+//   }
+// }
 
-// Module detection (same as GLEIF)
-const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
-                     import.meta.url.endsWith('CorporateRegistrationLocalMultiVerifierUtils.js');
+// // Module detection (same as GLEIF)
+// const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+//                      import.meta.url.endsWith('CorporateRegistrationLocalMultiVerifierUtils.js');
 
-if (isMainModule && process.argv.length > 2) {
-  main().catch(err => {
-    console.error('💥 Fatal Error:', err);
-    process.exit(1);
-  });
-}
+// if (isMainModule && process.argv.length > 2) {
+//   main().catch(err => {
+//     console.error('💥 Fatal Error:', err);
+//     process.exit(1);
+//   });
+// }

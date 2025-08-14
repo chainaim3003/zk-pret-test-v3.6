@@ -41,14 +41,12 @@ async function main(): Promise<void> {
     
     return new Promise((resolve, reject) => {
       const execArgs = [
-        './build/tests/with-sign/local/CorporateRegistrationLocalMultiVerifierUtils.js'
+        './build/tests/with-sign/CorporateRegistrationLocalMultiVerifier.js'
       ];
-      
       if (jurisdiction !== 'IN') {
         execArgs.push(`--jurisdiction=${jurisdiction}`);
       }
       execArgs.push(companyName);
-      
       const verifyProcess = spawn('node', execArgs, {
         stdio: 'inherit',
         env: { ...process.env, BUILD_ENV: 'LOCAL' }
