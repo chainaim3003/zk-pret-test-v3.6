@@ -508,9 +508,9 @@ export class ZKToolExecutor {
     async executeChildProcess(toolName: string, parameters: any = {}): Promise<any> {
         // Map tool names to actual script files
         const toolScriptMap: Record<string, string> = {
-            'get-GLEIF-verification-with-sign': 'local-deploy-verify-GLEIF.js',
-            'get-Corporate-Registration-verification-with-sign': 'local-deploy-verify-CorpReg.js',
-            'get-EXIM-verification-with-sign': 'local-deploy-verify-EXIM.js',
+            'get-GLEIF-verification-with-sign': 'GLEIFLocalMultiVerifier.js',
+            'get-Corporate-Registration-verification-with-sign': 'CorporateRegistrationLocalMultiVerifier.js',
+            'get-EXIM-verification-with-sign': 'EXIMLocalMultiVerifier.js',
             'get-Composed-Compliance-verification-with-sign': 'ComposedRecursiveOptim3LevelVerificationTestWithSign.js',
             'get-BSDI-compliance-verification': 'BusinessStdIntegrityLocalMultiVerifier.js',
             'get-BPI-compliance-verification': 'BusinessProcessLocalMultiVerifier.js',
