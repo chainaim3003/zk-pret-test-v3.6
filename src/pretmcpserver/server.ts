@@ -6,15 +6,20 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerPRETTools } from "../pretmcpcore/tools.js";
 // Create and start the MCP server
 async function startServer() {
-  console.log("Initializing PRET MCP Server...");
+  console.error("Initializing PRET MCP Server...");
+  
+  // CRITICAL FIX: Redirect console.log to console.error to avoid JSON-RPC pollution
+  // This prevents utility functions from outputting to stdout which interferes with MCP protocol
+  const originalConsoleLog = console.log;
+  console.log = (...args: any[]) => {
+    console.error('[UTIL-LOG]', ...args);
+  };
   try {
-    console.log("Initializing PRET MCP Server...");
     // Create a new MCP server instance
     const server = new McpServer({
       name: "PRET-Server",
       version: "1.0.0"
     });
-    console.log("server", server);
     // Register all resources, tools, and prompts
     // registerEVMResources(server);
     // registerEVMTools(server);
