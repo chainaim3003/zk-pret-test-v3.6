@@ -3,6 +3,7 @@ import { z } from "zod";
 import {fetchGLEIFCompanyDataWithFullDetails} from "../tests/with-sign/GLEIFBasicUtils.js";
 import { fetchEXIMCompanyData } from "../tests/with-sign/EXIMBasicUtils.js";
 import {fetchCorporateRegistrationData} from "../tests/with-sign/CorporateRegistrationBasicUtils.js";
+import { getGLEIFLocalMultiVerifierUtils } from "../tests/with-sign/local/GLEIFLocalMultiVerifierUtils.js";
 
 
 export function registerPRETTools(server: McpServer) {  
@@ -104,5 +105,30 @@ export function registerPRETTools(server: McpServer) {
     }
   );
 
-
+server.tool(
+  "run-GLEIF-local-multiverifier",
+  "Run the full GLEIF local multi-verifier pipeline (ZK, Merkle, compliance, etc.) for a company name. Returns detailed compliance and proof results.",
+  {
+    companyName: z.string().describe("Company name for GLEIF local multi-verifier (e.g., 'SREE PALANI ANDAVAR AGROS PRIVATE LIMITED')")
+  },
+  async ({ companyName }: { companyName: string }) => {
+    try {
+      const result = await getGLEIFLocalMultiVerifierUtils([companyName]);
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(result, null, 2)
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: `Error running GLEIF local multi-verifier: ${error instanceof Error ? error.message : String(error)}`
+        }],
+        isError: true
+      };
+    }
+  }
+);
 }
