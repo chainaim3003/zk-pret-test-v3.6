@@ -378,7 +378,7 @@ export class ZKToolExecutor {
                 // Build arguments array: [liquidityThreshold, actusUrl, configFilePath, executionMode, jurisdiction]
                 const stablecoinArgs = [
                     stableLiquidityThreshold.toString(),
-                    'http://3.88.158.37:8083/eventsBatch', // Default ACTUS URL for stablecoin
+                    'http://34.203.247.32:8083/eventsBatch', // Default ACTUS URL for stablecoin
                     stableConfigFilePath || `src/data/RISK/StableCoin/CONFIG/${stableJurisdiction}/${stableSituation}`
                 ];
 
@@ -544,9 +544,9 @@ export class ZKToolExecutor {
     async executeChildProcess(toolName: string, parameters: any = {}): Promise<any> {
         // Map tool names to actual script files
         const toolScriptMap: Record<string, string> = {
-            'get-GLEIF-verification-with-sign': 'GLEIFLocalMultiVerifier.js',
+            'get-GLEIF-verification-with-sign': 'GLEIFNetworkMultiVerifier.js',
             'get-Corporate-Registration-verification-with-sign': 'CorporateRegistrationLocalMultiVerifier.js',
-            'get-EXIM-verification-with-sign': 'EXIMLocalMultiVerifier.js',
+            'get-EXIM-verification-with-sign': 'EXIMNetworkMultiVerifier.js',
             'get-Composed-Compliance-verification-with-sign': 'ComposedRecursiveOptim3LevelVerificationTestWithSign.js',
             'get-BSDI-compliance-verification': 'BusinessStdIntegrityLocalMultiVerifier.js',
             'get-BPI-compliance-verification': 'BusinessProcessLocalMultiVerifier.js',
