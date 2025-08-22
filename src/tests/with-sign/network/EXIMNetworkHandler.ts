@@ -16,7 +16,7 @@ dotenv.config();
 
 // === COMPOSITION: Use base classes instead of duplicating code ===
 import { BaseVerificationCore } from '../base/BaseVerificationCore.js';
-import { ComplianceVerificationBase } from '../base/ComplianceVerificationBase.js';
+import { ComplianceVerificationBase } from '../base/EXIMComplianceVerificationBase.js';
 
 // === O1JS IMPORTS ===
 import { 
@@ -45,7 +45,8 @@ import {
   EXIMOptimMultiCompanySmartContract, 
   COMPANY_MERKLE_HEIGHT, 
   CompanyMerkleWitness, 
-  EXIMCompanyRecord 
+  EXIMCompanyRecord ,
+  CompanyKey
 } from '../../../contracts/with-sign/EXIMOptimMultiCompanySmartContract.js';
 
 // === INFRASTRUCTURE IMPORTS ===
@@ -302,6 +303,7 @@ export class EXIMNetworkHandler {
           console.log(`\n🔐 Preparing ZK proof data for ${companyName}...`);
           const merkleRoot = tree.getRoot();
           const currentTimestamp = UInt64.from(Date.now());
+
           const complianceData = createOptimizedEXIMComplianceData(
             extractedData,
             merkleRoot,
@@ -325,6 +327,11 @@ export class EXIMNetworkHandler {
           const eximSignerPrivateKey = getPrivateKeyFor('EXIM');
           const oracleSignature = Signature.create(eximSignerPrivateKey, [merkleRoot]);
           console.log('✅ Oracle signature generated');
+
+
+          const stateBefore = await this.complianceBase.logSmartContractState(zkApp, zkAppAddress, 'BEFORE');
+          this.complianceBase.logComplianceFieldAnalysis(complianceData, Bool(complianceAnalysis.isCompliant), 'Pre-Verification');
+
 
           // Log contract state before verification
           console.log(`\n📊 Contract state before verification...`);
@@ -364,9 +371,14 @@ export class EXIMNetworkHandler {
             Field
           );
 
+          const companyKey = CompanyKey.create(
+            complianceData.iec.hash(),
+            complianceData.entityName.hash()
+          );
+
           // Create CompanyMerkleWitness using actual MerkleTree
           console.log('🔧 Creating MerkleWitness for company verification...');
-          let companyWitness: CompanyMerkleWitness;
+          let companyWitness: any;
           try {
             console.log('🔧 Creating temporary MerkleTree for proper witness generation...');
             const tempCompanyTree = new MerkleTree(COMPANY_MERKLE_HEIGHT);
@@ -389,13 +401,15 @@ export class EXIMNetworkHandler {
             throw new Error(`Failed to create CompanyMerkleWitness: ${(witnessError as Error).message}`);
           }
 
+          
           const verifyTxn = await Mina.transaction(
             { sender: senderAccount, fee },
             async () => {
               await zkApp.verifyOptimizedComplianceWithProof(
                 proof,
                 companyWitness,
-                companyRecord
+                companyRecord,
+                companiesMap.getWitness(companyKey.toField())
               );
             }
           );
@@ -408,6 +422,10 @@ export class EXIMNetworkHandler {
           // Sign and send the transaction with proof authorization
           await verifyTxn.sign([senderKey]).send();
           console.log('✅ Smart contract transaction completed');
+
+          const stateAfter = await this.complianceBase.logSmartContractState(zkApp, zkAppAddress, 'AFTER');
+          this.complianceBase.logStateChanges(stateBefore, stateAfter);
+          this.complianceBase.logComplianceFieldAnalysis(complianceData, isCompliant, 'Post-Verification');
 
           // Log contract state after verification
           console.log(`\n📊 Contract state after verification...`);
