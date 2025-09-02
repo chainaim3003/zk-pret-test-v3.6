@@ -31,9 +31,9 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
 
   // ===== BUSINESS PROCESS PROGRAMS =====
   {
-    name: 'BusinessProcessIntegrityOptimMerkle',
+    name: 'BPMNGeneric',
     category: CompilationCategory.BUSINESS_PROCESS,
-    loader: () => import('../../zk-programs/with-sign/BusinessProcessIntegrityOptimMerkleZKProgramWithSign.js'),
+    loader: () => import('../../zk-programs/with-sign/BPMNGenericZKProgram.js'),
     compilationOrder: 1,
     enabled: true
   },

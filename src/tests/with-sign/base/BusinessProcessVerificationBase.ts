@@ -12,10 +12,22 @@
  * - Circuit-safe string operations (o1js best practices)
  */
 
-import { Field, Bool, UInt64, CircuitString, Poseidon } from 'o1js';
+import { Field, Bool, UInt64, CircuitString, Poseidon ,PublicKey} from 'o1js';
 // MerkleWitness8 will be imported where needed
 // import { MerkleWitness8 } from '../../../utils/optimerkle/MerkleTreeManager.js';
+
+
 import parseBpmn from '../../../utils/parsebpmn.js';
+
+
+import { safeLogSmartContractStateLocal } from '../SafeStateRetrievalLocal.js';
+import { safeLogSmartContractState } from '../SafeStateRetrieval.js';
+import { environmentManager } from '../../../infrastructure/index.js';
+import { 
+  RegistryInfo,
+  GlobalComplianceStats
+} from '../../../contracts/with-sign/BPMNGenericSmartContract.js';
+
 
 export interface ProcessAnalysis {
   expectedPattern: string;
@@ -332,7 +344,29 @@ export class BusinessProcessVerificationBase {
       }
     }
   }
-  
+    public async logSmartContractState(
+    zkApp: any, // GLEIFOptimMultiCompanySmartContract
+    zkAppAddress: PublicKey,
+    phase: 'BEFORE' | 'AFTER' = 'BEFORE'
+  ): Promise<RegistryInfo> {
+    try {
+      // Determine environment and use appropriate method
+      const currentEnv = environmentManager?.getCurrentEnvironment?.() || 'LOCAL';
+      
+      if (currentEnv === 'LOCAL') {
+        // Use simple version for local blockchain
+        const state = await safeLogSmartContractStateLocal(zkApp, zkAppAddress, phase);
+        return state;
+      } else {
+        // Use retry logic version for network environments
+        const state = await safeLogSmartContractState(zkApp, zkAppAddress, phase);
+        return state;
+      }
+    } catch (error: any) {
+      console.error(`❌ Error in logSmartContractState (${phase}): ${error.message}`);
+      throw error;
+    }
+  }
   /**
    * Log multi-process verification results
    * NEW METHOD: Multi-process logging

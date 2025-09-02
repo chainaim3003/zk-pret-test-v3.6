@@ -25,10 +25,10 @@ import {
 
 // === ZK PROGRAM AND CONTRACT IMPORTS ===
 import { 
-  BusinessProcessIntegrityOptimMerkleZKProgram,
+  BPMNGeneric,
   BusinessProcessIntegrityOptimMerkleData,
   BusinessProcessIntegrityOptimMerkleProof
-} from '../../../zk-programs/with-sign/BusinessProcessIntegrityOptimMerkleZKProgramWithSign.js';
+} from '../../../zk-programs/with-sign/BPMNGenericZKProgram.js';
 
 // === INFRASTRUCTURE IMPORTS ===
 import { getPrivateKeyFor, getPublicKeyFor } from '../../../core/OracleRegistry.js';
@@ -63,6 +63,7 @@ export class BusinessProcessLocalHandler {
    * UPDATED: Uses BusinessProcessVerificationBase
    */
   public async verifyBusinessProcess(
+    bpmngroupid : CircuitString,
     businessProcessType: string,
     expectedBPMNFile: string,
     actualBPMNFile: string
@@ -116,6 +117,7 @@ export class BusinessProcessLocalHandler {
       console.log('\n⚙️ Generating ZK proof using existing OptimMerkle utils...');
       
       const result: ZKVerificationResult = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
+        bpmngroupid,
         businessProcessType, 
         expectedPath, 
         actualPath,
@@ -169,6 +171,7 @@ export class BusinessProcessLocalHandler {
    */
   public async verifyMultipleBusinessProcesses(
     processFilePairs: Array<{
+      groupID: CircuitString,
       processType: string,
       expectedBPMNFile: string,
       actualBPMNFile: string
@@ -223,6 +226,7 @@ export class BusinessProcessLocalHandler {
         try {
           // ALWAYS GENERATE ZK PROOF - Let ZK circuit be the authority
           const result: ZKVerificationResult = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
+            pair.groupID,
             pair.processType, 
             analysis.expectedPattern, 
             analysis.actualPath,
@@ -286,17 +290,19 @@ export class BusinessProcessLocalHandler {
 
 // === BACKWARD COMPATIBILITY EXPORTS ===
 export async function getBusinessProcessLocalVerifier(
+  bpmngroupid : CircuitString,
   businessProcessType: string,
   expectedBPMNFile: string,
   actualBPMNFile: string
 ): Promise<any> {
   const handler = new BusinessProcessLocalHandler();
-  return await handler.verifyBusinessProcess(businessProcessType, expectedBPMNFile, actualBPMNFile);
+  return await handler.verifyBusinessProcess(bpmngroupid,businessProcessType, expectedBPMNFile, actualBPMNFile);
 }
 
 // === NEW MULTI-PROCESS EXPORT ===
 export async function getBusinessProcessLocalMultiVerifier(
   processFilePairs: Array<{
+    groupID: CircuitString,
     processType: string,
     expectedBPMNFile: string,
     actualBPMNFile: string

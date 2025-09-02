@@ -1,4 +1,4 @@
-import { MerkleTree, Field, MerkleWitness, Poseidon } from 'o1js';
+import { MerkleTree, Field, MerkleWitness, Poseidon, CircuitString } from 'o1js';
 import { PoseidonHasher } from './PoseidonHasher.js';
 
 // Define MerkleWitness for 8-level tree following o1js best practices
@@ -90,14 +90,14 @@ export class MerkleTreeManager {
    * This ensures Merkle witness verification will succeed
    */
   private createOptimizedProcessHash(
-    businessProcessID: Field, 
+    businessProcessID: CircuitString, 
     timestamp: Field, 
     businessProcessType: string, 
     actualContent: string
   ): Field {
     // Hash basic metadata (fits in single Poseidon)
     const metadataHash = Poseidon.hash([
-      businessProcessID,
+      businessProcessID.hash(),
       timestamp,
       Field(businessProcessType.length),
       Field(actualContent.length)
@@ -122,7 +122,7 @@ export class MerkleTreeManager {
    * - Ensures the SAME processHash calculation as the utils file
    */
   async createProcessMerkleTree(processData: {
-    businessProcessID: Field,
+    bpmngroupid: CircuitString,
     businessProcessType: string,
     expectedContent: string,
     actualContent: string,
@@ -132,7 +132,7 @@ export class MerkleTreeManager {
     actualFile: string
   }): Promise<MerkleTree> {
     // Validate inputs
-    if (!processData.businessProcessID) {
+    if (!processData.bpmngroupid) {
       throw new Error('businessProcessID is required');
     }
     if (!processData.timestamp) {
@@ -144,7 +144,7 @@ export class MerkleTreeManager {
 
     // CRITICAL: Use the SAME process hash calculation as utils file
     const processHash = this.createOptimizedProcessHash(
-      processData.businessProcessID,
+      processData.bpmngroupid,
       processData.timestamp,
       processData.businessProcessType || "",
       processData.actualContent || ""

@@ -9,6 +9,7 @@
  * node ./build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js STABLECOIN exp1.bpmn act1.bpmn SCF exp2.bpmn act2.bpmn
  */
 
+import { Field,CircuitString } from 'o1js';
 import { 
   runBusinessProcessTestWithFundedAccounts,
   runMultiBusinessProcessTestWithFundedAccounts
@@ -42,8 +43,8 @@ async function verifyBusinessProcessCompliance(): Promise<void> {
   const networkType = (process.env.NETWORK_TYPE as 'testnet' | 'mainnet') || 'testnet';
   
   // Determine if single or multi-process mode
-  const isMultiProcess = args.length > 3 && args.length % 3 === 0;
-  const processCount = isMultiProcess ? args.length / 3 : 1;
+  const isMultiProcess = args.length > 4 && args.length % 4 === 0;
+  const processCount = isMultiProcess ? args.length / 4 : 1;
   
   console.log(`📊 Mode: ${isMultiProcess ? 'Multi-Process' : 'Single Process'}`);
   console.log(`📋 Process Count: ${processCount}`);
@@ -58,14 +59,15 @@ async function verifyBusinessProcessCompliance(): Promise<void> {
     if (isMultiProcess) {
       // Multi-process verification
       const processFilePairs = [];
-      for (let i = 0; i < args.length; i += 3) {
+      for (let i = 0; i < args.length; i += 4) {
         processFilePairs.push({
-          processType: args[i],
-          expectedBPMNFile: args[i + 1],
-          actualBPMNFile: args[i + 2]
+          bpmnGroupID:args[i],
+          processType: args[i+1],
+          expectedBPMNFile: args[i + 2],
+          actualBPMNFile: args[i + 3]
         });
         
-        console.log(`📂 Process ${Math.floor(i/3) + 1}: ${args[i]} (${args[i + 1]} vs ${args[i + 2]})`);
+        console.log(`📂 Process ${Math.floor(i/4) + 1}: ${args[i]} (${args[i + 1]} vs ${args[i + 2]})`);
       }
       
       result = await runMultiBusinessProcessTestWithFundedAccounts(processFilePairs, networkType);
@@ -102,11 +104,12 @@ async function verifyBusinessProcessCompliance(): Promise<void> {
       
     } else {
       // Single process verification
-      const [processType, expectedFile, actualFile] = args;
+      const [bpmnGroupID,processType, expectedFile, actualFile] = args;
       
       console.log(`📂 Single Process: ${processType} (${expectedFile} vs ${actualFile})`);
-      
+      const bpmnGroupIDCircuit = CircuitString.fromString(bpmnGroupID);
       result = await runBusinessProcessTestWithFundedAccounts(
+        bpmnGroupIDCircuit,
         processType,
         expectedFile,
         actualFile,
@@ -168,7 +171,7 @@ async function main() {
   console.log('\n🔧 Business Process NETWORK Multi-Verifier Test');
   
   // Validate arguments
-  if (args.length < 3) {
+  if (args.length < 4) {
     console.error('❌ Error: Missing required arguments');
     console.error('Usage (Single): node BusinessProcessNetworkMultiVerifier.js <PROCESS_TYPE> <EXPECTED_BPMN> <ACTUAL_BPMN>');
     console.error('Usage (Multi): node BusinessProcessNetworkMultiVerifier.js <TYPE1> <EXP1> <ACT1> <TYPE2> <EXP2> <ACT2> ...');
@@ -181,9 +184,9 @@ async function main() {
   }
 
   // Validate multi-process format
-  if (args.length > 3 && args.length % 3 !== 0) {
+  if (args.length > 4 && args.length % 4 !== 0) {
     console.error('❌ Error: Invalid argument count for multi-process mode');
-    console.error('Multi-process arguments must be in groups of 3: <PROCESS_TYPE> <EXPECTED_BPMN> <ACTUAL_BPMN>');
+    console.error('Multi-process arguments must be in groups of 4: <PROCESS_TYPE> <EXPECTED_BPMN> <ACTUAL_BPMN>');
     process.exit(1);
   }
 

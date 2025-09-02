@@ -16,7 +16,8 @@ import {
    Bytes,
    Provable,
    Poseidon,
-   MerkleWitness
+   MerkleWitness,
+   UInt64
 } from 'o1js';
 import { getPublicKeyFor } from '../../core/OracleRegistry.js';
 
@@ -80,7 +81,7 @@ class MerkleWitness8 extends MerkleWitness(8) {}
  */
 export class BusinessProcessIntegrityOptimMerkleData extends Struct({
    // EXISTING fields (unchanged from original for compatibility)
-   businessProcessID: Field,        
+   bpmnGroupID: CircuitString,        
    businessProcessType: CircuitString,
    expectedContent: CircuitString,
    actualContent: CircuitString,
@@ -98,11 +99,11 @@ export class BusinessProcessIntegrityOptimMerkleData extends Struct({
  * OPTIMIZED for circuit efficiency
  */
 export class BusinessProcessIntegrityOptimMerklePublicOutput extends Struct({
-   businessProcessID: Field,
+   bpmnGroupID: CircuitString,
    out: Bool,
    merkleRoot: Field,
    processHash: Field,
-   timestamp: Field
+   timestamp: Field,
 }) { }
 
 /**
@@ -120,8 +121,8 @@ export class BusinessProcessIntegrityOptimMerklePublicOutput extends Struct({
  * ✅ Memory-efficient operations
  * ✅ Proper error handling and assertions
  */
-export const BusinessProcessIntegrityOptimMerkleZKProgram = ZkProgram({
-   name: 'BusinessProcessIntegrityOptimMerkleZKProgram',
+export const BPMNGeneric = ZkProgram({
+   name: 'BPMNGeneric',
    publicInput: Field,
    publicOutput: BusinessProcessIntegrityOptimMerklePublicOutput,
    methods: {
@@ -240,7 +241,7 @@ export const BusinessProcessIntegrityOptimMerkleZKProgram = ZkProgram({
 
             // ===== STEP 6: RETURN OPTIMIZED PUBLIC OUTPUT =====
             return new BusinessProcessIntegrityOptimMerklePublicOutput({
-               businessProcessID: businessProcessIntegrityData.businessProcessID,
+               bpmnGroupID: businessProcessIntegrityData.bpmnGroupID,
                out: allValid,
                merkleRoot: merkleRoot,
                processHash: processHash,
@@ -264,8 +265,9 @@ export const BusinessProcessIntegrityOptimMerkleZKProgram = ZkProgram({
             
             // ===== INPUT VALIDATION =====
             validateCircuitString(businessProcessIntegrityData.actualContent, 128);
+            console.log("/////////////---------------///////////////")
             validateCircuitString(businessProcessIntegrityData.businessProcessType, 32);
-
+            console.log("/////////////------------")
             // ===== ZK REGEX VALIDATION =====
             const actualContent = businessProcessIntegrityData.actualContent;
             const zkRegexInputs = actualContent.values.map((c) => UInt8.from(c.toField()));
@@ -277,11 +279,13 @@ export const BusinessProcessIntegrityOptimMerkleZKProgram = ZkProgram({
             const registryPublicKey = getPublicKeyFor('BPMN');
             const isValidSignature = oracleSignature.verify(registryPublicKey, [complianceDataHash]);
             isValidSignature.assertTrue('Oracle signature verification failed');
-
+            console.log("**************1***************")
             // ===== MERKLE VERIFICATION =====
             const merkleRoot = businessProcessIntegrityData.merkleRoot;
             const processHash = businessProcessIntegrityData.processHash;
             const calculatedRoot = merkleWitness.calculateRoot(processHash);
+            console.log("***********2******************")
+
             calculatedRoot.assertEquals(merkleRoot, 'Merkle witness verification failed');
 
             // ===== COMBINE RESULTS WITH PROPER ASSERTIONS =====
@@ -294,7 +298,7 @@ export const BusinessProcessIntegrityOptimMerkleZKProgram = ZkProgram({
             allValid.assertTrue('STABLECOIN process verification failed');
 
             return new BusinessProcessIntegrityOptimMerklePublicOutput({
-               businessProcessID: businessProcessIntegrityData.businessProcessID,
+               bpmnGroupID: businessProcessIntegrityData.bpmnGroupID,
                out: allValid,
                merkleRoot: merkleRoot,
                processHash: processHash,
@@ -355,7 +359,7 @@ export const BusinessProcessIntegrityOptimMerkleZKProgram = ZkProgram({
             allValid.assertTrue('DVP process verification failed');
 
             return new BusinessProcessIntegrityOptimMerklePublicOutput({
-               businessProcessID: businessProcessIntegrityData.businessProcessID,
+               bpmnGroupID: businessProcessIntegrityData.bpmnGroupID,
                out: allValid,
                merkleRoot: merkleRoot,
                processHash: processHash,
@@ -366,4 +370,4 @@ export const BusinessProcessIntegrityOptimMerkleZKProgram = ZkProgram({
    }
 });
 
-export class BusinessProcessIntegrityOptimMerkleProof extends ZkProgram.Proof(BusinessProcessIntegrityOptimMerkleZKProgram) { }
+export class BusinessProcessIntegrityOptimMerkleProof extends ZkProgram.Proof(BPMNGeneric) { }

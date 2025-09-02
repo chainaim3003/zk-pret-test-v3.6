@@ -3,10 +3,11 @@
  * This test validates the integrity of business process verification through the new modular architecture
  */
 
+import { Field,CircuitString } from 'o1js';
 import { getBusinessProcessLocalVerifier } from './local/BusinessProcessLocalHandler.js';
 
 // Parse command line arguments (same as original)
-const [, , businessProcessType, expectedBPMNFileName, actualBPMNFileName] = process.argv;
+const [, , bpmnGroupID,businessProcessType, expectedBPMNFileName, actualBPMNFileName] = process.argv;
 
 async function main() {
   console.log('🔒 BUSINESS PROCESS INTEGRITY TEST: New Architecture Verification');
@@ -32,9 +33,10 @@ async function main() {
   try {
     console.log('🚀 Running through NEW MODULAR ARCHITECTURE...');
     console.log('');
-    
+    const bpmnGroupIDCircuit = CircuitString.fromString(bpmnGroupID); // Already a string
     // Use the new modular architecture
     const result = await getBusinessProcessLocalVerifier(
+      bpmnGroupIDCircuit,
       businessProcessType,
       expectedBPMNFileName,
       actualBPMNFileName

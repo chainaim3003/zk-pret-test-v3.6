@@ -14,9 +14,11 @@ import {
   getBusinessProcessLocalMultiVerifier 
 } from './local/BusinessProcessLocalHandler.js';
 import { ProcessAnalysis } from './base/BusinessProcessVerificationBase.js';
+import { Field,CircuitString } from 'o1js';
 
 // Type definitions for better TypeScript support
 interface LocalVerificationResult {
+  bpmngroupid : CircuitString;
   businessProcessType: string;
   expectedPath: string;
   actualPath: string;
@@ -49,7 +51,7 @@ async function main() {
   console.log('='.repeat(50));
   
   // Validate arguments
-  if (args.length < 3) {
+  if (args.length < 4) {
     console.error('❌ Error: Missing required arguments');
     console.error('Usage (Single): node BusinessProcessLocalMultiVerifier.js <PROCESS_TYPE> <EXPECTED_BPMN> <ACTUAL_BPMN>');
     console.error('Usage (Multi): node BusinessProcessLocalMultiVerifier.js <TYPE1> <EXP1> <ACT1> <TYPE2> <EXP2> <ACT2> ...');
@@ -59,16 +61,17 @@ async function main() {
   }
   
   try {
-    if (args.length === 3) {
+    if (args.length === 4) {
       // Single process verification
       console.log('📋 Single Process Mode');
-      const [processType, expectedFile, actualFile] = args;
+      const [groupID,processType, expectedFile, actualFile] = args;
       
       console.log(`🔍 Processing: ${processType}`);
       console.log(`📂 Expected: ${expectedFile}`);
       console.log(`📂 Actual: ${actualFile}`);
-      
+      const droupIDCircuit = CircuitString.fromString(groupID);
       const result = await getBusinessProcessLocalVerifier(
+        droupIDCircuit,
         processType,
         expectedFile,
         actualFile
@@ -88,19 +91,20 @@ async function main() {
         console.log(`⚠️ Issue: Process path does not match expected pattern`);
       }
       
-    } else if (args.length % 3 === 0) {
+    } else if (args.length % 4 === 0) {
       // Multi-process verification
-      const processCount = args.length / 3;
+      const processCount = args.length / 4;
       console.log(`📋 Multi-Process Mode (${processCount} processes)`);
       
       const processFilePairs = [];
-      for (let i = 0; i < args.length; i += 3) {
+      for (let i = 0; i < args.length; i += 4) {
         processFilePairs.push({
-          processType: args[i],
-          expectedBPMNFile: args[i + 1],
-          actualBPMNFile: args[i + 2]
+          groupID : CircuitString.fromString(args[i]),
+          processType: args[i+1],
+          expectedBPMNFile: args[i + 2],
+          actualBPMNFile: args[i + 3]
         });
-        console.log(`🔍 Process ${Math.floor(i/3) + 1}: ${args[i]} (${args[i + 1]} vs ${args[i + 2]})`);
+        console.log(`🔍 Process ${Math.floor(i/4) + 1}: ${args[i]} (${args[i + 1]} vs ${args[i + 2]})`);
       }
       
       const result = await getBusinessProcessLocalMultiVerifier(processFilePairs);
@@ -133,7 +137,7 @@ async function main() {
       }
       
     } else {
-      console.error('❌ Error: Invalid argument count. Arguments must be in groups of 3.');
+      console.error('❌ Error: Invalid argument count. Arguments must be in groups of 4.');
       console.error('Format: <PROCESS_TYPE> <EXPECTED_BPMN> <ACTUAL_BPMN>');
       process.exit(1);
     }

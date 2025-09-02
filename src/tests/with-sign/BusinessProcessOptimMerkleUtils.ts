@@ -1,9 +1,9 @@
 import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signature, Bool, UInt64 } from 'o1js';
 import { 
-  BusinessProcessIntegrityOptimMerkleZKProgram, 
+  BPMNGeneric, 
   BusinessProcessIntegrityOptimMerkleData,
   BusinessProcessIntegrityOptimMerkleProof 
-} from '../../zk-programs/with-sign/BusinessProcessIntegrityOptimMerkleZKProgramWithSign.js';
+} from '../../zk-programs/with-sign/BPMNGenericZKProgram.js';
 import { MerkleTreeManager, MerkleWitness8 } from '../../utils/optimerkle/MerkleTreeManager.js';
 import { getPrivateKeyFor, getPublicKeyFor } from '../../core/OracleRegistry.js';
 import axios from 'axios';
@@ -106,14 +106,15 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
    * - Ensures deterministic output
    */
   static createOptimizedProcessHash(
-    businessProcessID: Field, 
+    bpmnGroupID: CircuitString,
+    //businessProcessID: Field, 
     timestamp: Field, 
     businessProcessType: string, 
     actualContent: string
   ): Field {
     // Hash basic metadata (fits in single Poseidon)
     const metadataHash = Poseidon.hash([
-      businessProcessID,
+      bpmnGroupID.hash(),
       timestamp,
       Field(businessProcessType.length),
       Field(actualContent.length)
@@ -182,6 +183,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
    * FULLY OPTIMIZED FOR CONSTRAINT EFFICIENCY
    */
   static async runOptimMerkleVerification(
+    bpmnGroupID: CircuitString,
     businessProcessType: string,
     expectedPath: string, 
     actualPath: string,
@@ -233,7 +235,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
       console.log('✅ Oracle data fetched successfully');
 
       // ===== STEP 4: CREATE OPTIMIZED BUSINESS PROCESS DATA =====
-      const businessProcessID = Field(parsedData["BusinessProcess ID"] ?? 0);
+      const businessProcessID = CircuitString.fromString(parsedData["BusinessProcess ID"] ?? 0);
       const timestamp = Field(Date.now());
 
       // Create circuit-safe strings - SIMPLIFIED approach
@@ -244,7 +246,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
 
       // Create initial data structure
       const bpComplianceData = new BusinessProcessIntegrityOptimMerkleData({
-        businessProcessID: businessProcessID,
+        bpmnGroupID: businessProcessID,
         businessProcessType: bpTypeCircuitString,
         expectedContent: expectedCircuitString,
         actualContent: actualCircuitString,
@@ -259,7 +261,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
       this.validateZKRegexInputs(bpComplianceData.actualContent);
       
       console.log('📋 Process Data Created');
-      console.log('  - Business Process ID:', bpComplianceData.businessProcessID.toString());
+      console.log('  - Business Process ID:', bpComplianceData.bpmnGroupID.toString());
       console.log('  - Process Type:', bpComplianceData.businessProcessType.toString());
       console.log('  - Actual Content Length:', bpComplianceData.actualContent.values.length);
 
@@ -269,7 +271,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
 
       // Create optimized process metadata for Merkle tree
       const processMetadata = {
-        businessProcessID: businessProcessID,
+        bpmngroupid: bpmnGroupID,
         businessProcessType: businessProcessType,
         expectedContent: expectedPath,
         actualContent: actualPath,
@@ -288,7 +290,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
       
       // Use optimized hierarchical hashing
       const processHash = this.createOptimizedProcessHash(
-        businessProcessID,
+        bpmnGroupID,
         timestamp,
         businessProcessType,
         actualPath
@@ -298,7 +300,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
 
       // ===== STEP 7: UPDATE OPTIMERKLE DATA WITH CALCULATED VALUES =====
       const finalOptimMerkleData = new BusinessProcessIntegrityOptimMerkleData({
-        businessProcessID: bpComplianceData.businessProcessID,
+        bpmnGroupID: bpComplianceData.bpmnGroupID,
         businessProcessType: bpComplianceData.businessProcessType,
         expectedContent: bpComplianceData.expectedContent,
         actualContent: bpComplianceData.actualContent,
@@ -325,7 +327,7 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
 
       // ===== STEP 10: COMPILE ZK PROGRAM =====
       console.log('⚙️ Compiling OptimMerkle ZK program...');
-      await BusinessProcessIntegrityOptimMerkleZKProgram.compile();
+      await BPMNGeneric.compile();
       console.log('✅ ZK program compiled successfully');
 
       // ===== STEP 11: GENERATE PROOF (SAME PATTERN AS WORKING) =====
@@ -334,22 +336,22 @@ export class BusinessProcessIntegrityOptimMerkleTestUtils {
       
       if (businessProcessType === 'STABLECOIN') {
         console.log('🪙 Using STABLECOIN verification circuit');
-        proof = await BusinessProcessIntegrityOptimMerkleZKProgram.proveComplianceSTABLECOIN(
+        proof = await BPMNGeneric.proveComplianceSTABLECOIN(
           Field(0), finalOptimMerkleData, oracleSignature, merkleWitness
         );
       } else if (businessProcessType === 'SCF') {
         console.log('🏦 Using SCF verification circuit');
-        proof = await BusinessProcessIntegrityOptimMerkleZKProgram.proveComplianceSCF(
+        proof = await BPMNGeneric.proveComplianceSCF(
           Field(0), finalOptimMerkleData, oracleSignature, merkleWitness
         );
       } else if (businessProcessType === 'DVP') {
         console.log('💱 Using DVP verification circuit');
-        proof = await BusinessProcessIntegrityOptimMerkleZKProgram.proveComplianceDVP(
+        proof = await BPMNGeneric.proveComplianceDVP(
           Field(0), finalOptimMerkleData, oracleSignature, merkleWitness
         );
       } else {
         console.log('🔄 Using default SCF verification circuit');
-        proof = await BusinessProcessIntegrityOptimMerkleZKProgram.proveComplianceSCF(
+        proof = await BPMNGeneric.proveComplianceSCF(
           Field(0), finalOptimMerkleData, oracleSignature, merkleWitness
         );
       }

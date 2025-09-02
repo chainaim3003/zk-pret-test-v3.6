@@ -666,7 +666,8 @@ export class PRETDeployer {
       const CONTRACT_DEPENDENCIES: { [key: string]: string } = {
         'GLEIFOptimMultiCompanySmartContract': 'GLEIFOptimZKProgram',
         'EXIMOptimMultiCompanySmartContract': 'EXIMOptimZKProgram',
-        'CorporateRegistrationOptimMultiCompanySmartContract': 'CorporateRegistrationOptimZKProgram'
+        'CorporateRegistrationOptimMultiCompanySmartContract': 'CorporateRegistrationOptimZKProgram',
+        'BPMNGenericSmartContract':'BPMNGenericZKProgram'
       };
       
       const dependencyProgram = CONTRACT_DEPENDENCIES[contractName];

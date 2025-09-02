@@ -1,5 +1,6 @@
 import { BusinessProcessIntegrityOptimMerkleTestUtils } from './BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSignUtils.js';
 import parseBpmn from '../../utils/parsebpmn.js';
+import { Field,CircuitString } from 'o1js';
 
 /**
  * Business Process Integrity OptimMerkle Verification Test (Main Entry Point)
@@ -21,7 +22,7 @@ import parseBpmn from '../../utils/parsebpmn.js';
  */
 
 // Parse command line arguments (same as existing system)
-const [, , businessProcessType, expectedBPMNFileName, actualBPMNFileName] = process.argv;
+const [, , bpmnGroupID,businessProcessType, expectedBPMNFileName, actualBPMNFileName] = process.argv;
 
 async function main() {
   console.log('🌳 Business Process Integrity OptimMerkle Verification Test');
@@ -62,8 +63,11 @@ async function main() {
     // ===== STEP 2: RUN OPTIMERKLE VERIFICATION =====
     console.log('🚀 Starting OptimMerkle Enhanced Verification...');
     console.log('');
-    
+    //const bpmnGroupIDStr = bpmnGroupID.toString();
+    const bpmnGroupIDCircuit = CircuitString.fromString(bpmnGroupID);
+
     const result = await BusinessProcessIntegrityOptimMerkleTestUtils.runOptimMerkleVerification(
+      bpmnGroupIDCircuit,
       businessProcessType, 
       expectedPath, 
       actualPath,

@@ -49,6 +49,12 @@
     "deploy:testnet-exim": "npm run deploy testnet-exim-dev",
     "deploy:testnet-exim-dev": "npm run deploy testnet-exim-dev",
     "deploy:testnet-exim-force": "npm run deploy testnet-exim-force",
+
+    "deploy:testnet-bpmn": "npm run deploy testnet-bpmn",
+    "deploy:testnet-bpmn-dev": "npm run deploy testnet-bpmn-dev",
+    "deploy:testnet-bpmn-force": "npm run deploy testnet-bpmn-force",
+
+
     "format": "prettier --write --ignore-unknown **/*",
     "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js",
     "testw": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js --watch",
