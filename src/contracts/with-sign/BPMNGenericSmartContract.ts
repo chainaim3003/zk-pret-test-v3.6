@@ -8,36 +8,22 @@ export class BPMNGroupMerkleWitness extends MerkleWitness(BPMN_GROUP_MERKLE_HEIG
 
 // =================================== Company Record Structure (Enhanced) ===================================
 export class BPMNGroupRecord extends Struct({
-   // leiHash: Field,                    // Hash of LEI for privacy
-   // legalNameHash: Field,              // Hash of company name for privacy
-   // jurisdictionHash: Field,           // Hash of jurisdiction
-   // isCompliant: Bool,                 // Current compliance status
-   // complianceScore: Field,            // 0-100 score
-   // totalVerifications: Field,         // Total verification attempts
-   // passedVerifications: Field,        // Number of passed verifications
-   // failedVerifications: Field,        // Number of failed verifications
-   // consecutiveFailures: Field,        // Current streak of consecutive failures
-   // lastVerificationTime: UInt64,      // Last verification timestamp
-   // firstVerificationTime: UInt64,     // First verification timestamp
-   // lastPassTime: UInt64,              // Last successful verification timestamp
-   // lastFailTime: UInt64,              // Last failed verification timestamp
-      groupidHash: Field,                    // Hash of Group ID for privacy
-      isValid: Bool,                 // Current validity status
-      complianceScore: Field,            // 0-100 score
-      totalVerifications: Field,         // Total verification attempts
-      passedVerifications: Field,        // Number of passed verifications
-      failedVerifications: Field,        // Number of failed verifications
-      consecutiveFailures: Field,        // Current streak of consecutive failures
-      lastVerificationTime: Field,      // Last verification timestamp
-      firstVerificationTime: Field,     // First verification timestamp
-      // lastPassTime: Field,              // Last successful verification timestamp
-      // lastFailTime: Field,    
-
+      groupIDHash: Field,                    // Hash of Group ID for privacy (FIXED: changed from groupidHash)
+      isValid: Bool,                         // Current validity status
+      complianceScore: Field,                // 0-100 score
+      totalVerifications: Field,             // Total verification attempts
+      passedVerifications: Field,            // Number of passed verifications
+      failedVerifications: Field,            // Number of failed verifications
+      consecutiveFailures: Field,            // Current streak of consecutive failures
+      lastVerificationTime: UInt64,          // Last verification timestamp (FIXED: changed from Field to UInt64)
+      firstVerificationTime: UInt64,         // First verification timestamp (FIXED: changed from Field to UInt64)
+      lastPassTime: UInt64,                  // Last successful verification timestamp (FIXED: uncommented and set to UInt64)
+      lastFailTime: UInt64,                  // Last failed verification timestamp (FIXED: uncommented and set to UInt64)
 }) {}
 
 // =================================== Company Verification Statistics ===================================
 export class BPMNGroupVerificationStats extends Struct({
-   groupidHash: Field,
+   groupIDHash: Field,  // FIXED: changed from groupidHash to groupIDHash
    //legalNameHash: Field,
    totalVerifications: Field,
    passedVerifications: Field,
@@ -62,23 +48,14 @@ export class BPMNGroupQueryResult extends Struct({
 
 // =================================== Company Storage Key ===================================
 export class BPMNGroupKey extends Struct({
-   // leiHash: Field,
-   // nameHash: Field,
-   groupidHash: Field,
+   groupIDHash: Field,                     // FIXED: changed from groupidHash to groupIDHash
 }) {
-   // static create(leiHash: Field, nameHash: Field): CompanyKey {
-   //    return new CompanyKey({ leiHash, nameHash });
-   // }
-   static create(groupidHash:Field): BPMNGroupKey {
-      return new BPMNGroupKey({groupidHash});
+   static create(groupIDHash: Field): BPMNGroupKey {
+      return new BPMNGroupKey({groupIDHash});
    }
-
-   // toField(): Field {
-   //    return Poseidon.hash([this.leiHash, this.nameHash]);
-   // }
    
    toField(): Field {
-      return Poseidon.hash([this.groupidHash]);
+      return Poseidon.hash([this.groupIDHash]);
    }
 }
 
@@ -181,11 +158,11 @@ export class BPMNGenericSmartContract extends SmartContract {
 
       // =================================== Verify Company Record Consistency ===================================
       // Ensure the company record matches the proof data
-      bpmnGroupRecord.groupidHash.assertEquals(proofGroupIDHash);
+      bpmnGroupRecord.groupIDHash.assertEquals(proofGroupIDHash);  // FIXED: changed from groupidHash to groupIDHash
       //companyRecord.legalNameHash.assertEquals(proofCompanyNameHash);
       //companyRecord.jurisdictionHash.assertEquals(proofJurisdictionHash);
       bpmnGroupRecord.isValid.assertEquals(isValid);
-      bpmnGroupRecord.lastVerificationTime.assertEquals(verificationTimestamp);
+      bpmnGroupRecord.lastVerificationTime.assertEquals(UInt64.fromFields([verificationTimestamp]));  // FIXED: Convert Field to UInt64
       
       // =================================== Company Record Storage (Enhanced with Verification Tracking) ===================================
       // Check if this is a new company or existing company update
@@ -193,7 +170,7 @@ export class BPMNGenericSmartContract extends SmartContract {
       
       // Create enhanced company record with verification tracking
       const enhancedGroupRecord = new BPMNGroupRecord({
-         groupidHash: bpmnGroupRecord.groupidHash,
+         groupIDHash: bpmnGroupRecord.groupIDHash,  // FIXED: changed from groupidHash to groupIDHash
          //legalNameHash: bpmnGroupRecord.legalNameHash,
          //jurisdictionHash: bpmnGroupRecord.jurisdictionHash,
          isValid: bpmnGroupRecord.isValid,
@@ -202,17 +179,16 @@ export class BPMNGenericSmartContract extends SmartContract {
          passedVerifications: isValid.toField(),      // 1 if passed, 0 if failed
          failedVerifications: isValid.not().toField(), // 1 if failed, 0 if passed
          consecutiveFailures: isValid.not().toField(), // 1 if this verification failed, 0 if passed
-         lastVerificationTime: verificationTimestamp,
-         firstVerificationTime: verificationTimestamp,
-         // Fixed: Simple conditional logic - only one should be set to current time
-         // lastPassTime: isValid.toField().equals(Field(1)) ? verificationTimestamp : UInt64.from(0),
-         // lastFailTime: isValid.toField().equals(Field(0)) ? verificationTimestamp : UInt64.from(0),
+         lastVerificationTime: UInt64.fromFields([verificationTimestamp]),   // FIXED: Convert Field to UInt64
+         firstVerificationTime: UInt64.fromFields([verificationTimestamp]),  // FIXED: Convert Field to UInt64
+         lastPassTime: UInt64.from(0),  // FIXED: Add required field with proper type
+         lastFailTime: UInt64.from(0),  // FIXED: Add required field with proper type
       });
       
       // =================================== Real Company Data Storage ===================================
       // Serialize enhanced company record for storage (with all verification tracking fields)
       const bpmnGroupRecordHash = Poseidon.hash([
-         enhancedGroupRecord.groupidHash,
+         enhancedGroupRecord.groupIDHash,  // FIXED: changed from groupidHash to groupIDHash
          // enhancedCompanyRecord.legalNameHash,
          // enhancedCompanyRecord.jurisdictionHash,
          enhancedGroupRecord.isValid.toField(),
@@ -221,10 +197,10 @@ export class BPMNGenericSmartContract extends SmartContract {
          enhancedGroupRecord.passedVerifications,
          enhancedGroupRecord.failedVerifications,
          enhancedGroupRecord.consecutiveFailures,
-         enhancedGroupRecord.lastVerificationTime,
-         enhancedGroupRecord.firstVerificationTime,
-         // enhancedGroupRecord.lastPassTime.value,
-         // enhancedGroupRecord.lastFailTime.value
+         enhancedGroupRecord.lastVerificationTime.value,  // FIXED: Add .value for UInt64
+         enhancedGroupRecord.firstVerificationTime.value, // FIXED: Add .value for UInt64
+         enhancedGroupRecord.lastPassTime.value,          // FIXED: Add .value for UInt64
+         enhancedGroupRecord.lastFailTime.value           // FIXED: Add .value for UInt64
       ]);
       
       // Update the MerkleMap with the new/updated company record

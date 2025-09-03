@@ -96,20 +96,12 @@ export function createBPMNGroupRecord(
     console.log(`    🔄 createCompanyRecord: Creating timestamp fields...`);
     let lastPassTime, lastFailTime;
     try {
-    //   // Import UInt64 from the modules that should be available
-    //   const UInt64 = verificationTimestamp.constructor; // Get UInt64 constructor from the timestamp
-      
-    //   // Set lastPassTime to current time if compliant, 0 if not
-    //   lastPassTime = isValid.toField().equals(FieldClass(1)) ? currentTime : UInt64.from(0);
-    //   // Set lastFailTime to current time if not compliant, 0 if compliant 
-    //   lastFailTime = isValid.toField().equals(FieldClass(0)) ? currentTime : UInt64.from(0);
-
-
-        // Import UInt64 from the modules that should be available
+      // Import UInt64 from the modules that should be available
       const UInt64 = verificationTimestamp.constructor; // Get UInt64 constructor from the timestamp
-        // Set lastPassTime and lastFailTime based on isValid boolean value
-        // Use the actual boolean value from isValid, not field comparison
-      const isValidValue = isValid.toBoolean ? isValid.toBoolean() : isValid.value;
+      
+      // FIXED: Use proper boolean evaluation following GLEIF pattern
+      // Set lastPassTime and lastFailTime based on isValid boolean value
+      const isValidValue = isValid.toBoolean ? isValid.toBoolean() : (isValid.value !== undefined ? isValid.value : false);
       lastPassTime = isValidValue ? currentTime : UInt64.from(0);
       lastFailTime = isValidValue ? UInt64.from(0) : currentTime;
             

@@ -117,9 +117,16 @@ async function verifyBusinessProcessCompliance(): Promise<void> {
       );
       
       console.log('\n✅ Business Process NETWORK Verification Completed Successfully!');
-      console.log(`🎯 Verification Result: ${result.verificationResult ? '✅ PASSED' : '❌ FAILED'}`);
       
-      if (result.transactionHash) {
+      // ✅ O1JS BEST PRACTICE: Validate result object before accessing properties
+      if (result && typeof result.verificationResult !== 'undefined') {
+        console.log(`🎯 Verification Result: ${result.verificationResult ? '✅ PASSED' : '❌ FAILED'}`);
+      } else {
+        console.log('❌ Verification Result: UNDEFINED - Transaction failed');
+        console.error('Result object:', result);
+      }
+      
+      if (result?.transactionHash) {
         console.log(`📡 Network Submitted: ✅ YES`);
         console.log(`🔗 Transaction Hash: ${result.transactionHash}`);
         console.log(`🔍 Explorer: ${result.explorerUrl}`);

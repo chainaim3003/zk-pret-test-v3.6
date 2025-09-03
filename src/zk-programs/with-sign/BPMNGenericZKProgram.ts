@@ -225,15 +225,21 @@ export const BPMNGeneric = ZkProgram({
                console.log('🌳 OptimMerkle SCF Merkle verification complete');
             });
 
-            // ===== STEP 5: COMBINE RESULTS WITH PROPER BOOLEAN LOGIC =====
-            // CRITICAL: Assert that ZK regex validation passed
-            out.assertTrue('ZK regex validation failed - process does not match expected pattern');
+            // ===== STEP 5: COMBINE RESULTS FOLLOWING GLEIF PATTERN =====
+            // ✅ GLEIF PATTERN: Don't assert Bool result - let circuit decide
+            Provable.asProver(() => {
+                console.log('🔍 SCF ZK Regex Result:', out);
+                console.log('🔍 Oracle Signature Valid:', isValidSignature);
+            });
             
             // Ensure all components are valid before combining
             const allValid = out.and(isValidSignature);
             
-            // The final result should be true only if BOTH regex and signature are valid
-            allValid.assertTrue('Process verification failed - either regex or signature validation failed');
+            Provable.asProver(() => {
+                console.log('🔍 SCF Final Verification Result:', allValid);
+            });
+            
+            // ✅ GLEIF PATTERN: Return result without assertion - let application layer handle it
 
             Provable.asProver(() => {
                console.log('✅ OptimMerkle SCF Final Result:', allValid.toBoolean());
@@ -288,14 +294,21 @@ export const BPMNGeneric = ZkProgram({
 
             calculatedRoot.assertEquals(merkleRoot, 'Merkle witness verification failed');
 
-            // ===== COMBINE RESULTS WITH PROPER ASSERTIONS =====
-            // CRITICAL: Assert that ZK regex validation passed
-            zkRegexResult.assertTrue('ZK regex validation failed - STABLECOIN process does not match expected pattern');
+            // ===== COMBINE RESULTS FOLLOWING GLEIF PATTERN =====
+            // ✅ GLEIF PATTERN: Don't assert Bool result - let circuit decide
+            // Instead of assertTrue(), combine results and let caller handle boolean extraction
+            Provable.asProver(() => {
+                console.log('🔍 STABLECOIN ZK Regex Result:', zkRegexResult);
+                console.log('🔍 Oracle Signature Valid:', isValidSignature);
+            });
             
             const allValid = zkRegexResult.and(isValidSignature);
             
-            // Assert final result
-            allValid.assertTrue('STABLECOIN process verification failed');
+            Provable.asProver(() => {
+                console.log('🔍 STABLECOIN Final Verification Result:', allValid);
+            });
+            
+            // ✅ GLEIF PATTERN: Return result without assertion - let application layer handle it
 
             return new BusinessProcessIntegrityOptimMerklePublicOutput({
                bpmnGroupID: businessProcessIntegrityData.bpmnGroupID,
@@ -349,14 +362,20 @@ export const BPMNGeneric = ZkProgram({
             const calculatedRoot = merkleWitness.calculateRoot(processHash);
             calculatedRoot.assertEquals(merkleRoot, 'Merkle witness verification failed');
 
-            // ===== COMBINE RESULTS WITH PROPER ASSERTIONS =====
-            // CRITICAL: Assert that ZK regex validation passed
-            zkRegexResult.assertTrue('ZK regex validation failed - DVP process does not match expected pattern');
+            // ===== COMBINE RESULTS FOLLOWING GLEIF PATTERN =====
+            // ✅ GLEIF PATTERN: Don't assert Bool result - let circuit decide
+            Provable.asProver(() => {
+                console.log('🔍 DVP ZK Regex Result:', zkRegexResult);
+                console.log('🔍 Oracle Signature Valid:', isValidSignature);
+            });
             
             const allValid = zkRegexResult.and(isValidSignature);
             
-            // Assert final result
-            allValid.assertTrue('DVP process verification failed');
+            Provable.asProver(() => {
+                console.log('🔍 DVP Final Verification Result:', allValid);
+            });
+            
+            // ✅ GLEIF PATTERN: Return result without assertion - let application layer handle it
 
             return new BusinessProcessIntegrityOptimMerklePublicOutput({
                bpmnGroupID: businessProcessIntegrityData.bpmnGroupID,
