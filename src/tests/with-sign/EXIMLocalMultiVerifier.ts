@@ -3,7 +3,6 @@ import { getEXIMLocalMultiVerifierUtils } from './local/EXIMLocalMultiVerifierUt
 if (process.argv[1] && process.argv[1].includes('EXIMLocalMultiVerifier')) {
   async function main() {
     try {
-        console.log('//////////////////////*******************/////////////////////EXIM************************!!!!!!!!!!!!!!!!!*************//////////////');
       // Get company name from command line arguments
       const companyName = process.argv.slice(2).join(' ').trim();
       

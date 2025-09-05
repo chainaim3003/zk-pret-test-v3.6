@@ -3,7 +3,6 @@ import { getGLEIFLocalMultiVerifierUtils } from './local/GLEIFLocalMultiVerifier
 
 if (process.argv[1] && process.argv[1].includes('GLEIFLocalMultiVerifier')) {
 	async function main() {
-        console.log('//////////////////////*******************/////////////////////GELIF************************!!!!!!!!!!!!!!!!!*************//////////////');
 
 		try {
 			// Get company name from command line arguments
