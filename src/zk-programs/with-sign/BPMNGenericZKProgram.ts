@@ -271,9 +271,7 @@ export const BPMNGeneric = ZkProgram({
             
             // ===== INPUT VALIDATION =====
             validateCircuitString(businessProcessIntegrityData.actualContent, 128);
-            console.log("/////////////---------------///////////////")
             validateCircuitString(businessProcessIntegrityData.businessProcessType, 32);
-            console.log("/////////////------------")
             // ===== ZK REGEX VALIDATION =====
             const actualContent = businessProcessIntegrityData.actualContent;
             const zkRegexInputs = actualContent.values.map((c) => UInt8.from(c.toField()));
@@ -285,12 +283,11 @@ export const BPMNGeneric = ZkProgram({
             const registryPublicKey = getPublicKeyFor('BPMN');
             const isValidSignature = oracleSignature.verify(registryPublicKey, [complianceDataHash]);
             isValidSignature.assertTrue('Oracle signature verification failed');
-            console.log("**************1***************")
+
             // ===== MERKLE VERIFICATION =====
             const merkleRoot = businessProcessIntegrityData.merkleRoot;
             const processHash = businessProcessIntegrityData.processHash;
             const calculatedRoot = merkleWitness.calculateRoot(processHash);
-            console.log("***********2******************")
 
             calculatedRoot.assertEquals(merkleRoot, 'Merkle witness verification failed');
 

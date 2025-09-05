@@ -3,7 +3,6 @@ import { getCorporateRegistrationLocalMultiVerifierUtils } from './local/Corpora
 if (process.argv[1] && process.argv[1].includes('CorporateRegistrationLocalMultiVerifier')) {
 	async function main() {
 		try {
-      console.log('//////////////////////*******************/////////////////////CORPREG************************!!!!!!!!!!!!!!!!!*************//////////////');
 			// Get company name from command line arguments
 			const companyName = process.argv.slice(2).join(' ').trim();
       
