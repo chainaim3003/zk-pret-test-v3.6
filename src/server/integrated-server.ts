@@ -274,7 +274,7 @@ global.wsServer = wss;
 
 const jobManager = new AsyncJobManager(wss);
 
-const ZK_PRET_HTTP_SERVER_PORT = parseInt(process.env.ZK_PRET_HTTP_SERVER_PORT || '3001', 10);
+const ZK_PRET_HTTP_SERVER_PORT = parseInt(process.env.ZK_PRET_HTTP_SERVER_PORT || '0.0.0.0', 10);
 const ZK_PRET_HTTP_SERVER_HOST = process.env.ZK_PRET_HTTP_SERVER_HOST || 'localhost';
 
 app.use(helmet());
@@ -1108,6 +1108,695 @@ app.get('/api/v1/status', async (req: express.Request, res: express.Response) =>
     }
 });
 
+// ==== DIRECT EXECUTION ENDPOINTS (NO JOB IDS) ====
+// Add these endpoints to your existing integrated-server.ts before the error handlers
+
+// GLEIF LEI Direct API
+app.post('/zkpret/compliance/global/lei/', async (req: express.Request, res: express.Response) => {
+    try {
+        const { companyName } = req.body;
+
+        if (!companyName) {
+            return res.status(400).json({
+                success: false,
+                error: 'companyName is required',
+                endpoint: '/zkpret/compliance/global/lei/',
+                example: { companyName: "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED" },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info('Direct GLEIF LEI execution started', { companyName });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-GLEIF-verification-with-sign', { companyName });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                companyName,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/global/lei/',
+                service: 'GLEIF LEI Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct GLEIF LEI execution failed', {
+            companyName: req.body.companyName,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/global/lei/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// EXIM Direct API
+app.post('/zkpret/compliance/global/exim/', async (req: express.Request, res: express.Response) => {
+    try {
+        const { companyName } = req.body;
+
+        if (!companyName) {
+            return res.status(400).json({
+                success: false,
+                error: 'companyName is required',
+                endpoint: '/zkpret/compliance/global/exim/',
+                example: { companyName: "zenova_dgft" },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info('Direct EXIM execution started', { companyName });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-EXIM-verification-with-sign', { companyName });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                companyName,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/global/exim/',
+                service: 'EXIM Compliance Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct EXIM execution failed', {
+            companyName: req.body.companyName,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/global/exim/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Corporate Registration Direct API
+app.post('/zkpret/compliance/global/corporate/', async (req: express.Request, res: express.Response) => {
+    try {
+        const { cin } = req.body;
+
+        if (!cin) {
+            return res.status(400).json({
+                success: false,
+                error: 'cin (Corporate Identification Number) is required',
+                endpoint: '/zkpret/compliance/global/corporate/',
+                example: { cin: "U01112TZ2022PTC039493" },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info('Direct Corporate Registration execution started', { cin });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-CorporateRegistration-data', { cin });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                cin,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/global/corporate/',
+                service: 'Corporate Registration Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct Corporate Registration execution failed', {
+            cin: req.body.cin,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/global/corporate/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// GLEIF Multi-Verifier Direct API (with ZK proofs)
+app.post('/zkpret/verify/lei/', async (req: express.Request, res: express.Response) => {
+    try {
+        const { companyName } = req.body;
+
+        if (!companyName) {
+            return res.status(400).json({
+                success: false,
+                error: 'companyName is required',
+                endpoint: '/zkpret/verify/lei/',
+                example: { companyName: "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED" },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info('Direct GLEIF Multi-Verifier execution started', { companyName });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('run-GLEIF-local-multiverifier', { companyName });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                companyName,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/verify/lei/',
+                service: 'GLEIF LEI Verification with ZK Proofs',
+                mode: 'direct-execution',
+                type: 'full-zk-verification'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct GLEIF Multi-Verifier execution failed', {
+            companyName: req.body.companyName,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/verify/lei/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// ==== BUSINESS PROCESS INTEGRITY DIRECT EXECUTION ENDPOINTS ====
+
+// Generic Business Process Direct API
+app.post('/zkpret/compliance/business/process/', async (req, res) => {
+    try {
+        const { processType, expectedProcessFilePath, actualProcessFilePath } = req.body;
+
+        if (!processType || !expectedProcessFilePath || !actualProcessFilePath) {
+            return res.status(400).json({
+                success: false,
+                error: 'processType, expectedProcessFilePath, and actualProcessFilePath are required',
+                endpoint: '/zkpret/compliance/business/process/',
+                examples: [
+                    {
+                        processType: "STABLECOIN",
+                        expectedProcessFilePath: "./src/data/STABLECOIN/process/EXPECTED/STABLECOIN-Expected.bpmn",
+                        actualProcessFilePath: "./src/data/STABLECOIN/process/ACTUAL/STABLECOIN-Accepted1.bpmn"
+                    },
+                    {
+                        processType: "SCF",
+                        expectedProcessFilePath: "./src/data/scf/process/EXPECTED/SCF-Expected.bpmn",
+                        actualProcessFilePath: "./src/data/scf/process/ACTUAL/SCF-Accepted1.bpmn"
+                    },
+                    {
+                        processType: "DVP",
+                        expectedProcessFilePath: "./src/data/DVP/process/EXPECTED/DVP-Expected.bpmn",
+                        actualProcessFilePath: "./src/data/DVP/process/ACTUAL/DVP-Accepted1.bpmn"
+                    }
+                ],
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info('Direct Business Process execution started', {
+            processType, expectedProcessFilePath, actualProcessFilePath
+        });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-BPI-compliance-verification', {
+            processType,
+            expectedProcessFilePath,
+            actualProcessFilePath
+        });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                processType,
+                expectedProcessFilePath,
+                actualProcessFilePath,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/business/process/',
+                service: 'Business Process Integrity Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct Business Process execution failed', {
+            processType: req.body.processType,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/business/process/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// STABLECOIN Process Direct API
+app.post('/zkpret/compliance/business/stablecoin/', async (req, res) => {
+    try {
+        const { expectedFile, actualFile } = req.body;
+
+        // Set default files if not provided
+        const expectedProcessFilePath = expectedFile || "./src/data/STABLECOIN/process/EXPECTED/STABLECOIN-Expected.bpmn";
+        const actualProcessFilePath = actualFile || "./src/data/STABLECOIN/process/ACTUAL/STABLECOIN-Accepted1.bpmn";
+
+        logger.info('Direct STABLECOIN Process execution started', {
+            expectedProcessFilePath, actualProcessFilePath
+        });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-BPI-compliance-verification', {
+            processType: 'STABLECOIN',
+            expectedProcessFilePath,
+            actualProcessFilePath
+        });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                processType: 'STABLECOIN',
+                expectedProcessFilePath,
+                actualProcessFilePath,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/business/stablecoin/',
+                service: 'STABLECOIN Business Process Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct STABLECOIN Process execution failed', {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/business/stablecoin/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// SCF Process Direct API
+app.post('/zkpret/compliance/business/scf/', async (req, res) => {
+    try {
+        const { expectedFile, actualFile } = req.body;
+
+        // Set default files if not provided
+        const expectedProcessFilePath = expectedFile || "./src/data/scf/process/EXPECTED/SCF-Expected.bpmn";
+        const actualProcessFilePath = actualFile || "./src/data/scf/process/ACTUAL/SCF-Accepted1.bpmn";
+
+        logger.info('Direct SCF Process execution started', {
+            expectedProcessFilePath, actualProcessFilePath
+        });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-BPI-compliance-verification', {
+            processType: 'SCF',
+            expectedProcessFilePath,
+            actualProcessFilePath
+        });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                processType: 'SCF',
+                expectedProcessFilePath,
+                actualProcessFilePath,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/business/scf/',
+                service: 'SCF Business Process Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct SCF Process execution failed', {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/business/scf/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// DVP Process Direct API
+app.post('/zkpret/compliance/business/dvp/', async (req, res) => {
+    try {
+        const { expectedFile, actualFile } = req.body;
+
+        // Set default files if not provided
+        const expectedProcessFilePath = expectedFile || "./src/data/DVP/process/EXPECTED/DVP-Expected.bpmn";
+        const actualProcessFilePath = actualFile || "./src/data/DVP/process/ACTUAL/DVP-Accepted1.bpmn";
+
+        logger.info('Direct DVP Process execution started', {
+            expectedProcessFilePath, actualProcessFilePath
+        });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-BPI-compliance-verification', {
+            processType: 'DVP',
+            expectedProcessFilePath,
+            actualProcessFilePath
+        });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                processType: 'DVP',
+                expectedProcessFilePath,
+                actualProcessFilePath,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/business/dvp/',
+                service: 'DVP Business Process Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct DVP Process execution failed', {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/business/dvp/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// ==== END BUSINESS PROCESS INTEGRITY ENDPOINTS ====
+
+app.post('/zkpret/compliance/data/integrity/', async (req, res) => {
+    try {
+        const { dataType, filePath } = req.body;
+
+        if (!dataType || !filePath) {
+            return res.status(400).json({
+                success: false,
+                error: 'dataType and filePath are required',
+                endpoint: '/zkpret/compliance/data/integrity/',
+                examples: [
+                    {
+                        dataType: "BOL",
+                        filePath: "./src/data/scf/BILLOFLADING/BOL-VALID-1.json"
+                    },
+                    {
+                        dataType: "BOL",
+                        filePath: "./src/data/scf/BILLOFLADING/BOL-INVALID-1.json"
+                    }
+                    // {
+                    //     dataType: "AWB",
+                    //     filePath: "./src/data/scf/AIRWAYBILL/AWB-VALID-1.json"
+                    // },
+                    // {
+                    //     dataType: "INVOICE",
+                    //     filePath: "./src/data/scf/INVOICE/INVOICE-VALID-1.json"
+                    // }
+                ],
+                supportedDataTypes: ["BOL", "AWB", "INVOICE", "billoflading", "airwaybill", "invoice"],
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info('Direct Business Standard Data Integrity execution started', {
+            dataType, filePath
+        });
+
+        const startTime = Date.now();
+        const result = await zkToolExecutor.executeTool('get-BSDI-compliance-verification', {
+            dataType,
+            filePath
+        });
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                dataType,
+                filePath,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/data/integrity/',
+                service: 'Business Standard Data Integrity Verification',
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct Business Standard Data Integrity execution failed', {
+            dataType: req.body.dataType,
+            filePath: req.body.filePath,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/data/integrity/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// / ==== RISK VERIFICATION DIRECT EXECUTION ENDPOINTS ====
+
+// Generic Risk Verification Direct API
+app.post('/zkpret/compliance/risk/verification/', async (req: express.Request, res: express.Response) => {
+    try {
+        const { riskType, environment, lcrThreshold, nsfrThreshold, liquidityThreshold, actusUrl, configFilePath, executionMode, jurisdiction } = req.body;
+
+        if (!riskType || !environment) {
+            return res.status(400).json({
+                success: false,
+                error: 'riskType and environment are required',
+                endpoint: '/zkpret/compliance/risk/verification/',
+                supportedRiskTypes: ['basel3', 'stablecoin', 'advanced'],
+                supportedEnvironments: ['local', 'network'],
+                examples: [
+                    {
+                        riskType: "basel3",
+                        environment: "local",
+                        lcrThreshold: 80,
+                        nsfrThreshold: 80,
+                        actusUrl: "http://34.203.247.32:8083/eventsBatch",
+                        configFilePath: "src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json"
+                    },
+                    {
+                        riskType: "stablecoin",
+                        environment: "local",
+                        liquidityThreshold: 100,
+                        actusUrl: "http://34.203.247.32:8083/eventsBatch",
+                        configFilePath: "src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json",
+                        executionMode: "ultra_strict",
+                        jurisdiction: "US"
+                    },
+                    {
+                        riskType: "advanced",
+                        environment: "local",
+                        liquidityThreshold: 100,
+                        actusUrl: "http://34.203.247.32:8083/eventsBatch",
+                        configFilePath: "src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json"
+                    }
+                ],
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Determine the appropriate tool name
+        let toolName: string;
+        if (riskType === 'basel3') {
+            toolName = environment === 'local' ? 'get-RiskLiquidityBasel3Optim-Merkle-verification-with-sign' : 'get-RiskLiquidityBasel3Optim-Merkle-verification-with-sign';
+        } else if (riskType === 'stablecoin') {
+            toolName = environment === 'local' ? 'get-StablecoinProofOfReservesRisk-verification-with-sign' : 'get-StablecoinProofOfReservesRisk-verification-with-sign';
+        } else if (riskType === 'advanced') {
+            toolName = environment === 'local' ? 'get-RiskLiquidityAdvancedOptimMerkle-verification-with-sign' : 'get-RiskLiquidityAdvancedOptimMerkle-verification-with-sign';
+        } else {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid riskType. Supported types: basel3, stablecoin, advanced',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info('Direct Risk Verification execution started', {
+            riskType, environment, toolName
+        });
+
+        const startTime = Date.now();
+
+        // Prepare parameters based on risk type with proper typing
+        let parameters: any = { actusUrl: actusUrl || "http://34.203.247.32:8083/eventsBatch" };
+
+        if (riskType === 'basel3') {
+            parameters = {
+                ...parameters,
+                lcrThreshold: lcrThreshold || 80,
+                nsfrThreshold: nsfrThreshold || 80,
+                configFilePath: configFilePath || "src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json"
+            };
+        } else if (riskType === 'stablecoin') {
+            parameters = {
+                ...parameters,
+                liquidityThreshold: liquidityThreshold || 100,
+                jurisdiction: jurisdiction || "US",
+                situation: configFilePath ? configFilePath.split('/').pop() : "StableCoin-VALID-1.json",
+                executionMode: executionMode || "ultra_strict",
+                configFilePath: configFilePath || "src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json"
+            };
+        } else if (riskType === 'advanced') {
+            parameters = {
+                ...parameters,
+                liquidityThreshold: liquidityThreshold || 100,
+                configFilePath: configFilePath || "src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json",
+                executionMode: executionMode || "ultra_strict"
+            };
+        }
+
+        const result = await zkToolExecutor.executeTool(toolName, parameters);
+        const executionTime = Date.now() - startTime;
+
+        return res.json({
+            success: true,
+            data: result,
+            metadata: {
+                riskType,
+                environment,
+                toolName,
+                parameters,
+                executionTimeMs: executionTime,
+                timestamp: new Date().toISOString(),
+                endpoint: '/zkpret/compliance/risk/verification/',
+                service: `${riskType.toUpperCase()} Risk Verification (${environment})`,
+                mode: 'direct-execution'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Direct Risk Verification execution failed', {
+            riskType: req.body.riskType,
+            environment: req.body.environment,
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            endpoint: '/zkpret/compliance/risk/verification/',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// API Documentation Endpoint
+app.get('/zkpret/', (req: express.Request, res: express.Response) => {
+    const baseUrl = `http://${req.get('host')}`;
+
+    return res.json({
+        service: "ZK-PRET Direct Compliance API",
+        version: "1.0.0",
+        description: "Direct execution endpoints without job IDs - immediate results",
+        server: "zk-pret-integrated-server",
+        baseUrl,
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            documentation: {
+                method: "GET",
+                path: "/zkpret/",
+                description: "This documentation"
+            },
+            compliance: {
+                global: {
+                    lei: {
+                        method: "POST",
+                        path: "/zkpret/compliance/global/lei/",
+                        description: "GLEIF LEI verification",
+                        body: { companyName: "string" },
+                        example: { companyName: "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED" }
+                    },
+                    exim: {
+                        method: "POST",
+                        path: "/zkpret/compliance/exim/",
+                        description: "EXIM compliance verification",
+                        body: { companyName: "string" },
+                        example: { companyName: "zenova_dgft" }
+                    },
+                    corporate: {
+                        method: "POST",
+                        path: "/zkpret/compliance/corporate/",
+                        description: "Corporate registration verification",
+                        body: { cin: "string" },
+                        example: { cin: "U01112TZ2022PTC039493" }
+                    }
+                }
+            },
+            verification: {
+                lei: {
+                    method: "POST",
+                    path: "/zkpret/verify/lei/",
+                    description: "Full GLEIF verification with ZK proofs",
+                    body: { companyName: "string" },
+                    example: { companyName: "SREE PALANI ANDAVAR AGROS PRIVATE LIMITED" }
+                }
+            }
+        },
+        features: [
+            "Direct execution (no job IDs)",
+            "Immediate response with results",
+            "Professional RESTful API structure",
+            "Comprehensive error handling",
+            "Execution time tracking",
+            "Compatible with async endpoints"
+        ],
+        asyncEndpoints: {
+            note: "Async endpoints with job IDs are still available",
+            execute: "POST /api/v1/tools/execute",
+            jobs: "GET /api/v1/jobs/:jobId"
+        }
+    });
+});
+
+// ==== END DIRECT EXECUTION ENDPOINTS ====
+
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     logger.error('Unhandled error', {
         error: error.message,
@@ -1197,6 +1886,15 @@ const startServer = async () => {
             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs/:jobId`);
             console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs`);
             console.log(`DEL  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/api/v1/jobs/completed`);
+
+            // Add this to your console.log section in the startServer() function:
+
+            console.log('🚀 DIRECT EXECUTION ENDPOINTS (NEW):');
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/zkpret/compliance/global/lei/`);
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/zkpret/compliance/global/exim/`);
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/zkpret/compliance/global/corporate/`);
+            console.log(`POST http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/zkpret/verify/lei/`);
+            console.log(`GET  http://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT}/zkpret/ (documentation)`);
 
             console.log('📡 WEBSOCKET:');
             console.log(`WS   ws://${ZK_PRET_HTTP_SERVER_HOST}:${ZK_PRET_HTTP_SERVER_PORT} (real-time async updates)`);

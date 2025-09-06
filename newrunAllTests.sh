@@ -43,19 +43,19 @@ node build/tests/with-sign/BusinessProcessNetworkMultiVerifier.js DVP ./src/data
 
 
 # Risk Liquidity Stablecoin Tests - VALID & INVALID
-npm run test:risk-stablecoin-local-us 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
-npm run test:risk-stablecoin-local-us 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-INVALID-1.json ultra_strict US
+npm run test:risk-stablecoin-local-us 100 http://34.203.247.32:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
+npm run test:risk-stablecoin-local-us 100 http://34.203.247.32:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-INVALID-1.json ultra_strict US
 
 # Risk Liquidity 
 
-node build/tests/with-sign/RiskBasel3LocalMultiVerifier.js 80 80 http://3.88.158.37:8083/eventsBatch src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json
-node build/tests/with-sign/RiskStableCoinLocalMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
-node build/tests/with-sign/RiskAdvancedLocalMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json
+node build/tests/with-sign/RiskBasel3LocalMultiVerifier.js 80 80 http://34.203.247.32:8083/eventsBatch src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json
+node build/tests/with-sign/RiskStableCoinLocalMultiVerifier.js 100 http://34.203.247.32:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
+node build/tests/with-sign/RiskAdvancedLocalMultiVerifier.js 100 http://34.203.247.32:8083/eventsBatch src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json
 
 
-node build/tests/with-sign/RiskBasel3NetworkMultiVerifier.js 80 80 http://3.88.158.37:8083/eventsBatch src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json
-node build/tests/with-sign/RiskStableCoinNetworkMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
-node build/tests/with-sign/RiskAdvancedNetworkMultiVerifier.js 100 http://3.88.158.37:8083/eventsBatch src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json
+node build/tests/with-sign/RiskBasel3NetworkMultiVerifier.js 80 80 http://34.203.247.32:8083/eventsBatch src/data/RISK/Basel3/CONFIG/basel3-VALID-1.json
+node build/tests/with-sign/RiskStableCoinNetworkMultiVerifier.js 100 http://34.203.247.32:8083/eventsBatch src/data/RISK/StableCoin/CONFIG/US/StableCoin-VALID-1.json ultra_strict US
+node build/tests/with-sign/RiskAdvancedNetworkMultiVerifier.js 100 http://34.203.247.32:8083/eventsBatch src/data/RISK/Advanced/CONFIG/Advanced-VALID-1.json
 
 
 #==================================================
