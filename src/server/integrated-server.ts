@@ -23,7 +23,8 @@ function getConfigFiles(configPath: string): string[] {
         const files = fs.readdirSync(fullPath);
         return files.filter(file => file.endsWith('.json'));
     } catch (error) {
-        logger.error(`Failed to read config files from ${configPath}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Failed to read config files from ${configPath}:`, errorMessage);
         return [];
     }
 }
@@ -34,16 +35,15 @@ function getDirectories(basePath: string): string[] {
         const items = fs.readdirSync(fullPath, { withFileTypes: true });
         return items.filter(item => item.isDirectory()).map(item => item.name);
     } catch (error) {
-        logger.error(`Failed to read directories from ${basePath}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Failed to read directories from ${basePath}:`, errorMessage);
         return [];
     }
 }
-
 // NEW: Utility function for stablecoin configuration files by jurisdiction
 function getStablecoinConfigFiles(jurisdiction: string): string[] {
     try {
         const fullPath = path.join(process.cwd(), 'src', 'data', 'RISK', 'StableCoin', 'CONFIG', jurisdiction);
-
         logger.info(`Reading stablecoin config files from: ${fullPath}`);
 
         if (!fs.existsSync(fullPath)) {
@@ -52,16 +52,16 @@ function getStablecoinConfigFiles(jurisdiction: string): string[] {
         }
 
         const files = fs.readdirSync(fullPath);
-        // Filter for JSON files only
         const configFiles = files.filter(file => file.endsWith('.json'));
-
         logger.info(`Found ${configFiles.length} stablecoin config files in ${fullPath}`);
         return configFiles;
     } catch (error) {
-        logger.error(`Failed to read stablecoin config files from ${jurisdiction}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`Failed to read stablecoin config files from ${jurisdiction}:`, errorMessage);
         return [];
     }
 }
+
 
 // NEW: Utility function for Bill of Lading files
 function getBillOfLadingFiles(): string[] {
@@ -90,21 +90,76 @@ function getBillOfLadingFiles(): string[] {
 }
 
 // NEW: Utility function for process files (SCF, DVP, STABLECOIN)
-function getProcessFiles(processType: string, fileType: 'expected' | 'actual'): string[] {
+// function getProcessFiles(processType: string, fileType: 'expected' | 'actual'): string[] {
+//     try {
+//         const basePath = processType.toUpperCase();
+//         const subPath = fileType.toUpperCase();
+//         const fullPath = path.join(process.cwd(), 'src', 'data', basePath, 'process', subPath);
+
+//         logger.info(`Reading process files from: ${fullPath}`);
+
+//         if (!fs.existsSync(fullPath)) {
+//             logger.warn(`Process files directory does not exist: ${fullPath}`);
+//             return [];
+//         }
+
+//         const files = fs.readdirSync(fullPath);
+//         // Filter for common process file extensions
+//         const processFiles = files.filter(file =>
+//             file.endsWith('.bpmn') ||
+//             file.endsWith('.xml') ||
+//             file.endsWith('.json') ||
+//             file.endsWith('.txt')
+//         );
+
+//         logger.info(`Found ${processFiles.length} process files in ${fullPath}`);
+//         return processFiles;
+//     } catch (error) {
+//         logger.error(`Failed to read process files from ${processType}/${fileType}:`, error);
+//         return [];
+//     }
+// }
+
+function getProcessFiles(processType: string, fileType: string): string[] {
     try {
         const basePath = processType.toUpperCase();
         const subPath = fileType.toUpperCase();
         const fullPath = path.join(process.cwd(), 'src', 'data', basePath, 'process', subPath);
 
-        logger.info(`Reading process files from: ${fullPath}`);
+        logger.info(`📁 Attempting to read process files from: ${fullPath}`);
 
         if (!fs.existsSync(fullPath)) {
-            logger.warn(`Process files directory does not exist: ${fullPath}`);
+            logger.warn(`⚠️ Process files directory does not exist: ${fullPath}`);
+
+            // Try alternative paths for AWS deployment
+            const alternativePaths = [
+                path.join(process.cwd(), 'dist', 'src', 'data', basePath, 'process', subPath),
+                path.join(process.cwd(), 'build', 'src', 'data', basePath, 'process', subPath),
+                path.join(__dirname, '..', '..', 'src', 'data', basePath, 'process', subPath),
+                path.join('/app', 'src', 'data', basePath, 'process', subPath) // Common AWS/Docker path
+            ];
+
+            for (const altPath of alternativePaths) {
+                logger.info(`🔍 Trying alternative path: ${altPath}`);
+                if (fs.existsSync(altPath)) {
+                    logger.info(`✅ Found files at alternative path: ${altPath}`);
+                    const files = fs.readdirSync(altPath);
+                    const processFiles = files.filter(file =>
+                        file.endsWith('.bpmn') ||
+                        file.endsWith('.xml') ||
+                        file.endsWith('.json') ||
+                        file.endsWith('.txt')
+                    );
+                    logger.info(`📄 Found ${processFiles.length} process files in ${altPath}`);
+                    return processFiles;
+                }
+            }
+
+            logger.error(`❌ No valid path found for ${processType}/${fileType}`);
             return [];
         }
 
         const files = fs.readdirSync(fullPath);
-        // Filter for common process file extensions
         const processFiles = files.filter(file =>
             file.endsWith('.bpmn') ||
             file.endsWith('.xml') ||
@@ -112,10 +167,12 @@ function getProcessFiles(processType: string, fileType: 'expected' | 'actual'): 
             file.endsWith('.txt')
         );
 
-        logger.info(`Found ${processFiles.length} process files in ${fullPath}`);
+        logger.info(`📄 Found ${processFiles.length} process files in ${fullPath}`);
         return processFiles;
+
     } catch (error) {
-        logger.error(`Failed to read process files from ${processType}/${fileType}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error(`❌ Failed to read process files from ${processType}/${fileType}:`, errorMessage);
         return [];
     }
 }
@@ -286,9 +343,47 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+app.options('*', cors());
+
+app.use('/api/*', (req, res, next) => {
+    console.log(`🔍 API Request: ${req.method} ${req.path}`);
+    console.log(`🔍 Headers:`, req.headers);
+    console.log(`🔍 Origin:`, req.get('origin'));
+    next();
+});
+
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    credentials: true
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Allow all origins in production for AWS deployment
+        if (process.env.NODE_ENV === 'production') {
+            return callback(null, true);
+        }
+
+        // For development, use specific origins
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:5173',
+            process.env.CORS_ORIGIN
+        ].filter(Boolean);
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        // Fallback: allow all for now
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'Accept', 'Origin', 'X-Requested-With'],
+    exposedHeaders: ['Content-Length', 'X-Requested-With'],
+    optionsSuccessStatus: 200,
+    preflightContinue: false
 }));
 
 app.use(express.json({ limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
@@ -681,148 +776,191 @@ app.get('/api/v1/process-files/:processType/:fileType', (req: express.Request, r
 });
 
 // Specific endpoints for common process types (for backward compatibility)
-app.get('/api/v1/scf-expected-files', (req: express.Request, res: express.Response) => {
+app.get('/api/v1/scf-expected-files', (req, res) => {
     try {
+        logger.info('📡 SCF expected files endpoint called');
         const files = getProcessFiles('SCF', 'expected');
 
-        logger.info(`SCF expected files requested - found ${files.length} files`);
+        logger.info(`✅ SCF expected files requested - found ${files.length} files`);
 
-        return res.json({
+        return res.status(200).json({
             success: true,
             files: files,
             count: files.length,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/scf-expected-files',
+            processType: 'SCF',
+            fileType: 'expected'
         });
     } catch (error) {
-        logger.error('Failed to get SCF expected files:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('❌ Failed to get SCF expected files:', errorMessage);
         return res.status(500).json({
             success: false,
             error: 'Failed to load SCF expected files',
+            details: errorMessage,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/scf-expected-files'
         });
     }
 });
 
-app.get('/api/v1/scf-actual-files', (req: express.Request, res: express.Response) => {
+app.get('/api/v1/scf-actual-files', (req, res) => {
     try {
+        logger.info('📡 SCF actual files endpoint called');
         const files = getProcessFiles('SCF', 'actual');
 
-        logger.info(`SCF actual files requested - found ${files.length} files`);
+        logger.info(`✅ SCF actual files requested - found ${files.length} files`);
 
-        return res.json({
+        return res.status(200).json({
             success: true,
             files: files,
             count: files.length,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/scf-actual-files',
+            processType: 'SCF',
+            fileType: 'actual'
         });
     } catch (error) {
-        logger.error('Failed to get SCF actual files:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('❌ Failed to get SCF actual files:', errorMessage);
         return res.status(500).json({
             success: false,
             error: 'Failed to load SCF actual files',
+            details: errorMessage,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/scf-actual-files'
         });
     }
 });
 
+
 // DVP process files
-app.get('/api/v1/dvp-expected-files', (req: express.Request, res: express.Response) => {
+app.get('/api/v1/dvp-expected-files', (req, res) => {
     try {
+        logger.info('📡 DVP expected files endpoint called');
         const files = getProcessFiles('DVP', 'expected');
 
-        logger.info(`DVP expected files requested - found ${files.length} files`);
+        logger.info(`✅ DVP expected files requested - found ${files.length} files`);
 
-        return res.json({
+        return res.status(200).json({
             success: true,
             files: files,
             count: files.length,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/dvp-expected-files',
+            processType: 'DVP',
+            fileType: 'expected'
         });
     } catch (error) {
-        logger.error('Failed to get DVP expected files:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('❌ Failed to get DVP expected files:', errorMessage);
         return res.status(500).json({
             success: false,
             error: 'Failed to load DVP expected files',
+            details: errorMessage,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/dvp-expected-files'
         });
     }
 });
 
-app.get('/api/v1/dvp-actual-files', (req: express.Request, res: express.Response) => {
+app.get('/api/v1/dvp-actual-files', (req, res) => {
     try {
+        logger.info('📡 DVP actual files endpoint called');
         const files = getProcessFiles('DVP', 'actual');
 
-        logger.info(`DVP actual files requested - found ${files.length} files`);
+        logger.info(`✅ DVP actual files requested - found ${files.length} files`);
 
-        return res.json({
+        return res.status(200).json({
             success: true,
             files: files,
             count: files.length,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/dvp-actual-files',
+            processType: 'DVP',
+            fileType: 'actual'
         });
     } catch (error) {
-        logger.error('Failed to get DVP actual files:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('❌ Failed to get DVP actual files:', errorMessage);
         return res.status(500).json({
             success: false,
             error: 'Failed to load DVP actual files',
+            details: errorMessage,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/dvp-actual-files'
         });
     }
 });
 
 // Stablecoin process files
-app.get('/api/v1/stablecoin-expected-files', (req: express.Request, res: express.Response) => {
+app.get('/api/v1/stablecoin-expected-files', (req, res) => {
     try {
+        logger.info('📡 STABLECOIN expected files endpoint called');
         const files = getProcessFiles('STABLECOIN', 'expected');
 
-        logger.info(`Stablecoin expected files requested - found ${files.length} files`);
+        logger.info(`✅ STABLECOIN expected files requested - found ${files.length} files`);
 
-        return res.json({
+        return res.status(200).json({
             success: true,
             files: files,
             count: files.length,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/stablecoin-expected-files',
+            processType: 'STABLECOIN',
+            fileType: 'expected'
         });
     } catch (error) {
-        logger.error('Failed to get Stablecoin expected files:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('❌ Failed to get STABLECOIN expected files:', errorMessage);
         return res.status(500).json({
             success: false,
-            error: 'Failed to load Stablecoin expected files',
+            error: 'Failed to load STABLECOIN expected files',
+            details: errorMessage,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/stablecoin-expected-files'
         });
     }
 });
 
-app.get('/api/v1/stablecoin-actual-files', (req: express.Request, res: express.Response) => {
+app.get('/api/v1/stablecoin-actual-files', (req, res) => {
     try {
+        logger.info('📡 STABLECOIN actual files endpoint called');
         const files = getProcessFiles('STABLECOIN', 'actual');
 
-        logger.info(`Stablecoin actual files requested - found ${files.length} files`);
+        logger.info(`✅ STABLECOIN actual files requested - found ${files.length} files`);
 
-        return res.json({
+        return res.status(200).json({
             success: true,
             files: files,
             count: files.length,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/stablecoin-actual-files',
+            processType: 'STABLECOIN',
+            fileType: 'actual'
         });
     } catch (error) {
-        logger.error('Failed to get Stablecoin actual files:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('❌ Failed to get STABLECOIN actual files:', errorMessage);
         return res.status(500).json({
             success: false,
-            error: 'Failed to load Stablecoin actual files',
+            error: 'Failed to load STABLECOIN actual files',
+            details: errorMessage,
             timestamp: new Date().toISOString(),
-            server: 'zk-pret-async-only-server'
+            server: 'zk-pret-async-only-server',
+            endpoint: '/api/v1/stablecoin-actual-files'
         });
     }
 });
@@ -1812,6 +1950,58 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
         server: 'zk-pret-async-only-server'
     });
 });
+
+if (process.env.NODE_ENV === 'production') {
+    // Serve static files
+    app.use(express.static(path.join(process.cwd(), 'dist')));
+    app.use(express.static(path.join(process.cwd(), 'build')));
+    app.use(express.static(path.join(process.cwd(), 'public')));
+
+    // Handle client-side routing - ONLY for non-API routes
+    app.get('*', (req, res, next) => {
+        // Skip API routes - let them be handled by the API handlers
+        if (req.path.startsWith('/api/') || req.path.startsWith('/zkpret/')) {
+            return next();
+        }
+
+        // For non-API routes, serve the frontend
+        const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+        if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath);
+        } else {
+            res.status(404).send('Frontend not built. Run npm run build first.');
+        }
+    });
+}
+
+app.use((req, res) => {
+    // Only return JSON for API routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/zkpret/')) {
+        res.status(404).json({
+            success: false,
+            error: 'API endpoint not found',
+            path: req.path,
+            method: req.method,
+            timestamp: new Date().toISOString(),
+            server: 'zk-pret-async-only-server',
+            availableEndpoints: [
+                '/api/v1/health',
+                '/api/v1/stablecoin-actual-files',
+                '/api/v1/stablecoin-expected-files',
+                '/zkpret/'
+            ]
+        });
+    } else {
+        // For non-API routes, try to serve index.html (SPA fallback)
+        const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+        if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath);
+        } else {
+            res.status(404).send('Page not found');
+        }
+    }
+});
+
 
 app.use((req: express.Request, res: express.Response) => {
     res.status(404).json({
