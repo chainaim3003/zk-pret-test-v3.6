@@ -1,9 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import {fetchGLEIFCompanyDataWithFullDetails} from "../tests/with-sign/GLEIFBasicUtils.js";
-import { fetchEXIMCompanyData } from "../tests/with-sign/EXIMBasicUtils.js";
-import {fetchCorporateRegistrationData} from "../tests/with-sign/CorporateRegistrationBasicUtils.js";
-import { getGLEIFLocalMultiVerifierUtils } from "../tests/with-sign/local/GLEIFLocalMultiVerifierUtils.js";
+import {fetchGLEIFCompanyDataWithFullDetails} from "../impl/utils-in-test/GLEIFBasicUtils.js";
+import { fetchEXIMCompanyData } from "../impl/utils-in-test/EXIMBasicUtils.js";
+import {fetchCorporateRegistrationData} from "../impl/utils-in-test/CorporateRegistrationBasicUtils.js";
+import { getGLEIFLocalMultiVerifierUtils } from "../impl/local/handler/GLEIFLocalHandler.js";
 
 
 export function registerPRETTools(server: McpServer) {  

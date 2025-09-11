@@ -12,7 +12,7 @@ import {
   CompanyMerkleWitness 
 } from '../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
 import { GLEIFOptimComplianceData } from '../../zk-programs/with-sign/GLEIFOptimZKProgram.js';
-import { BaseVerificationCore } from '../../tests/with-sign/base/BaseVerificationCore.js';
+import { BaseVerificationCore } from '../../impl/verification-base/BaseVerificationCore.js';
 
 /**
  * Enhanced verification transaction with comprehensive monitoring

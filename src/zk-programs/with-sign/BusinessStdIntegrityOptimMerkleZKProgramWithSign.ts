@@ -11,7 +11,7 @@ import {
    UInt64,
 } from 'o1js';
 import { getPublicKeyFor } from '../../core/OracleRegistry.js';
-import { BusinessStdMerkleWitness8 } from '../../tests/with-sign/BusinessStdIntegrityOptimMerkleUtils.js';
+import { BusinessStdMerkleWitness8 } from '../../impl/utils-in-test/BusinessStdIntegrityOptimMerkleUtils.js';
 import { fun0, fun1, fun2 } from '../../core/circuitFile.js';
 
 // Public output structure for Business Standard Merkle verification
