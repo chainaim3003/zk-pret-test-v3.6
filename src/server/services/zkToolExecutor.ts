@@ -95,7 +95,10 @@ export class ZKToolExecutor {
         this.config = {
             stdioPath: process.env.ZK_PRET_STDIO_PATH || process.cwd(),
             stdioBuildPaths: [
-                './build/tests/with-sign'
+                './build/impl/local/handler',
+                './build/impl/local/verifier',
+                './build/impl/network/handler',
+                './build/impl/network/verifier'
             ],
             timeout: parseInt(process.env.ZK_PRET_SERVER_TIMEOUT || '1800000'),
             executionMode: 'spawn'
@@ -252,9 +255,9 @@ export class ZKToolExecutor {
             const keyFiles = [
                 'GLEIFLocalMultiVerifier.js',
                 'GLEIFTestnetMultiVerifier.js',
-                'GLEIFMainnetMultiVerifier.js',
-                'EXIMLocalMultiVerifier.js',
-                'CorporateRegistrationLocalMultiVerifier.js'
+                // 'GLEIFMainnetMultiVerifier.js',
+                // 'EXIMLocalMultiVerifier.js',
+                // 'CorporateRegistrationLocalMultiVerifier.js'
             ];
 
             console.log('Checking for compiled JavaScript files across all paths:');

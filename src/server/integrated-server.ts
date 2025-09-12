@@ -134,7 +134,7 @@ function getProcessFiles(processType: string, fileType: string): string[] {
             // Try alternative paths for AWS deployment
             const alternativePaths = [
                 path.join(process.cwd(), 'dist', 'src', 'data', basePath, 'process', subPath),
-                path.join(process.cwd(), 'build', 'src', 'data', basePath, 'process', subPath),
+                path.join(process.cwd(), 'build', 'data', basePath, 'process', subPath),
                 path.join(__dirname, '..', '..', 'src', 'data', basePath, 'process', subPath),
                 path.join('/app', 'src', 'data', basePath, 'process', subPath) // Common AWS/Docker path
             ];
@@ -331,7 +331,7 @@ global.wsServer = wss;
 
 const jobManager = new AsyncJobManager(wss);
 
-const ZK_PRET_HTTP_SERVER_PORT = parseInt(process.env.ZK_PRET_HTTP_SERVER_PORT || '0.0.0.0', 10);
+const ZK_PRET_HTTP_SERVER_PORT = parseInt(process.env.ZK_PRET_HTTP_SERVER_PORT || '3001', 10);
 const ZK_PRET_HTTP_SERVER_HOST = process.env.ZK_PRET_HTTP_SERVER_HOST || 'localhost';
 
 app.use(helmet());
