@@ -20,14 +20,14 @@ import {
     loadExecutionSettings,
     applyDynamicThresholdStrategy,
     validateFieldArithmeticConstraints
-} from '../../utils/RiskLiquidityAdvancedOptimMerkleUtils.js';
-import { loadContractPortfolio } from '../../utils/ACTUSOptimMerkleAPI.js';
+} from '../../utils/optimerkle/domain/risk/adv/RiskLiquidityAdvancedOptimMerkleUtils.js';
+import { loadContractPortfolio } from '../../utils/optimerkle/domain/risk/ACTUSOptimMerkleAPI.js';
 import {
     RiskLiquidityAdvancedOptimMerkleZKProgramWithSign,
     createAdvancedRiskComplianceData,
     validateAdvancedRiskComplianceData
-} from '../../zk-programs/with-sign/RiskLiquidityAdvancedOptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityAdvancedOptimMerkleSmartContract } from '../../contracts/with-sign/RiskLiquidityAdvancedOptimMerkleSmartContract.js';
+} from '../../zk-programs/risk/RiskLiquidityAdvancedOptimMerkleZKProgramWithSign.js';
+import { RiskLiquidityAdvancedOptimMerkleSmartContract } from '../../contracts/risk/RiskLiquidityAdvancedOptimMerkleSmartContract.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

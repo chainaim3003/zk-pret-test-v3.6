@@ -3,8 +3,8 @@ import {
   BPMNGeneric, 
   BusinessProcessIntegrityOptimMerkleData,
   BusinessProcessIntegrityOptimMerkleProof 
-} from '../../zk-programs/with-sign/BPMNGenericZKProgram.js';
-import { MerkleTreeManager, MerkleWitness8 } from '../../utils/optimerkle/MerkleTreeManager.js';
+} from '../../zk-programs/process/BPMNGenericZKProgram.js';
+import { MerkleTreeManager, MerkleWitness8 } from '../../utils/optimerkle/core/MerkleTreeManager.js';
 import { getPrivateKeyFor, getPublicKeyFor } from '../../core/OracleRegistry.js';
 import axios from 'axios';
 

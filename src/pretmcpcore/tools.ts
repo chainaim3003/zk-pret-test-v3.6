@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import {fetchGLEIFCompanyDataWithFullDetails} from "../impl/utils-in-test/GLEIFBasicUtils.js";
-import { fetchEXIMCompanyData } from "../impl/utils-in-test/EXIMBasicUtils.js";
-import {fetchCorporateRegistrationData} from "../impl/utils-in-test/CorporateRegistrationBasicUtils.js";
+import {fetchGLEIFCompanyDataWithFullDetails} from "../utils/domain/compliance/GLEIF/GLEIFBasicUtils.js";
+import { fetchEXIMCompanyData } from "../utils/domain/compliance/EXIM/EXIMBasicUtils.js";
+import {fetchCorporateRegistrationData} from "../utils/domain/compliance/CorpReg/CorporateRegistrationBasicUtils.js";
 import { getGLEIFLocalMultiVerifierUtils } from "../impl/local/handler/GLEIFLocalHandler.js";
 
 

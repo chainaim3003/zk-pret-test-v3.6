@@ -12,10 +12,10 @@ import {
   GLEIFOptim, 
   GLEIFOptimComplianceData, 
   MerkleWitness8
-} from '../../../zk-programs/with-sign/GLEIFOptimZKProgram.js';
+} from '../../../zk-programs/compliance/GLEIFOptimZKProgram.js';
 import { 
   GLEIFOptimMultiCompanySmartContract
-} from '../../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/GLEIF/GLEIFOptimMultiCompanySmartContract.js';
 import { 
   getGleifDeployerAccount, 
   getGleifSenderAccount, 
@@ -29,7 +29,7 @@ import {
   analyzeGLEIFCompliance,
   createComprehensiveGLEIFMerkleTree,
   GLEIF_FIELD_INDICES
-} from '../../utils-in-test/GLEIFCoreAPIUtils.js';
+} from '../../../utils/domain/compliance/GLEIF/GLEIFCoreAPIUtils.js';
 
 // SIMPLIFIED: Create basic compliance data function
 function createOptimizedGLEIFComplianceData(

@@ -16,20 +16,20 @@ import {
   CorporateRegistrationOptimComplianceData, 
   CorporateRegistrationMerkleWitness8, 
   CORP_REG_MERKLE_TREE_HEIGHT 
-} from '../../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js';
+} from '../../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
 
 import { 
   CorporateRegistrationOptimMultiCompanySmartContract,
   CompanyMerkleWitness,
   COMPANY_MERKLE_HEIGHT
-} from '../../../contracts/with-sign/CorporateRegistrationOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/CorpReg/CorporateRegistrationOptimMultiCompanySmartContract.js';
 
 // API utilities
 import { 
   fetchCorporateRegistrationDataWithFullLogging, 
   analyzeCorporateRegistrationCompliance,
   createComprehensiveCorporateRegistrationMerkleTree
-} from '../../utils-in-test/CorporateRegistrationCoreAPIUtils.js';
+} from '../../../utils/domain/compliance/CorpReg/CorporateRegistrationCoreAPIUtils.js';
 
 // Jurisdiction-aware Oracle Registry
 import { 

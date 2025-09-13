@@ -40,7 +40,7 @@ import {
   BPMNGeneric,
   BusinessProcessIntegrityOptimMerkleData,
   BusinessProcessIntegrityOptimMerkleProof
-} from '../../../zk-programs/with-sign/BPMNGenericZKProgram.js';
+} from '../../../zk-programs/process/BPMNGenericZKProgram.js';
 
 import { 
   BPMNGenericSmartContract,
@@ -48,7 +48,7 @@ import {
   BPMNGroupKey,
   BPMN_GROUP_MERKLE_HEIGHT,
   BPMNGroupMerkleWitness
-} from '../../../contracts/with-sign/BPMNGenericSmartContract.js';
+} from '../../../contracts/process/BPMNGenericSmartContract.js';
 
 // === INFRASTRUCTURE IMPORTS ===
 import { 
@@ -69,7 +69,7 @@ import {
 import { getPrivateKeyFor, getPublicKeyFor } from '../../../core/OracleRegistry.js';
 
 // === BPMN PARSING ===
-import parseBpmn from '../../../utils/parsebpmn.js';
+import parseBpmn from '../../../utils/transform/parsebpmn.js';
 
 /**
  * Hierarchical Poseidon hashing for o1js best practices

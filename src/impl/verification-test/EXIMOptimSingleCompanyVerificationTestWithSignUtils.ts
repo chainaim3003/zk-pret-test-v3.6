@@ -8,15 +8,15 @@ import {
   EXIMMerkleWitness8, 
   EXIM_MERKLE_TREE_HEIGHT,
   EXIM_FIELD_INDICES 
-} from '../../zk-programs/with-sign/EXIMOptimZKProgram.js';
-import { EXIMOptimSingleCompanySmartContract } from '../../contracts/with-sign/EXIMOptimSingleCompanySmartContract.js';
+} from '../../zk-programs/compliance/EXIMOptimZKProgram.js';
+import { EXIMOptimSingleCompanySmartContract } from '../../contracts/complaince/EXIM/EXIMOptimSingleCompanySmartContract.js';
 import { EXIMdeployerAccount, EXIMsenderAccount, EXIMdeployerKey, EXIMsenderKey, getPrivateKeyFor } from '../../core/OracleRegistry.js';
 import { 
   fetchEXIMDataWithFullLogging, 
   EXIMAPIResponse,
   extractEXIMSummary,
   analyzeEXIMCompliance
-} from '../utils-in-test/EXIMEnhancedUtils.js';
+} from '../../utils/domain/compliance/EXIM/EXIMEnhancedUtils.js';
 
 // =================================== Merkle Tree Creation Functions ===================================
 

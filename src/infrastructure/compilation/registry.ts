@@ -10,21 +10,21 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'GLEIFOptim',
     category: CompilationCategory.ZK_PROGRAM,
-    loader: () => import('../../zk-programs/with-sign/GLEIFOptimZKProgram.js'),
+    loader: () => import('../../zk-programs/compliance/GLEIFOptimZKProgram.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'CorporateRegistrationOptim',
     category: CompilationCategory.ZK_PROGRAM,
-    loader: () => import('../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js'),
+    loader: () => import('../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'EXIMOptim',
     category: CompilationCategory.ZK_PROGRAM,
-    loader: () => import('../../zk-programs/with-sign/EXIMOptimZKProgram.js'),
+    loader: () => import('../../zk-programs/compliance/EXIMOptimZKProgram.js'),
     compilationOrder: 1,
     enabled: true
   },
@@ -33,28 +33,28 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'BPMNGeneric',
     category: CompilationCategory.BUSINESS_PROCESS,
-    loader: () => import('../../zk-programs/with-sign/BPMNGenericZKProgram.js'),
+    loader: () => import('../../zk-programs/process/BPMNGenericZKProgram.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'BusinessStandardDataIntegrity',
     category: CompilationCategory.BUSINESS_PROCESS,
-    loader: () => import('../../zk-programs/with-sign/BusinessStandardDataIntegrityZKProgram.js'),
+    loader: () => import('../../zk-programs/process/BusinessStandardDataIntegrityZKProgram.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'BusinessStandardOptim',
     category: CompilationCategory.BUSINESS_PROCESS,
-    loader: () => import('../../zk-programs/with-sign/BusinessStandardOptimZKProgram.js'),
+    loader: () => import('../../zk-programs/process/BusinessStandardOptimZKProgram.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'BusinessStdIntegrityOptimMerkle',
     category: CompilationCategory.BUSINESS_PROCESS,
-    loader: () => import('../../zk-programs/with-sign/BusinessStdIntegrityOptimMerkleZKProgramWithSign.js'),
+    loader: () => import('../../zk-programs/process/BusinessStdIntegrityOptimMerkleZKProgramWithSign.js'),
     compilationOrder: 1,
     enabled: true
   },
@@ -63,35 +63,35 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'RiskLiquidityAdvancedOptimMerkle',
     category: CompilationCategory.RISK_LIQUIDITY,
-    loader: () => import('../../zk-programs/with-sign/RiskLiquidityAdvancedOptimMerkleZKProgramWithSign.js'),
+    loader: () => import('../../zk-programs/risk/RiskLiquidityAdvancedOptimMerkleZKProgramWithSign.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'RiskLiquidityBasel3OptimMerkle',
     category: CompilationCategory.RISK_LIQUIDITY,
-    loader: () => import('../../zk-programs/with-sign/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js'),
+    loader: () => import('../../zk-programs/risk/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'RiskLiquidityStableCoinOptimMerkle',
     category: CompilationCategory.RISK_LIQUIDITY,
-    loader: () => import('../../zk-programs/with-sign/RiskLiquidityStableCoinOptimMerkleZKProgramWithSign.js'),
+    loader: () => import('../../zk-programs/risk/RiskLiquidityStableCoinOptimMerkleZKProgramWithSign.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'RiskLiquidityACTUSBasel3',
     category: CompilationCategory.RISK_LIQUIDITY,
-    loader: () => import('../../zk-programs/with-sign/RiskLiquidityACTUSZKProgram_basel3_Withsign.js'),
+    loader: () => import('../../zk-programs/risk/RiskLiquidityACTUSZKProgram_basel3_Withsign.js'),
     compilationOrder: 1,
     enabled: true
   },
   {
     name: 'StablecoinProofOfReservesRisk',
     category: CompilationCategory.RISK_LIQUIDITY,
-    loader: () => import('../../zk-programs/with-sign/StablecoinProofOfReservesRiskZKProgramWithSign.js'),
+    loader: () => import('../../zk-programs/risk/StablecoinProofOfReservesRiskZKProgramWithSign.js'),
     compilationOrder: 1,
     enabled: true
   },
@@ -100,7 +100,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'GLEIFOptimMultiCompanySmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js'),
+    loader: () => import('../../contracts/complaince/GLEIF/GLEIFOptimMultiCompanySmartContract.js'),
     dependencies: ['GLEIFOptim'],
     compilationOrder: 2,
     enabled: true
@@ -108,7 +108,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'CorporateRegistrationOptimSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/CorporateRegistrationOptimSmartContract.js'),
+    loader: () => import('../../contracts/complaince/CorpReg/CorporateRegistrationOptimSmartContract.js'),
     dependencies: ['CorporateRegistrationOptim'],
     compilationOrder: 2,
     enabled: true
@@ -116,7 +116,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'CorporateRegistrationOptimMultiCompanySmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/CorporateRegistrationOptimMultiCompanySmartContract.js'),
+    loader: () => import('../../contracts/complaince/CorpReg/CorporateRegistrationOptimMultiCompanySmartContract.js'),
     dependencies: ['CorporateRegistrationOptim'],
     compilationOrder: 2,
     enabled: true
@@ -124,7 +124,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'CorporateRegistrationOptimSingleCompanySmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/CorporateRegistrationOptimSingleCompanySmartContract.js'),
+    loader: () => import('../../contracts/complaince/CorpReg/CorporateRegistrationOptimSingleCompanySmartContract.js'),
     dependencies: ['CorporateRegistrationOptim'],
     compilationOrder: 2,
     enabled: true
@@ -132,7 +132,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'EXIMOptimSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/EXIMOptimSmartContract.js'),
+    loader: () => import('../../contracts/complaince/EXIM/EXIMOptimSmartContract.js'),
     dependencies: ['EXIMOptim'],
     compilationOrder: 2,
     enabled: true
@@ -140,7 +140,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'EXIMOptimMultiCompanySmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/EXIMOptimMultiCompanySmartContract.js'),
+    loader: () => import('../../contracts/complaince/EXIM/EXIMOptimMultiCompanySmartContract.js'),
     dependencies: ['EXIMOptim'],
     compilationOrder: 2,
     enabled: true
@@ -148,7 +148,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'EXIMOptimSingleCompanySmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/EXIMOptimSingleCompanySmartContract.js'),
+    loader: () => import('../../contracts/complaince/EXIM/EXIMOptimSingleCompanySmartContract.js'),
     dependencies: ['EXIMOptim'],
     compilationOrder: 2,
     enabled: true
@@ -156,7 +156,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'BusinessStandardOptimVerificationSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/BusinessStandardOptimVerificationSmartContract.js'),
+    loader: () => import('../../contracts/process/BusinessStandardOptimVerificationSmartContract.js'),
     dependencies: ['BusinessStandardOptim'],
     compilationOrder: 2,
     enabled: true
@@ -164,7 +164,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'BusinessStdIntegrityOptimMerkleSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/BusinessStdIntegrityOptimMerkleSmartContract.js'),
+    loader: () => import('../../contracts/process/BusinessStdIntegrityOptimMerkleSmartContract.js'),
     dependencies: ['BusinessStdIntegrityOptimMerkle'],
     compilationOrder: 2,
     enabled: true
@@ -172,7 +172,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'RiskLiquidityAdvancedOptimMerkleSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/RiskLiquidityAdvancedOptimMerkleSmartContract.js'),
+    loader: () => import('../../contracts/risk/RiskLiquidityAdvancedOptimMerkleSmartContract.js'),
     dependencies: ['RiskLiquidityAdvancedOptimMerkle'],
     compilationOrder: 2,
     enabled: true
@@ -180,7 +180,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'RiskLiquidityBasel3OptimMerkleSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/RiskLiquidityBasel3OptimMerkleSmartContract.js'),
+    loader: () => import('../../contracts/risk/RiskLiquidityBasel3OptimMerkleSmartContract.js'),
     dependencies: ['RiskLiquidityBasel3OptimMerkle'],
     compilationOrder: 2,
     enabled: true
@@ -188,7 +188,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'RiskLiquidityStableCoinOptimMerkleSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/RiskLiquidityStableCoinOptimMerkleSmartContract.js'),
+    loader: () => import('../../contracts/risk/RiskLiquidityStableCoinOptimMerkleSmartContract.js'),
     dependencies: ['RiskLiquidityStableCoinOptimMerkle'],
     compilationOrder: 2,
     enabled: true
@@ -196,7 +196,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'RiskLiquidityOptimMerkleSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/RiskLiquidityOptimMerkleSmartContract.js'),
+    loader: () => import('../../contracts/risk/RiskLiquidityOptimMerkleSmartContract.js'),
     dependencies: ['RiskLiquidityAdvancedOptimMerkle'], // Assuming it uses the advanced version
     compilationOrder: 2,
     enabled: true
@@ -204,7 +204,7 @@ export const COMPILATION_REGISTRY: CompilationItem[] = [
   {
     name: 'StablecoinProofOfReservesRiskVerifierSmartContract',
     category: CompilationCategory.SMART_CONTRACT,
-    loader: () => import('../../contracts/with-sign/StablecoinProofOfReservesRiskVerifierSmartContract.js'),
+    loader: () => import('../../contracts/risk/StablecoinProofOfReservesRiskVerifierSmartContract.js'),
     dependencies: ['StablecoinProofOfReservesRisk'],
     compilationOrder: 2,
     enabled: true

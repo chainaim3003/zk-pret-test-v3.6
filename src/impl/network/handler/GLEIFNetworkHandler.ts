@@ -40,7 +40,7 @@ import {
   GLEIFOptimComplianceData, 
   MerkleWitness8, 
   MERKLE_TREE_HEIGHT 
-} from '../../../zk-programs/with-sign/GLEIFOptimZKProgram.js';
+} from '../../../zk-programs/compliance/GLEIFOptimZKProgram.js';
 
 import { 
   GLEIFOptimMultiCompanySmartContract,
@@ -50,7 +50,7 @@ import {
   CompanyMerkleWitness,
   CompanyKey,
   GLEIFCompanyRecord
-} from '../../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/GLEIF/GLEIFOptimMultiCompanySmartContract.js';
 
 // === INFRASTRUCTURE IMPORTS ===
 import { 
@@ -75,7 +75,7 @@ import {
   createOptimizedGLEIFComplianceData,
   createCompanyRecord,
   GLEIF_FIELD_INDICES
-} from '../../utils-in-test/GLEIFCoreAPIUtils.js';
+} from '../../../utils/domain/compliance/GLEIF/GLEIFCoreAPIUtils.js';
 
 // === ORACLE KEY MANAGEMENT ===
 import { getGleifSignerKey } from '../../../core/OracleRegistry.js';

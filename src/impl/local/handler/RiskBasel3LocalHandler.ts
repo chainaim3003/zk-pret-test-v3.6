@@ -22,15 +22,15 @@ import {
     calculateBasel3RiskMetricsOptimMerkle,
     validateBasel3RiskDataOptimMerkle,
     generateBasel3RiskSummaryOptimMerkle
-} from '../../../utils/RiskLiquidityBasel3OptimMerkleUtils.js';
-import { loadContractPortfolio } from '../../../utils/ACTUSOptimMerkleAPI.js';
+} from '../../../utils/optimerkle/domain/risk/basel3/RiskLiquidityBasel3OptimMerkleUtils.js';
+import { loadContractPortfolio } from '../../../utils/optimerkle/domain/risk/ACTUSOptimMerkleAPI.js';
 import {
     RiskLiquidityBasel3OptimMerkleZKProgramWithSign,
     createBasel3RiskComplianceData,
     validateBasel3RiskComplianceData,
     MerkleWitness8
-} from '../../../zk-programs/with-sign/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityBasel3OptimMerkleSmartContract } from '../../../contracts/with-sign/RiskLiquidityBasel3OptimMerkleSmartContract.js';
+} from '../../../zk-programs/risk/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js';
+import { RiskLiquidityBasel3OptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityBasel3OptimMerkleSmartContract.js';
 
 export interface Basel3RiskParams {
     lcrThreshold: number;

@@ -17,7 +17,7 @@ import { Field, Bool, UInt64, CircuitString, Poseidon ,PublicKey} from 'o1js';
 // import { MerkleWitness8 } from '../../../utils/optimerkle/MerkleTreeManager.js';
 
 
-import parseBpmn from '../../utils/parsebpmn.js';
+import parseBpmn from '../../utils/transform/parsebpmn.js';
 
 
 import { safeLogSmartContractStateLocal } from './SafeStateRetrievalLocal.js';
@@ -26,7 +26,7 @@ import { environmentManager } from '../../infrastructure/index.js';
 import { 
   RegistryInfo,
   GlobalComplianceStats
-} from '../../contracts/with-sign/BPMNGenericSmartContract.js';
+} from '../../contracts/process/BPMNGenericSmartContract.js';
 
 
 export interface ProcessAnalysis {

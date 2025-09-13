@@ -40,14 +40,14 @@ import {
   EXIMOptim, 
   EXIMOptimComplianceData, 
   EXIMMerkleWitness8 
-} from '../../../zk-programs/with-sign/EXIMOptimZKProgram.js';
+} from '../../../zk-programs/compliance/EXIMOptimZKProgram.js';
 import { 
   EXIMOptimMultiCompanySmartContract, 
   COMPANY_MERKLE_HEIGHT, 
   CompanyMerkleWitness, 
   EXIMCompanyRecord ,
   CompanyKey
-} from '../../../contracts/with-sign/EXIMOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/EXIM/EXIMOptimMultiCompanySmartContract.js';
 
 // === INFRASTRUCTURE IMPORTS ===
 import { 
@@ -69,7 +69,7 @@ import {
   createOptimizedEXIMComplianceData, 
   createCompanyRecord, 
   EXIM_FIELD_INDICES 
-} from '../../utils-in-test/EXIMCoreAPIUtils.js';
+} from '../../../utils/domain/compliance/EXIM/EXIMCoreAPIUtils.js';
 
 // === ORACLE KEY MANAGEMENT ===
 import { getPrivateKeyFor } from '../../../core/OracleRegistry.js';

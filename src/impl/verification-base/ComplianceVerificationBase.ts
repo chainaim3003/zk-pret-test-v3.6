@@ -8,10 +8,10 @@ import { Field, Bool, UInt64, PublicKey } from 'o1js';
 import { 
   RegistryInfo,
   GlobalComplianceStats
-} from '../../contracts/with-sign/GLEIFOptimMultiCompanySmartContract.js';
+} from '../../contracts/complaince/GLEIF/GLEIFOptimMultiCompanySmartContract.js';
 import {
   GLEIFOptimComplianceData
-} from '../../zk-programs/with-sign/GLEIFOptimZKProgram.js';
+} from '../../zk-programs/compliance/GLEIFOptimZKProgram.js';
 import { safeLogSmartContractState } from './SafeStateRetrieval.js';
 import { safeLogSmartContractStateLocal } from './SafeStateRetrievalLocal.js';
 import { environmentManager } from '../../infrastructure/index.js';

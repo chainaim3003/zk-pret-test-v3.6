@@ -8,15 +8,15 @@ import {
   CorporateRegistrationMerkleWitness8, 
   CORP_REG_MERKLE_TREE_HEIGHT,
   CORP_REG_FIELD_INDICES 
-} from '../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js';
-import { CorporateRegistrationOptimSingleCompanySmartContract } from '../../contracts/with-sign/CorporateRegistrationOptimSingleCompanySmartContract.js';
+} from '../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
+import { CorporateRegistrationOptimSingleCompanySmartContract } from '../../contracts/complaince/CorpReg/CorporateRegistrationOptimSingleCompanySmartContract.js';
 import { MCAdeployerAccount, MCAsenderAccount, MCAdeployerKey, MCAsenderKey, getPrivateKeyFor } from '../../core/OracleRegistry.js';
 import { 
   fetchCorporateRegistrationDataWithFullLogging, 
   CorporateRegistrationAPIResponse,
   extractCorporateRegistrationSummary,
   analyzeCorporateRegistrationCompliance
-} from '../utils-in-test/CorporateRegistrationCoreAPIUtils.js';
+} from '../../utils/domain/compliance/CorpReg/CorporateRegistrationCoreAPIUtils.js';
 
 // =================================== Merkle Tree Creation Functions ===================================
 

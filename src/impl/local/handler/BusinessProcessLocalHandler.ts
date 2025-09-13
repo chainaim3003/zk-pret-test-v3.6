@@ -28,7 +28,7 @@ import {
   BPMNGeneric,
   BusinessProcessIntegrityOptimMerkleData,
   BusinessProcessIntegrityOptimMerkleProof
-} from '../../../zk-programs/with-sign/BPMNGenericZKProgram.js';
+} from '../../../zk-programs/process/BPMNGenericZKProgram.js';
 
 // === INFRASTRUCTURE IMPORTS ===
 import { getPrivateKeyFor, getPublicKeyFor } from '../../../core/OracleRegistry.js';

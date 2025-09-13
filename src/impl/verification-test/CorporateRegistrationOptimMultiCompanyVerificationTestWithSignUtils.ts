@@ -8,20 +8,20 @@ import {
   CorporateRegistrationMerkleWitness8, 
   CORP_REG_MERKLE_TREE_HEIGHT,
   CORP_REG_FIELD_INDICES 
-} from '../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js';
+} from '../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
 import { 
   CorporateRegistrationOptimMultiCompanySmartContract,
   CorporateRegistrationCompanyRecord,
   CompanyMerkleWitness,
   COMPANY_MERKLE_HEIGHT
-} from '../../contracts/with-sign/CorporateRegistrationOptimMultiCompanySmartContract.js';
+} from '../../contracts/complaince/CorpReg/CorporateRegistrationOptimMultiCompanySmartContract.js';
 import { MCAdeployerAccount, MCAsenderAccount, MCAdeployerKey, MCAsenderKey, getPrivateKeyFor } from '../../core/OracleRegistry.js';
 import { 
   fetchCorporateRegistrationDataWithFullLogging, 
   CorporateRegistrationAPIResponse,
   extractCorporateRegistrationSummary,
   analyzeCorporateRegistrationCompliance
-} from '../utils-in-test/CorporateRegistrationCoreAPIUtils.js';
+} from '../../utils/domain/compliance/CorpReg/CorporateRegistrationCoreAPIUtils.js';
 
 // =================================== Multi-Company Registry Management ===================================
 

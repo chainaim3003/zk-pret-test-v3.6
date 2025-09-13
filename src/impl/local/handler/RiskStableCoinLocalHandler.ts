@@ -25,14 +25,14 @@ import {
     calculateStableCoinRiskMetrics,
     validateStableCoinRiskData,
     generateStableCoinRiskSummary
-} from '../../../utils/RiskLiquidityStableCoinOptimMerkleUtils.js';
-import { loadContractPortfolio } from '../../../utils/ACTUSOptimMerkleAPI.js';
+} from '../../../utils/optimerkle/domain/risk/stablecoin/RiskLiquidityStableCoinOptimMerkleUtils.js';
+import { loadContractPortfolio } from '../../../utils/optimerkle/domain/risk/ACTUSOptimMerkleAPI.js';
 import {
     RiskLiquidityStableCoinOptimMerkleZKProgramWithSign,
     createStableCoinRiskComplianceData,
     validateStableCoinRiskComplianceData
-} from '../../../zk-programs/with-sign/RiskLiquidityStableCoinOptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityStableCoinOptimMerkleSmartContract } from '../../../contracts/with-sign/RiskLiquidityStableCoinOptimMerkleSmartContract.js';
+} from '../../../zk-programs/risk/RiskLiquidityStableCoinOptimMerkleZKProgramWithSign.js';
+import { RiskLiquidityStableCoinOptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityStableCoinOptimMerkleSmartContract.js';
 
 export interface StableCoinRiskParams {
     backingRatioThreshold: number;
@@ -336,7 +336,7 @@ export class RiskStableCoinLocalHandler {
         console.log(`\n🏠 LOCAL REGULATORY COMPLIANCE ASSESSMENT:`);
         
         // PRESERVE EXACT WORKING PATTERN from StableCoin implementation
-        const { validateRegulatoryCompliance } = await import('../../../utils/ConfigurableRegulatoryFrameworks.js');
+        const { validateRegulatoryCompliance } = await import('../../../utils/domain/risk/ConfigurableRegulatoryFrameworks.js');
         const result = await validateRegulatoryCompliance(contracts, jurisdiction);
         
         // PRESERVE EXACT LOGGING PATTERN from working code with LOCAL prefix

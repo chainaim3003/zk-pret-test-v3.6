@@ -13,18 +13,18 @@ import { ComplianceVerificationBase } from '../../verification-base/ComplianceVe
 import { 
   CorporateRegistrationOptim, 
   CorporateRegistrationOptimComplianceData 
-} from '../../../zk-programs/with-sign/CorporateRegistrationOptimZKProgram.js';
+} from '../../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
 
 import { 
   CorporateRegistrationOptimMultiCompanySmartContract
-} from '../../../contracts/with-sign/CorporateRegistrationOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/CorpReg/CorporateRegistrationOptimMultiCompanySmartContract.js';
 
 // API utilities
 import { 
   fetchCorporateRegistrationDataWithFullLogging, 
   analyzeCorporateRegistrationCompliance,
   createComprehensiveCorporateRegistrationMerkleTree
-} from '../../utils-in-test/CorporateRegistrationCoreAPIUtils.js';
+} from '../../../utils/domain/compliance/CorpReg/CorporateRegistrationCoreAPIUtils.js';
 
 // LOCAL blockchain setup
 import { Field, Mina, PrivateKey, AccountUpdate, MerkleTree, UInt64, CircuitString, Signature } from 'o1js';

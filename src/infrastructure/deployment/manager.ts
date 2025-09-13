@@ -19,7 +19,7 @@ import { Mina, PrivateKey, PublicKey, AccountUpdate, UInt64, Permissions } from 
 import { environmentManager } from '../environment/manager.js';
 import { OracleRegistryFactory } from '../oracle/factory.js';
 import { calculateOptimalFee } from '../../utils/transaction/TransactionMonitor.js';
-import { loopUntilAccountExists, verifyDeploymentWithAccountWaiting } from '../../utils/AccountWaitingUtils.js';
+import { loopUntilAccountExists, verifyDeploymentWithAccountWaiting } from '../../utils/core/AccountWaitingUtils.js';
 
 export interface DeploymentResult {
   contractAddress: string;

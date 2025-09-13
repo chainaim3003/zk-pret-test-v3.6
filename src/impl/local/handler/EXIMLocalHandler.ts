@@ -20,13 +20,13 @@ import {
   EXIMMerkleWitness8, 
   EXIM_MERKLE_TREE_HEIGHT,
   EXIM_FIELD_INDICES 
-} from '../../../zk-programs/with-sign/EXIMOptimZKProgram.js';
+} from '../../../zk-programs/compliance/EXIMOptimZKProgram.js';
 import { 
   EXIMOptimMultiCompanySmartContract,
   EXIMCompanyRecord,
   CompanyMerkleWitness,
   COMPANY_MERKLE_HEIGHT
-} from '../../../contracts/with-sign/EXIMOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/EXIM/EXIMOptimMultiCompanySmartContract.js';
 import { EXIMdeployerAccount, EXIMsenderAccount, EXIMdeployerKey, EXIMsenderKey, getPrivateKeyFor } from '../../../core/OracleRegistry.js';
 
 // === USE SHARED API UTILITIES (REFACTORED) ===
@@ -40,7 +40,7 @@ import {
   createOptimizedEXIMComplianceData,
   createCompanyRecord,
   EXIM_FIELD_INDICES as SHARED_FIELD_INDICES
-} from '../../utils-in-test/EXIMCoreAPIUtils.js';
+} from '../../../utils/domain/compliance/EXIM/EXIMCoreAPIUtils.js';
 
 // =================================== LOCAL VERIFICATION FUNCTION ===================================
 
