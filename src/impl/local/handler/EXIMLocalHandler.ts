@@ -20,13 +20,13 @@ import {
   EXIMMerkleWitness8, 
   EXIM_MERKLE_TREE_HEIGHT,
   EXIM_FIELD_INDICES 
-} from '../../../zk-programs/compliance/EXIMOptimZKProgram.js';
+} from '../../../zk-programs/compliance/EXIMZKProgram.js';
 import { 
   EXIMOptimMultiCompanySmartContract,
   EXIMCompanyRecord,
   CompanyMerkleWitness,
   COMPANY_MERKLE_HEIGHT
-} from '../../../contracts/complaince/EXIM/EXIMOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/EXIM/EXIMMultiSmartContract.js';
 import { EXIMdeployerAccount, EXIMsenderAccount, EXIMdeployerKey, EXIMsenderKey, getPrivateKeyFor } from '../../../core/OracleRegistry.js';
 
 // === USE SHARED API UTILITIES (REFACTORED) ===

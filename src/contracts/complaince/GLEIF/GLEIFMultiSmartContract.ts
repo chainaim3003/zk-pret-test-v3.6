@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Bool, CircuitString, UInt64, Struct, MerkleWitness, MerkleTree, Poseidon, MerkleMap, MerkleMapWitness, Provable } from 'o1js';
-import { GLEIFOptimProof } from '../../../zk-programs/compliance/GLEIFOptimZKProgram.js';
+import { GLEIFOptimProof } from '../../../zk-programs/compliance/GLEIFZKProgram.js';
 
 // =================================== Merkle Tree Configuration ===================================
 export const COMPANY_MERKLE_HEIGHT = 8; // Height 8 for up to 256 companies

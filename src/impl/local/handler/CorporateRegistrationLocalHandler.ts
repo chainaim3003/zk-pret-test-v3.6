@@ -13,11 +13,11 @@ import { ComplianceVerificationBase } from '../../verification-base/ComplianceVe
 import { 
   CorporateRegistrationOptim, 
   CorporateRegistrationOptimComplianceData 
-} from '../../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
+} from '../../../zk-programs/compliance/CorporateRegistrationZKProgram.js';
 
 import { 
   CorporateRegistrationOptimMultiCompanySmartContract
-} from '../../../contracts/complaince/CorpReg/CorporateRegistrationOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/CorpReg/CorporateRegistrationMultiSmartContract.js';
 
 // API utilities
 import { 

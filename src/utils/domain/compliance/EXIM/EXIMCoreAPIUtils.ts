@@ -17,11 +17,11 @@ import {
   EXIMMerkleWitness8, 
   EXIM_MERKLE_TREE_HEIGHT,
   EXIM_FIELD_INDICES 
-} from '../../../../zk-programs/compliance/EXIMOptimZKProgram.js';
+} from '../../../../zk-programs/compliance/EXIMZKProgram.js';
 import { 
   EXIMCompanyRecord,
   COMPANY_MERKLE_HEIGHT
-} from '../../../../contracts/complaince/EXIM/EXIMOptimMultiCompanySmartContract.js';
+} from '../../../../contracts/complaince/EXIM/EXIMMultiSmartContract.js';
 
 // =================================== EXIM API INTERFACES ===================================
 

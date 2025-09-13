@@ -29,8 +29,8 @@ import {
     createBasel3RiskComplianceData,
     validateBasel3RiskComplianceData,
     MerkleWitness8
-} from '../../../zk-programs/risk/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityBasel3OptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityBasel3OptimMerkleSmartContract.js';
+} from '../../../zk-programs/risk/RiskLiquidityBasel3MerkleZKProgram.js';
+import { RiskLiquidityBasel3OptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityBasel3SmartContract.js';
 
 export interface Basel3RiskParams {
     lcrThreshold: number;

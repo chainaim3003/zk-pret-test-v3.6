@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State, method, Bool, CircuitString, UInt64 } from 'o1js';
-import { EXIMOptimProof } from '../../../zk-programs/compliance/EXIMOptimZKProgram.js';
+import { EXIMOptimProof } from '../../../zk-programs/compliance/EXIMZKProgram.js';
 
 export class EXIMOptimSmartContract extends SmartContract {
    // =================================== State Variables ===================================

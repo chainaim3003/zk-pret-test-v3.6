@@ -16,7 +16,7 @@ import {
   Basel3HQLA,
   convertToGenericFormat
 } from '../../../../domain/risk/basel3/GenericTemporalRiskFramework.js';
-import { ACTUSDatao1 } from '../../../../../zk-programs/risk/RiskLiquidityACTUSZKProgram_basel3_Withsign.js';
+import { ACTUSDatao1 } from '../../../../../zk-programs/risk/RiskLiquidityACTUSZKProgram_basel3.js';
 import { getBasel3ContractPortfolio } from '../ACTUSOptimMerkleAPI.js';
 
 // =================================== Basel3 Risk Processor ===================================

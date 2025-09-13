@@ -40,14 +40,14 @@ import {
   EXIMOptim, 
   EXIMOptimComplianceData, 
   EXIMMerkleWitness8 
-} from '../../../zk-programs/compliance/EXIMOptimZKProgram.js';
+} from '../../../zk-programs/compliance/EXIMZKProgram.js';
 import { 
   EXIMOptimMultiCompanySmartContract, 
   COMPANY_MERKLE_HEIGHT, 
   CompanyMerkleWitness, 
   EXIMCompanyRecord ,
   CompanyKey
-} from '../../../contracts/complaince/EXIM/EXIMOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/EXIM/EXIMMultiSmartContract.js';
 
 // === INFRASTRUCTURE IMPORTS ===
 import { 

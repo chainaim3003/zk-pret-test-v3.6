@@ -26,8 +26,8 @@ import {
     RiskLiquidityAdvancedOptimMerkleZKProgramWithSign,
     createAdvancedRiskComplianceData,
     validateAdvancedRiskComplianceData
-} from '../../zk-programs/risk/RiskLiquidityAdvancedOptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityAdvancedOptimMerkleSmartContract } from '../../contracts/risk/RiskLiquidityAdvancedOptimMerkleSmartContract.js';
+} from '../../zk-programs/risk/RiskLiquidityAdvancedMerkleZKProgram.js';
+import { RiskLiquidityAdvancedOptimMerkleSmartContract } from '../../contracts/risk/RiskLiquidityAdvancedSmartContract.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

@@ -8,13 +8,13 @@ import {
   CorporateRegistrationMerkleWitness8, 
   CORP_REG_MERKLE_TREE_HEIGHT,
   CORP_REG_FIELD_INDICES 
-} from '../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
+} from '../../zk-programs/compliance/CorporateRegistrationZKProgram.js';
 import { 
   CorporateRegistrationOptimMultiCompanySmartContract,
   CorporateRegistrationCompanyRecord,
   CompanyMerkleWitness,
   COMPANY_MERKLE_HEIGHT
-} from '../../contracts/complaince/CorpReg/CorporateRegistrationOptimMultiCompanySmartContract.js';
+} from '../../contracts/complaince/CorpReg/CorporateRegistrationMultiSmartContract.js';
 import { MCAdeployerAccount, MCAsenderAccount, MCAdeployerKey, MCAsenderKey, getPrivateKeyFor } from '../../core/OracleRegistry.js';
 import { 
   fetchCorporateRegistrationDataWithFullLogging, 

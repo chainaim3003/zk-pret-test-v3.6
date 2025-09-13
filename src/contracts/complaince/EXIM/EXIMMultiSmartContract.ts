@@ -1,5 +1,5 @@
 import { Field, SmartContract, state, State,MerkleMap, method, Bool,Provable,MerkleMapWitness, CircuitString, UInt64, Struct, MerkleWitness, MerkleTree, Poseidon } from 'o1js';
-import { EXIMOptimProof } from '../../../zk-programs/compliance/EXIMOptimZKProgram.js';
+import { EXIMOptimProof } from '../../../zk-programs/compliance/EXIMZKProgram.js';
 
 // =================================== Merkle Tree Configuration ===================================
 export const COMPANY_MERKLE_HEIGHT = 8; // Height 8 for up to 256 companies

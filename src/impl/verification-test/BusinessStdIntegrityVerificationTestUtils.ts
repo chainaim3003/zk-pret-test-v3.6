@@ -1,6 +1,6 @@
 import { Field, Mina, PrivateKey, AccountUpdate, CircuitString, Poseidon, Signature, Bool, UInt64 } from 'o1js';
-import { BusinessStdIntegrityOptimMerkleVerifier, BusinessStdIntegrityOptimMerklePublicOutput } from '../../zk-programs/process/BusinessStdIntegrityOptimMerkleZKProgramWithSign.js';
-import { BusinessStdIntegrityOptimMerkleSmartContract } from '../../contracts/process/BusinessStdIntegrityOptimMerkleSmartContract.js';
+import { BusinessStdIntegrityOptimMerkleVerifier, BusinessStdIntegrityOptimMerklePublicOutput } from '../../zk-programs/process/BusinessStdIntegrityZKProgram.js';
+import { BusinessStdIntegrityOptimMerkleSmartContract } from '../../contracts/process/BusinessStdIntegrityMerkleSmartContract.js';
 import { BusinessStdMerkleTree, BusinessStdMerkleUtils } from '../../utils/optimerkle/domain/process/dataIntegrity/BusinessStdIntegrityOptimMerkleUtils.js';
 import { getPrivateKeyFor, getPublicKeyFor } from '../../core/OracleRegistry.js';
 import { BlockchainManager } from '../../infrastructure/blockchain/BlockchainManager.js';

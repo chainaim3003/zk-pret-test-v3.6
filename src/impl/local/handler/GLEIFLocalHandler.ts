@@ -12,10 +12,10 @@ import {
   GLEIFOptim, 
   GLEIFOptimComplianceData, 
   MerkleWitness8
-} from '../../../zk-programs/compliance/GLEIFOptimZKProgram.js';
+} from '../../../zk-programs/compliance/GLEIFZKProgram.js';
 import { 
   GLEIFOptimMultiCompanySmartContract
-} from '../../../contracts/complaince/GLEIF/GLEIFOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/GLEIF/GLEIFMultiSmartContract.js';
 import { 
   getGleifDeployerAccount, 
   getGleifSenderAccount, 

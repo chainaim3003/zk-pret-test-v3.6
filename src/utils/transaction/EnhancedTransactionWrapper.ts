@@ -10,8 +10,8 @@ import {
   GLEIFOptimMultiCompanySmartContract,
   GLEIFCompanyRecord, 
   CompanyMerkleWitness 
-} from '../../contracts/complaince/GLEIF/GLEIFOptimMultiCompanySmartContract.js';
-import { GLEIFOptimComplianceData } from '../../zk-programs/compliance/GLEIFOptimZKProgram.js';
+} from '../../contracts/complaince/GLEIF/GLEIFMultiSmartContract.js';
+import { GLEIFOptimComplianceData } from '../../zk-programs/compliance/GLEIFZKProgram.js';
 import { BaseVerificationCore } from '../../impl/verification-base/BaseVerificationCore.js';
 
 /**

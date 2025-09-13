@@ -39,8 +39,8 @@ import {
     createAdvancedRiskComplianceData,
     validateAdvancedRiskComplianceData,
     MerkleWitness8
-} from '../../../zk-programs/risk/RiskLiquidityAdvancedOptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityAdvancedOptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityAdvancedOptimMerkleSmartContract.js';
+} from '../../../zk-programs/risk/RiskLiquidityAdvancedMerkleZKProgram.js';
+import { RiskLiquidityAdvancedOptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityAdvancedSmartContract.js';
 
 export interface AdvancedRiskParams {
     liquidityThreshold: number;

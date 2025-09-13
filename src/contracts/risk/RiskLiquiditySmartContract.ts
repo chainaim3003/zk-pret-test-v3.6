@@ -8,9 +8,9 @@
  */
 
 import { Field, SmartContract, state, State, method, Bool } from 'o1js';
-import { RiskLiquidityAdvancedOptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityAdvancedOptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityBasel3OptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityStableCoinOptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityStableCoinOptimMerkleZKProgramWithSign.js';
+import { RiskLiquidityAdvancedOptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityAdvancedMerkleZKProgram.js';
+import { RiskLiquidityBasel3OptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityBasel3MerkleZKProgram.js';
+import { RiskLiquidityStableCoinOptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityStableCoinZKProgram.js';
 
 export class RiskLiquidityOptimMerkleSmartContract extends SmartContract {
     // =================================== State Variables ===================================

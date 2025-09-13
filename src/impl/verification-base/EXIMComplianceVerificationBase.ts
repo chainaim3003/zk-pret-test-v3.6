@@ -8,10 +8,10 @@ import { Field, Bool, UInt64, PublicKey } from 'o1js';
 import { 
   RegistryInfo,
   GlobalComplianceStats
-} from '../../contracts/complaince/EXIM/EXIMOptimMultiCompanySmartContract.js';
+} from '../../contracts/complaince/EXIM/EXIMMultiSmartContract.js';
 import {
   EXIMOptimComplianceData
-} from '../../zk-programs/compliance/EXIMOptimZKProgram.js';
+} from '../../zk-programs/compliance/EXIMZKProgram.js';
 import { safeLogSmartContractState } from './SafeStateRetrieval.js';
 import { safeLogSmartContractStateLocal } from './SafeStateRetrievalLocal.js';
 import { environmentManager } from '../../infrastructure/index.js';

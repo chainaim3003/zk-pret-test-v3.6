@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import axios from 'axios';
 import { Field, CircuitString, Poseidon, MerkleTree } from 'o1js';
-import { CORP_REG_FIELD_INDICES } from '../../../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
+import { CORP_REG_FIELD_INDICES } from '../../../../zk-programs/compliance/CorporateRegistrationZKProgram.js';
 
 // =================================== Corporate Registration API Response Interface ===================================
 interface CorporateRegistrationAPIResponse {

@@ -34,7 +34,7 @@ import {
 import { getPrivateKeyFor, getPublicKeyFor } from '../../../core/OracleRegistry.js';
 
 // === UTILITY IMPORTS ===
-import { BusinessProcessIntegrityOptimMerkleTestUtils } from '../../verification-test/BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSignUtils.js';
+import { BusinessProcessIntegrityOptimMerkleTestUtils } from '../../verification-test/BusinessProcessIntegrityVerificationFileTestUtils.js';
 
 // === TYPES ===
 interface ZKVerificationResult {

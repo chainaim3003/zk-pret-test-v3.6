@@ -40,7 +40,7 @@ import {
   GLEIFOptimComplianceData, 
   MerkleWitness8, 
   MERKLE_TREE_HEIGHT 
-} from '../../../zk-programs/compliance/GLEIFOptimZKProgram.js';
+} from '../../../zk-programs/compliance/GLEIFZKProgram.js';
 
 import { 
   GLEIFOptimMultiCompanySmartContract,
@@ -50,7 +50,7 @@ import {
   CompanyMerkleWitness,
   CompanyKey,
   GLEIFCompanyRecord
-} from '../../../contracts/complaince/GLEIF/GLEIFOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/GLEIF/GLEIFMultiSmartContract.js';
 
 // === INFRASTRUCTURE IMPORTS ===
 import { 

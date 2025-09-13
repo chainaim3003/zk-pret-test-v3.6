@@ -8,8 +8,8 @@ import {
   EXIMMerkleWitness8, 
   EXIM_MERKLE_TREE_HEIGHT,
   EXIM_FIELD_INDICES 
-} from '../../zk-programs/compliance/EXIMOptimZKProgram.js';
-import { EXIMOptimSingleCompanySmartContract } from '../../contracts/complaince/EXIM/EXIMOptimSingleCompanySmartContract.js';
+} from '../../zk-programs/compliance/EXIMZKProgram.js';
+import { EXIMOptimSingleCompanySmartContract } from '../../contracts/complaince/EXIM/EXIMSingleSmartContract.js';
 import { EXIMdeployerAccount, EXIMsenderAccount, EXIMdeployerKey, EXIMsenderKey, getPrivateKeyFor } from '../../core/OracleRegistry.js';
 import { 
   fetchEXIMDataWithFullLogging, 

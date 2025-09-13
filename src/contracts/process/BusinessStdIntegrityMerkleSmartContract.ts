@@ -1,5 +1,5 @@
 import { SmartContract, state, State, method, Field, Bool, UInt64 } from 'o1js';
-import { BusinessStdIntegrityOptimMerkleProof } from '../../zk-programs/process/BusinessStdIntegrityOptimMerkleZKProgramWithSign.js';
+import { BusinessStdIntegrityOptimMerkleProof } from '../../zk-programs/process/BusinessStdIntegrityZKProgram.js';
 
 export class BusinessStdIntegrityOptimMerkleSmartContract extends SmartContract {
   // State to track verification results

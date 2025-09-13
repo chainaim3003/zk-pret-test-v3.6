@@ -31,8 +31,8 @@ import {
     RiskLiquidityStableCoinOptimMerkleZKProgramWithSign,
     createStableCoinRiskComplianceData,
     validateStableCoinRiskComplianceData
-} from '../../../zk-programs/risk/RiskLiquidityStableCoinOptimMerkleZKProgramWithSign.js';
-import { RiskLiquidityStableCoinOptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityStableCoinOptimMerkleSmartContract.js';
+} from '../../../zk-programs/risk/RiskLiquidityStableCoinZKProgram.js';
+import { RiskLiquidityStableCoinOptimMerkleSmartContract } from '../../../contracts/risk/RiskLiquidityStableCoinSmartContract.js';
 
 export interface StableCoinRiskParams {
     backingRatioThreshold: number;

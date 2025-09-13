@@ -16,13 +16,13 @@ import {
   CorporateRegistrationOptimComplianceData, 
   CorporateRegistrationMerkleWitness8, 
   CORP_REG_MERKLE_TREE_HEIGHT 
-} from '../../../zk-programs/compliance/CorporateRegistrationOptimZKProgram.js';
+} from '../../../zk-programs/compliance/CorporateRegistrationZKProgram.js';
 
 import { 
   CorporateRegistrationOptimMultiCompanySmartContract,
   CompanyMerkleWitness,
   COMPANY_MERKLE_HEIGHT
-} from '../../../contracts/complaince/CorpReg/CorporateRegistrationOptimMultiCompanySmartContract.js';
+} from '../../../contracts/complaince/CorpReg/CorporateRegistrationMultiSmartContract.js';
 
 // API utilities
 import { 

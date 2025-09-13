@@ -63,7 +63,7 @@ import {
 // === API UTILITIES ===
 import { 
   BusinessProcessIntegrityOptimMerkleTestUtils 
-} from '../../verification-test/BusinessProcessIntegrityOptimMerkleVerificationFileTestWithSignUtils.js';
+} from '../../verification-test/BusinessProcessIntegrityVerificationFileTestUtils.js';
 
 // === ORACLE KEY MANAGEMENT ===
 import { getPrivateKeyFor, getPublicKeyFor } from '../../../core/OracleRegistry.js';

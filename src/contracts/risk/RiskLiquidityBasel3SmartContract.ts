@@ -8,7 +8,7 @@
  */
 
 import { Field, SmartContract, state, State, method, Provable } from 'o1js';
-import { RiskLiquidityBasel3OptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityBasel3OptimMerkleZKProgramWithSign.js';
+import { RiskLiquidityBasel3OptimMerkleProof } from '../../zk-programs/risk/RiskLiquidityBasel3MerkleZKProgram.js';
 
 export class RiskLiquidityBasel3OptimMerkleSmartContract extends SmartContract {
     @state(Field) riskComplianceStatus = State<Field>();           // Main compliance status (100 = not verified, 90 = verified)
